@@ -1,0 +1,210 @@
+plugins {
+    id 'fabric-loom' version '1.17.12'
+    id 'maven-publish'
+}
+
+def buildIteration = System.getenv("BUILD_NUMBER") ?: System.getenv("GITHUB_RUN_NUMBER")
+if (!buildIteration) {
+    try {
+        buildIteration = ["git", "rev-list", "--count", "HEAD"].execute(null, rootDir).text.trim()
+    } catch (Exception ignored) {
+    }
+}
+if (!buildIteration) {
+    buildIteration = new Date().format("yyyyMMddHHmmss")
+}
+
+version = "${project.mod_version}.${buildIteration}"
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "deadrecall" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+
+    runs {
+        client {
+            client()
+            setConfigName("Minecraft Client")
+            ideConfigGenerated(true)
+            runDir("run")
+        }
+        server {
+            server()
+            setConfigName("Minecraft Server")
+            ideConfigGenerated(true)
+            runDir("run")
+        }
+    }
+}
+
+fabricApi {
+    configureDataGeneration {
+        client = true
+    }
+}
+
+repositories {
+    maven {
+        url = "https://repo.codemc.io/repository/relativitymc/"
+    }
+}
+
+dependencies {
+    // To change the versions see the gradle.properties file
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings "org.relativitymc:modern-yarn:${project.yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+    compileOnly "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    runtimeOnly "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+    // Gson for JSON parsing (used in DiscordBridge)
+    // Use Minecraft's built-in Gson instead of bundling it
+    // This is simpler and avoids version conflicts
+    compileOnly 'com.google.code.gson:gson:2.10.1'
+}
+
+tasks.register("normalizeFabricApiTweakers") {
+    group = "fabric"
+    description = "Normalizes Fabric API tweaker namespaces for modern-yarn dev runtime."
+
+    doLast {
+        def jarFiles = configurations.runtimeClasspath.resolve().findAll { file ->
+            file.name.endsWith(".jar") && file.absolutePath.contains("${File.separator}net.fabricmc.fabric-api${File.separator}")
+        }
+
+        int patchedFiles = 0
+        int patchedEntries = 0
+
+        jarFiles.each { File jarFile ->
+            File tempFile = new File(buildDir, "tmp/tweaker-normalized/${jarFile.name}.tmp")
+            tempFile.parentFile.mkdirs()
+            boolean fileChanged = false
+
+            def zipFile = new java.util.zip.ZipFile(jarFile)
+            def zipOut = new java.util.zip.ZipOutputStream(new java.io.BufferedOutputStream(new java.io.FileOutputStream(tempFile)))
+
+            try {
+                def entries = zipFile.entries()
+                while (entries.hasMoreElements()) {
+                    def entry = entries.nextElement()
+                    def outEntry = new java.util.zip.ZipEntry(entry.name)
+                    zipOut.putNextEntry(outEntry)
+
+                    byte[] bytes = entry.isDirectory() ? new byte[0] : zipFile.getInputStream(entry).bytes
+                    if (!entry.isDirectory() && (entry.name.endsWith(".classtweaker") || entry.name.endsWith(".accesswidener"))) {
+                        String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8)
+                        String normalized = text
+                                .replaceFirst(/(?m)^(classTweaker\s+v\d+\s+)official(\s*)$/, '$1named$2')
+                                .replaceFirst(/(?m)^(accessWidener\s+v\d+\s+)official(\s*)$/, '$1named$2')
+
+                        if (normalized != text) {
+                            bytes = normalized.getBytes(java.nio.charset.StandardCharsets.UTF_8)
+                            fileChanged = true
+                            patchedEntries++
+                        }
+                    }
+
+                    zipOut.write(bytes)
+                    zipOut.closeEntry()
+                }
+            } finally {
+                zipOut.close()
+                zipFile.close()
+            }
+
+            if (fileChanged) {
+                java.nio.file.Files.move(
+                        tempFile.toPath(),
+                        jarFile.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                )
+                patchedFiles++
+            } else {
+                tempFile.delete()
+            }
+        }
+
+        logger.lifecycle("Normalized ${patchedEntries} Fabric API tweaker entries in ${patchedFiles} jars.")
+    }
+}
+
+tasks.named("generateRemapClasspath").configure {
+    dependsOn("normalizeFabricApiTweakers")
+}
+
+tasks.named("runClient").configure {
+    dependsOn("normalizeFabricApiTweakers")
+}
+
+tasks.named("runServer").configure {
+    dependsOn("normalizeFabricApiTweakers")
+}
+
+processResources {
+
+    inputs.property "version", project.version
+    inputs.property "minecraft_version", project.minecraft_version
+    inputs.property "loader_version", project.loader_version
+    filteringCharset "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand "version": project.version,
+                "minecraft_version": project.minecraft_version,
+                "loader_version": project.loader_version
+    }
+}
+
+def targetJavaVersion = 25
+tasks.withType(JavaCompile).configureEach {
+    // ensure that the encoding is set to UTF-8, no matter what the system default is
+    // this fixes some edge cases with special characters not displaying correctly
+    // see http://yodaconditions.net/blog/fix-for-java-file-encoding-problems-with-gradle.html
+    // If Javadoc is generated, this must be specified in that task too.
+    it.options.encoding = "UTF-8"
+    if (targetJavaVersion >= 10 || JavaVersion.current().isJava10Compatible()) {
+        it.options.release.set(targetJavaVersion)
+    }
+}
+
+java {
+    def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+    if (JavaVersion.current() < javaVersion) {
+        toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+    }
+    // MC 26.x uses an unobfuscated toolchain; avoid sources remap in this project setup.
+}
+
+jar {
+    from("LICENSE.txt") {
+        rename { "${it}_${project.archives_base_name}" }
+    }
+}
+
+// configure the maven publication
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = project.archives_base_name
+            from components.java
+        }
+    }
+
+    // See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+    repositories {
+        // Add repositories to publish to here.
+        // Notice: This block does NOT have the same function as the block in the top level.
+        // The repositories here will be used for publishing your artifact, not for
+        // retrieving dependencies.
+    }
+}
