@@ -5,14 +5,18 @@ import com.adaptor.deadrecall.block.ModBlocks;
 import com.adaptor.deadrecall.block.entity.ModBlockEntities;
 import com.adaptor.deadrecall.item.BackpackItemHelper;
 import com.adaptor.deadrecall.item.ModItems;
+import com.adaptor.deadrecall.item.copper.CopperGolemLlmService;
 import com.adaptor.deadrecall.item.copper.CopperGolemWrenchHandler;
 import com.adaptor.deadrecall.network.CopperGolemOperationPayload;
 import com.adaptor.deadrecall.network.CopperWrenchBindingsPayload;
 import com.adaptor.deadrecall.network.DiscordConfigSyncPayload;
 import com.adaptor.deadrecall.network.ManageDiscordChannelPayload;
 import com.adaptor.deadrecall.network.RequestDiscordConfigPayload;
+import com.adaptor.deadrecall.network.SaveCopperGolemLlmConfigPayload;
 import com.adaptor.deadrecall.network.SortBackpackPayload;
 import com.adaptor.deadrecall.network.SaveDiscordConfigPayload;
+import com.adaptor.deadrecall.network.TestCopperGolemLlmConnectionPayload;
+import com.adaptor.deadrecall.network.UpdateCopperGolemBindingLlmPayload;
 import com.adaptor.deadrecall.recipe.ModRecipes;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -53,6 +57,7 @@ public class Deadrecall implements ModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("DeadRecall");
     private static final int BOOKSHELF_REPLACE_INTERVAL_TICKS = 20;
     private static int bookshelfReplaceTicker = 0;
+    private static MinecraftServer discordStatusOpenServer = null;
 
     @Override
     public void onInitialize() {
@@ -78,6 +83,12 @@ public class Deadrecall implements ModInitializer {
                 SortBackpackPayload.TYPE, SortBackpackPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(
                 CopperGolemOperationPayload.TYPE, CopperGolemOperationPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                SaveCopperGolemLlmConfigPayload.TYPE, SaveCopperGolemLlmConfigPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                TestCopperGolemLlmConnectionPayload.TYPE, TestCopperGolemLlmConnectionPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                UpdateCopperGolemBindingLlmPayload.TYPE, UpdateCopperGolemBindingLlmPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(
                 DiscordConfigSyncPayload.TYPE, DiscordConfigSyncPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(
@@ -159,6 +170,50 @@ public class Deadrecall implements ModInitializer {
                 (payload, context) -> context.server().execute(() ->
                         CopperGolemWrenchHandler.setTransportEnabledFromUi(context.player(), payload.golemId(), payload.running())));
 
+        ServerPlayNetworking.registerGlobalReceiver(SaveCopperGolemLlmConfigPayload.TYPE,
+                (payload, context) -> context.server().execute(() -> {
+                    ServerPlayer player = context.player();
+                    if (!canManageDiscordBridge(player)) {
+                        player.sendSystemMessage(Component.literal("§c你沒有權限修改 LLM API 設定！"));
+                        LOGGER.warn("[CopperGolemLLM] 玩家 {} 嘗試未授權修改設定", player.getName().getString());
+                        return;
+                    }
+
+                    CopperGolemWrenchHandler.setGolemLlmConfigFromUi(player, payload.golemId(), payload.apiUrl(), payload.apiKey(), payload.model());
+                    player.sendSystemMessage(Component.literal("§a銅魁儡 LLM API 設定已更新"));
+                }));
+
+        ServerPlayNetworking.registerGlobalReceiver(TestCopperGolemLlmConnectionPayload.TYPE,
+                (payload, context) -> context.server().execute(() -> {
+                    ServerPlayer player = context.player();
+                    if (!canManageDiscordBridge(player)) {
+                        player.sendSystemMessage(Component.literal("§c你沒有權限測試 LLM API 設定！"));
+                        LOGGER.warn("[CopperGolemLLM] 玩家 {} 嘗試未授權測試連線", player.getName().getString());
+                        return;
+                    }
+
+                    CopperGolemLlmService.testConnection(
+                            context.server(),
+                            player.getUUID(),
+                            payload.apiUrl(),
+                            payload.apiKey(),
+                            payload.model()
+                    );
+                }));
+
+        ServerPlayNetworking.registerGlobalReceiver(UpdateCopperGolemBindingLlmPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.setBindingLlmFromUi(
+                                context.player(),
+                                payload.golemId(),
+                                payload.dimension(),
+                                payload.x(),
+                                payload.y(),
+                                payload.z(),
+                                payload.enabled(),
+                                payload.prompt()
+                        )));
+
         // 註冊死亡背包功能 - 當玩家死亡時收集掉落物品
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, damageSource) -> {
             if (entity instanceof ServerPlayer player) {
@@ -174,10 +229,13 @@ public class Deadrecall implements ModInitializer {
             DiscordBridge.sendChatMessage(username, content);
         });
 
-        ServerLifecycleEvents.SERVER_STARTED.register(server ->
-                sendDiscordServerStatus(server, "伺服器已開啟", 20.0D, false));
+        ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+            if (server.isDedicatedServer()) {
+                notifyServerOpened(server, false);
+            }
+        });
         ServerLifecycleEvents.SERVER_STOPPING.register(server ->
-                sendDiscordServerStatus(server, "伺服器已關閉", 0.0D, true));
+                notifyServerClosed(server, true));
 
         // 清理銅魁儡失效綁定，並在整箱都無法分類時維持原地跳躍
         ServerTickEvents.END_SERVER_TICK.register(CopperGolemWrenchHandler::tickCopperGolemWrenchState);
@@ -305,7 +363,37 @@ public class Deadrecall implements ModInitializer {
         });
     }
 
-    private void sendDiscordServerStatus(MinecraftServer server, String status, double tps, boolean immediate) {
+    public static void notifyServerOpened(MinecraftServer server, boolean immediate) {
+        if (server == null) {
+            return;
+        }
+
+        synchronized (Deadrecall.class) {
+            if (discordStatusOpenServer == server) {
+                return;
+            }
+            discordStatusOpenServer = server;
+        }
+
+        sendDiscordServerStatus(server, "伺服器已開啟", 20.0D, immediate);
+    }
+
+    public static void notifyServerClosed(MinecraftServer server, boolean immediate) {
+        if (server == null) {
+            return;
+        }
+
+        synchronized (Deadrecall.class) {
+            if (discordStatusOpenServer != server) {
+                return;
+            }
+            discordStatusOpenServer = null;
+        }
+
+        sendDiscordServerStatus(server, "伺服器已關閉", 0.0D, immediate);
+    }
+
+    private static void sendDiscordServerStatus(MinecraftServer server, String status, double tps, boolean immediate) {
         int playersOnline = server.getPlayerList().getPlayerCount();
         int playersMax = server.getPlayerList().getMaxPlayers();
         String version = server.getServerVersion();

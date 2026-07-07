@@ -7,7 +7,7 @@
 ### 📊 技術資訊
 - **Minecraft 版本**：26.2
 - **模組載入器**：Fabric（需 Fabric API）
-- **當前版本**：v1.7.2
+- **當前版本**：v2.0.8
 - **授權**：BSD-3-Clause
 
 ---
@@ -20,7 +20,8 @@
 
 #### 運作方式
 - 遊戲內聊天 → Cloudflare Worker API → Discord Webhook → Discord 頻道
-- 伺服器開啟 / 關閉 → Cloudflare Worker API → Discord Webhook → Discord 頻道
+- 專用伺服器啟動 / 關閉 → Cloudflare Worker API → Discord Webhook → Discord 頻道
+- 單人世界開放為多人（LAN / Essential 類型開房）/ 關閉 → Cloudflare Worker API → Discord Webhook → Discord 頻道
 - 聊天格式：`**玩家名稱**: 訊息內容`
 - 狀態格式：`**伺服器已開啟**` 或 `**伺服器已關閉**`，並附上玩家數、版本與 TPS
 - 使用非同步傳送，不影響遊戲效能
@@ -135,9 +136,13 @@
 3. 綁定成功後，該容器會被加入這隻銅魁儡的綁定清單
 4. 選取的銅魁儡會保留在銅板手資料中，可連續右鍵多個容器加入同一隻銅魁儡
 5. 若要解除單一目標容器，先選取該銅魁儡，再左鍵點擊要解除的已綁定容器
-6. Shift+右鍵銅魁儡會開啟自訂選項 UI，顯示已綁定容器的 icon、類型、維度與座標
+6. Shift+右鍵銅魁儡會開啟自訂選項 UI，顯示已綁定容器的 icon、依玩家目前語言翻譯的類型、維度與座標
 7. Shift+左鍵銅魁儡會顯示粒子路徑，指向目前同維度且可用的所有綁定容器
 8. 綁定清單 UI 右上角可以切換這隻銅魁儡的「運作 / 停止」狀態
+9. 綁定清單 UI 的「箱子」分頁可以查看容器清單、切換每個箱子的 LLM 開關，並替每個箱子設定獨立 prompt
+10. 綁定清單 UI 的「LLM」分頁可以設定這隻銅魁儡共用的 API URL、API Key、Model，並顯示目前啟用 LLM 的箱子數量
+11. 「LLM」分頁的「測試連線」會用目前欄位送出一次最小 chat completions 請求；測試不會保存設定，成功後仍需按儲存
+12. 選取綁定箱子後，底部會用物品圖示顯示該箱子的接受/拒絕物品快取；滑鼠停在圖示上可看 item id
 
 #### 綁定規則
 | 行為 | 結果 |
@@ -149,7 +154,7 @@
 | 左鍵容器且銅板手已有選取魁儡 | 若該容器在選取魁儡的綁定清單中，移除該容器 |
 | 左鍵容器但銅板手沒有選取魁儡 | 顯示先選取銅魁儡的提示，避免誤破壞容器 |
 | 右鍵銅箱子系列（`BlockTags.COPPER_CHESTS`） | 不允許綁定；銅箱子系列只作為來源容器 |
-| Shift+右鍵銅魁儡 | 開啟自訂選項 UI，顯示綁定容器 icon、類型、維度與座標 |
+| Shift+右鍵銅魁儡 | 開啟自訂選項 UI，顯示綁定容器 icon、依玩家目前語言翻譯的類型、維度與座標 |
 | Shift+左鍵已綁定的銅魁儡 | 顯示所有同維度且可用綁定容器的粒子路徑 |
 | UI 右上角按下「停止」 | 該銅魁儡停止搬運；已有綁定仍保留 |
 | UI 右上角按下「運作」 | 該銅魁儡恢復搬運 |
@@ -174,6 +179,36 @@
 - 若已有相同物品但該堆疊已滿，仍可放入同一容器的空格
 - 單純空箱或只有空格的容器不算分類命中，避免最近空箱吃掉所有物品
 - 取物前會先掃描整個來源銅箱子；只要還有任一物品能放進任一綁定容器，就繼續搬運
+
+#### LLM 分類輔助
+- LLM API URL、API Key、Model 儲存在銅魁儡實體 `CUSTOM_DATA`，每隻銅魁儡各自共用一組設定
+- API URL 使用 OpenAI-compatible chat completions endpoint，例如 `https://api.openai.com/v1/chat/completions`
+- LLM 分頁可先按「測試連線」檢查目前 API URL、API Key、Model 是否能完成一次最小請求；測試結果會用聊天訊息回覆玩家，Qwen3/llama.cpp 這類可能回空白 content 的模型只要回應格式有效就視為連線成功
+- 每個綁定箱子都可以獨立開啟 LLM，並設定自己的 prompt 描述「什麼物品應該分到這裡」
+- 銅魁儡詢問 LLM 時會附帶內建分類參照表，讓箱子 prompt 可直接使用常見短詞，例如「礦物」、「食物」、「工具」、「作物」、「動物」、「材料」、「建材」、「畜牧」
+- 分類時會先跑原本規則：目標容器已有相同物品與相同 Data Components 時，不會詢問 LLM
+- 原本規則找不到位置時，若該箱子 LLM 已啟用且仍有可放入空格，才會檢查 LLM 快取
+- 快取會先看物品 ID，再看物品 tag；命中允許快取就會把物品分到該箱子，命中拒絕快取就跳過
+- 綁定清單 UI 會用物品圖示顯示選取箱子的接受/拒絕物品快取；滑鼠停在圖示上才顯示 item id，tag 快取仍以文字摘要顯示
+- 若沒有快取，server 會在背景執行緒詢問 LLM，本次搬運先跳過該箱子，等回覆寫回銅魁儡後下次再使用
+- LLM 回覆格式要求為 JSON：`{"match":true|false,"tags":["tag_id"]}`
+- 若 LLM 判定符合，會把物品 ID 記入允許清單，並把 LLM 回傳的相關 tag 記入允許 tag 清單
+- 若 LLM 判定不符合，會把物品 ID 記入拒絕清單，避免同一物品反覆詢問
+- 若某個箱子的 prompt 被修改，該箱子的舊 LLM 快取會清空，避免沿用舊分類規則
+- API 設定需要管理權限才可儲存；只有 OP、單人世界主人或創造權限玩家會在 GUI 收到 API Key
+- 箱子 prompt、啟用狀態與 LLM 快取會跟著銅魁儡資料保存
+
+##### 內建 LLM 分類參照表
+| 關鍵詞 | 參照範圍 |
+|--------|----------|
+| 礦物 / 礦石 / 金屬 | 礦石、粗礦、錠、粒、寶石、煤炭、紅石、青金石、石英、紫水晶、銅鐵金鑽綠寶石與獄髓材料 |
+| 食物 / 料理 | 可食用物品、麵包、生熟肉、生熟魚、水果、蔬菜、湯、燉菜、蛋糕、派、餅乾 |
+| 工具 | 鎬、斧、鏟、鋤、剪刀、釣竿、刷子、打火石、水桶、指南針、時鐘等可使用工具；不主動包含原料 |
+| 作物 / 農作物 | 種子、小麥、胡蘿蔔、馬鈴薯、甜菜根、西瓜、南瓜、甘蔗、竹子、仙人掌、可可豆、地獄疙瘩 |
+| 動物 / 動物掉落 | 肉、皮革、羊毛、羽毛、蛋、兔子皮、鱗甲、牛奶桶、墨囊等動物相關產物 |
+| 材料 / 合成材料 | 木棒、線、紙、皮革、染料、骨粉、史萊姆球、蜂巢、烈焰粉、火藥、黏土球等合成中間材料 |
+| 建材 / 方塊 / 裝飾 | 石頭、鵝卵石、深板岩、泥土、沙、礫石、木材、木板、磚、混凝土、玻璃、樓梯、半磚、牆、門、柵欄、燈籠 |
+| 畜牧 / 牧場 | 動物飼料、小麥、種子、胡蘿蔔、馬鈴薯、甜菜根、乾草捆、拴繩、命名牌、鞍、剪刀、水桶、蛋 |
 
 #### 避免重複拿同一個不能分類物品
 若銅魁儡拿起物品後，某個綁定容器找不到可用位置：
@@ -201,6 +236,8 @@
 | 本次搬運來源 | 銅魁儡實體 `CUSTOM_DATA` | 記錄來源銅箱子與來源槽位，失敗回放用 |
 | 本次已嘗試目的地 | 銅魁儡實體 `CUSTOM_DATA` | 同一個手上物品已試過哪些綁定容器 |
 | 全箱無法分類阻塞狀態 | 銅魁儡實體 `CUSTOM_DATA` | 記錄來源、綁定與目標容器快照，等待資料更新後解除 |
+| LLM API 設定 | 銅魁儡實體 `CUSTOM_DATA` | 每隻銅魁儡儲存一組共用的 API URL、API Key、Model |
+| 綁定箱子的 LLM prompt 與快取 | 銅魁儡實體 `CUSTOM_DATA` | 每個綁定容器各自儲存啟用狀態、prompt、允許/拒絕的物品 ID 與 tag |
 
 > 綁定容器數量目前沒有硬性上限；資料以清單存在銅魁儡身上。實際使用仍建議保持合理數量，避免路徑顯示與每次搜尋容器時成本過高。
 
@@ -265,6 +302,15 @@
 
 ---
 
+### 🔥 熔爐漏斗經驗
+
+- 熔爐、高爐、煙燻爐等原版熔爐類方塊，若下方漏斗從成品槽抽走燒製完成物品，會同時產生原本玩家手動拿取應得的經驗球
+- 經驗球會出現在漏斗附近
+- 只在漏斗成功搬走成品槽物品時結算，燃料槽或其他槽位不會觸發
+- 結算後會清除該熔爐已累積的 recipe 經驗記錄，避免同一批燒製經驗被重複產生
+
+---
+
 ### 📜 指令
 
 | 指令 | 權限 | 說明 |
@@ -293,12 +339,20 @@
 
 ## 📈 更新日誌
 
-### v1.7.2（當前版本）
+### v2.0.8（當前版本）
+- ✅ Discord Bridge 補齊伺服器開啟與關閉狀態提示，專用伺服器、LAN 與 Essential 類型開房都會正確回報
+- ✅ Cloudflare Worker 範例的 `/api/mc/server/status` 會實際發送 Discord Webhook 狀態訊息
+- ✅ 銅魁儡新增 OpenAI-compatible LLM 分類輔助，每隻銅魁儡可設定 API URL、API Key、Model，並提供測試連線
+- ✅ 每個綁定容器可獨立設定 LLM 開關與 prompt，銅魁儡會快取允許/拒絕的 item id 與 tag，避免重複詢問
+- ✅ 銅魁儡 UI 壓縮高度、支援非全螢幕尺寸、顯示接受/拒絕快取物品圖示，容器名稱會依玩家目前語言翻譯
+- ✅ 新增內建 LLM 分類參照表，支援礦物、食物、工具、作物、動物、材料、建材、畜牧等常用分類詞
+- ✅ 新增漏斗抽取熔爐、高爐、煙燻爐成品時自動產生該批燒製經驗球
+
+### v1.7.2
 - ✅ 新增背包整理快捷鍵（預設中鍵）
 - ✅ 新增銅板手，可讓一隻銅魁儡綁定多個分類容器
 - ✅ 新增銅魁儡分類邏輯：從銅箱子取物，放入綁定容器，找不到目標時跳過並回放
 - ✅ 新增 Discord 聊天橋接功能（Cloudflare Worker 架構）
-- ✅ 新增伺服器開啟與關閉 Discord 狀態提示
 - ✅ 新增 `/back` 死亡座標傳送指令
 - ✅ 新增硝石、豬糞、木灰、缽、帶硫磺的缽物品（硫磺改用原版）
 - ✅ 新增豬吃草生成帶豬糞泥土系列方塊，鏟子右鍵可取得豬糞
@@ -394,8 +448,9 @@ DeadRecall/
 - 伺服器關閉通知在停止流程中同步送出，降低伺服器退出太快導致訊息未送出的機率
 - 設定檔路徑：`<server>/config/discord-bridge.json`
 - API 端點：`POST {workerUrl}/api/mc/chat`、`POST {workerUrl}/api/mc/server/status`，Header：`X-API-Key`
-- 伺服器啟動時透過 `ServerLifecycleEvents.SERVER_STARTED` 回報 `伺服器已開啟`
-- 伺服器停止流程開始時透過 `ServerLifecycleEvents.SERVER_STOPPING` 回報 `伺服器已關閉`
+- 專用伺服器啟動時透過 `ServerLifecycleEvents.SERVER_STARTED` 回報 `伺服器已開啟`
+- 單人整合伺服器只有在 `MinecraftServer.publishServer(...)` 成功後才回報 `伺服器已開啟`，用來涵蓋 LAN 與 Essential 類型的開房流程
+- `MinecraftServer.unpublishServer()` 成功，或伺服器停止流程開始時，回報 `伺服器已關閉`
 
 #### 死亡背包
 - 使用 `ServerLivingEntityEvents.AFTER_DEATH` 監聽，雙層 `execute()` 確保在物品掉落後才收集
@@ -417,6 +472,12 @@ DeadRecall/
 - `BackpackItemHelper` 統一判斷 `TieredBackpackItem` 與 `DeathBackpackItem`，並負責把 `DataComponents.CONTAINER` 內物品生成回世界
 - `ItemEntityMixin` 攔截背包物品實體被傷害破壞與自然時間到消失，於原本 `discard()` 前掉出內部物品
 - 爆炸等有來源位置的傷害會用 `DamageSource.getSourcePosition()` 計算反方向；仙人掌會搜尋附近 `Blocks.CACTUS` 作為來源；自然時間到則以移動方向反向或隨機方向散開
+
+#### 熔爐漏斗經驗
+- `HopperBlockEntityMixin` 攔截 `HopperBlockEntity.tryTakeInItemFromSlot(...)` 的成功回傳
+- 來源容器必須是 `AbstractFurnaceBlockEntity`，且抽取槽位必須是成品槽 `2`
+- 成功抽走成品後呼叫 `AbstractFurnaceBlockEntity.getRecipesToAwardAndPopExperience(...)` 產生經驗球
+- `AbstractFurnaceBlockEntityAccessor` 清除 `recipesUsed`，避免同一批燒製經驗在後續漏斗抽取時重複產生
 
 #### 豬糞與硝石煉製
 - `PigMixin` 在豬的 `registerGoals()` 結尾加入 `PigManureGoal`，優先級與羊的 `EatBlockGoal` 同為 5
@@ -443,10 +504,16 @@ DeadRecall/
   - 右鍵容器：把容器維度與座標寫入目前選取銅魁儡的 `DataComponents.CUSTOM_DATA`
   - 寫入完成後保留扳手上的銅魁儡 UUID，方便連續綁定多個容器
   - Shift+右鍵銅魁儡：server 送出 `CopperWrenchBindingsPayload`，client 開啟 `CopperWrenchBindingsScreen`
-  - `CopperWrenchBindingsScreen` 以自訂選項畫面顯示綁定清單，每列包含容器 icon、block id、維度、座標與狀態
-  - UI 右上角按鈕送出 `CopperGolemOperationPayload`，切換 `deadrecall_transport_enabled`
+- `CopperWrenchBindingsScreen` 以較緊湊的自訂選項畫面顯示綁定清單；「箱子」分頁每列包含容器 icon、依玩家目前語言翻譯的容器名稱、維度、座標、狀態、LLM 開關與快取數量
+- UI 右上角按鈕送出 `CopperGolemOperationPayload`，切換 `deadrecall_transport_enabled`
+- UI 的「LLM」分頁提供 API URL、API Key、Model 設定；設定透過 `SaveCopperGolemLlmConfigPayload` 送回 server，並寫入該銅魁儡實體 `CUSTOM_DATA`
+- UI 的「測試連線」透過 `TestCopperGolemLlmConnectionPayload` 送出目前欄位，server 會在背景執行緒呼叫 OpenAI-compatible chat completions endpoint，並把成功或失敗訊息回覆給玩家
+- server 只會把 API Key 同步給 OP、單人世界主人或創造權限玩家；一般玩家開 GUI 時 API Key 欄位為空
+- 每列綁定箱子有 LLM 開關；選取箱子後可在「箱子」分頁底部 prompt 欄編輯，並以物品圖示查看該箱子的接受/拒絕物品快取；prompt 透過 `UpdateCopperGolemBindingLlmPayload` 寫回銅魁儡資料
 - 銅魁儡永久綁定資料使用 `deadrecall_bound_containers` 清單儲存
 - 銅魁儡運作狀態使用 `deadrecall_transport_enabled` 儲存；未寫入時預設為運作中
+- 銅魁儡共用 LLM API 設定使用 `deadrecall_llm_api_url`、`deadrecall_llm_api_key`、`deadrecall_llm_model` 儲存
+- 銅魁儡 LLM 綁定設定使用 `deadrecall_llm_bindings` 儲存，每筆包含綁定座標、啟用狀態、prompt、允許/拒絕物品 ID 與允許/拒絕 tag
 - 舊版單一容器資料 `deadrecall_bound_container_*` 仍會讀取並遷移到新清單格式
 - `CopperGolemWrenchHandler.tickCopperGolemWrenchState()` 由 server tick 呼叫，用來清理失效綁定、處理全箱無法分類時的原地跳躍與自動解除
 - 失效綁定清理每 20 tick 執行一次；若目標維度存在、目標 chunk 已載入，但該座標已無法建立 `TransportItemTarget`，或該方塊屬於 `BlockTags.COPPER_CHESTS`，就會從 `deadrecall_bound_containers` 移除
@@ -459,6 +526,9 @@ DeadRecall/
   - `isWantedBlock`：讓已綁定銅魁儡在手持物品時接受綁定容器作為有效目標
 - `deadrecall_tried_destinations` 會記錄同一個手上物品已經試過哪些綁定容器
 - 分類容器必須已存在相同物品與相同 Data Components；空箱不會被視為分類目標
+- 若傳統分類規則失敗，但該綁定箱子 LLM 已啟用、該箱子有 prompt、該銅魁儡有 API/model 設定且有可放入空格，會先查銅魁儡身上的 item id/tag 快取；沒有快取才由 `CopperGolemLlmService` 背景呼叫 OpenAI-compatible chat completions API
+- LLM 回覆會切回 server thread 寫入銅魁儡資料；允許結果會讓該 item id 或 LLM 回傳的 tag 後續直接命中，拒絕結果會避免同一 item id 反覆詢問
+- 修改箱子 prompt 時會清空該箱子的 LLM item id/tag 快取；若 LLM 回覆回來時該容器已解除綁定，結果會被忽略
 - 若銅魁儡已拿起物品但所有綁定容器都找不到可分類目的地，會依 `deadrecall_source_container_*` 與 `deadrecall_source_slot` 把物品放回來源銅箱子後段
 - 回放時若後段沒有空槽或可堆疊位置，會把來源槽位後方物品往前位移，並把無法分類的物品放到最後面
 - 若來源銅箱子內所有物品都找不到可分類容器，會寫入 `deadrecall_sorting_blocked`

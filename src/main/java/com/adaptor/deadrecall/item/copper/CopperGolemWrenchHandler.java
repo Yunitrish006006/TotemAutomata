@@ -13,11 +13,13 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.StringTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.NameAndId;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.Container;
 import net.minecraft.world.InteractionResult;
@@ -68,6 +70,16 @@ public final class CopperGolemWrenchHandler {
     private static final String TAG_BLOCKED_SOURCE_HASH = "deadrecall_blocked_source_hash";
     private static final String TAG_BLOCKED_BINDINGS_HASH = "deadrecall_blocked_bindings_hash";
     private static final String TAG_BLOCKED_TARGETS_HASH = "deadrecall_blocked_targets_hash";
+    private static final String TAG_LLM_BINDINGS = "deadrecall_llm_bindings";
+    private static final String TAG_LLM_API_URL = "deadrecall_llm_api_url";
+    private static final String TAG_LLM_API_KEY = "deadrecall_llm_api_key";
+    private static final String TAG_LLM_MODEL = "deadrecall_llm_model";
+    private static final String TAG_LLM_ENABLED = "llm_enabled";
+    private static final String TAG_LLM_PROMPT = "llm_prompt";
+    private static final String TAG_LLM_ALLOWED_ITEM_IDS = "llm_allowed_item_ids";
+    private static final String TAG_LLM_DENIED_ITEM_IDS = "llm_denied_item_ids";
+    private static final String TAG_LLM_ALLOWED_TAGS = "llm_allowed_tags";
+    private static final String TAG_LLM_DENIED_TAGS = "llm_denied_tags";
     private static final int TRANSPORTED_ITEM_MAX_STACK_SIZE = 16;
     private static final int SORTING_BLOCKED_JUMP_INTERVAL_TICKS = 10;
     private static final int PRUNE_BINDINGS_INTERVAL_TICKS = 20;
@@ -239,6 +251,73 @@ public final class CopperGolemWrenchHandler {
         sendBindingListUi(player, golem);
     }
 
+    public static void setBindingLlmFromUi(ServerPlayer player, UUID golemId, String dimensionId, int x, int y, int z, boolean enabled, String prompt) {
+        Entity entity = player.level().getEntityInAnyDimension(golemId);
+        if (!(entity instanceof CopperGolem golem)) {
+            return;
+        }
+
+        Identifier dimension = Identifier.tryParse(dimensionId);
+        if (dimension == null) {
+            return;
+        }
+
+        Binding binding = new Binding(net.minecraft.resources.ResourceKey.create(Registries.DIMENSION, dimension), new BlockPos(x, y, z));
+        if (!getBindings(golem).contains(binding)) {
+            return;
+        }
+
+        setBindingLlmConfig(golem, binding, enabled, prompt);
+        sendBindingListUi(player, golem);
+    }
+
+    public static void setGolemLlmConfigFromUi(ServerPlayer player, UUID golemId, String apiUrl, String apiKey, String model) {
+        Entity entity = player.level().getEntityInAnyDimension(golemId);
+        if (!(entity instanceof CopperGolem golem)) {
+            return;
+        }
+
+        setGolemLlmConfig(golem, apiUrl, apiKey, model);
+        sendBindingListUi(player, golem);
+    }
+
+    public static void recordLlmDecision(CopperGolem golem, Binding binding, String itemId, List<String> itemTags, boolean allowed, List<String> acceptedTags) {
+        if (!getBindings(golem).contains(binding)) {
+            return;
+        }
+
+        CompoundTag tag = getEntityCustomDataTag(golem);
+        List<BindingLlmConfig> configs = new ArrayList<>(readBindingLlmConfigs(tag));
+        BindingLlmConfig config = getBindingLlmConfig(configs, binding);
+
+        List<String> allowedItemIds = new ArrayList<>(config.allowedItemIds());
+        List<String> deniedItemIds = new ArrayList<>(config.deniedItemIds());
+        List<String> allowedTags = new ArrayList<>(config.allowedTags());
+        List<String> deniedTags = new ArrayList<>(config.deniedTags());
+
+        if (allowed) {
+            addUnique(allowedItemIds, itemId);
+            deniedItemIds.remove(itemId);
+            for (String tagId : acceptedTags) {
+                addUnique(allowedTags, tagId);
+                deniedTags.remove(tagId);
+            }
+        } else {
+            addUnique(deniedItemIds, itemId);
+            allowedItemIds.remove(itemId);
+            for (String tagId : acceptedTags) {
+                addUnique(deniedTags, tagId);
+                allowedTags.remove(tagId);
+            }
+        }
+
+        putBindingLlmConfig(configs, new BindingLlmConfig(binding, config.enabled(), config.prompt(), allowedItemIds, deniedItemIds, allowedTags, deniedTags));
+        writeBindingLlmConfigs(tag, configs);
+        removeSortingBlockedTags(tag);
+        setEntityCustomDataTag(golem, tag);
+        resetTransportMemories(golem);
+    }
+
     public static void tickCopperGolemWrenchState(MinecraftServer server) {
         pruneBindingsTicker++;
         boolean shouldPruneBindings = pruneBindingsTicker >= PRUNE_BINDINGS_INTERVAL_TICKS;
@@ -293,7 +372,7 @@ public final class CopperGolemWrenchHandler {
             }
 
             TransportItemTarget target = tryCreateBoundTarget(level, binding.containerPos());
-            if (target == null || !canSortInto(target.container(), carried)) {
+            if (target == null || !canSortInto(golem, level, binding, target.container(), carried)) {
                 rememberTriedDestination(golem, binding);
                 continue;
             }
@@ -390,6 +469,7 @@ public final class CopperGolemWrenchHandler {
     private static void setBindings(CopperGolem golem, List<Binding> bindings) {
         CompoundTag tag = getEntityCustomDataTag(golem);
         writeBindings(tag, bindings);
+        pruneBindingLlmConfigs(tag, bindings);
         removeSortingBlockedTags(tag);
         setEntityCustomDataTag(golem, tag);
         if (bindings.isEmpty() && golem.level() instanceof ServerLevel level) {
@@ -502,13 +582,24 @@ public final class CopperGolemWrenchHandler {
         List<CopperWrenchBindingsPayload.BindingEntry> entries = new ArrayList<>(bindings.size());
         MinecraftServer server = player.level().getServer();
         for (Binding binding : bindings) {
-            entries.add(createBindingEntry(server, binding));
+            entries.add(createBindingEntry(server, golem, binding));
         }
 
-        ServerPlayNetworking.send(player, new CopperWrenchBindingsPayload(golem.getUUID(), isTransportEnabled(golem), entries));
+        boolean canManageLlmConfig = canManageLlmConfig(player);
+        GolemLlmConfig llmConfig = getGolemLlmConfig(golem);
+        ServerPlayNetworking.send(player, new CopperWrenchBindingsPayload(
+                golem.getUUID(),
+                isTransportEnabled(golem),
+                llmConfig.apiUrl(),
+                canManageLlmConfig ? llmConfig.apiKey() : "",
+                llmConfig.model(),
+                countActiveLlmBindings(golem),
+                entries
+        ));
     }
 
-    private static CopperWrenchBindingsPayload.BindingEntry createBindingEntry(MinecraftServer server, Binding binding) {
+    private static CopperWrenchBindingsPayload.BindingEntry createBindingEntry(MinecraftServer server, CopperGolem golem, Binding binding) {
+        BindingLlmConfig llmConfig = getBindingLlmConfig(golem, binding);
         ServerLevel bindingLevel = server.getLevel(binding.dimension());
         BlockPos pos = binding.containerPos();
         if (bindingLevel == null || !bindingLevel.isLoaded(pos)) {
@@ -520,7 +611,15 @@ public final class CopperGolemWrenchHandler {
                     "unloaded",
                     BuiltInRegistries.ITEM.getKey(Items.CHEST).toString(),
                     false,
-                    false
+                    false,
+                    llmConfig.enabled(),
+                    llmConfig.prompt(),
+                    llmConfig.allowedItemIds().size() + llmConfig.deniedItemIds().size(),
+                    llmConfig.allowedTags().size() + llmConfig.deniedTags().size(),
+                    llmConfig.allowedItemIds(),
+                    llmConfig.deniedItemIds(),
+                    llmConfig.allowedTags(),
+                    llmConfig.deniedTags()
             );
         }
 
@@ -540,7 +639,15 @@ public final class CopperGolemWrenchHandler {
                 blockId,
                 BuiltInRegistries.ITEM.getKey(displayItem).toString(),
                 true,
-                available
+                available,
+                llmConfig.enabled(),
+                llmConfig.prompt(),
+                llmConfig.allowedItemIds().size() + llmConfig.deniedItemIds().size(),
+                llmConfig.allowedTags().size() + llmConfig.deniedTags().size(),
+                llmConfig.allowedItemIds(),
+                llmConfig.deniedItemIds(),
+                llmConfig.allowedTags(),
+                llmConfig.deniedTags()
         );
     }
 
@@ -569,6 +676,79 @@ public final class CopperGolemWrenchHandler {
         }
 
         return hasMatchingItem && hasEmptySlot;
+    }
+
+    private static boolean canSortInto(CopperGolem golem, ServerLevel level, Binding binding, Container container, ItemStack carried) {
+        if (canSortInto(container, carried)) {
+            return true;
+        }
+
+        BindingLlmConfig config = getBindingLlmConfig(golem, binding);
+        GolemLlmConfig golemConfig = getGolemLlmConfig(golem);
+        if (!config.enabled() || config.prompt().isBlank() || !golemConfig.isConfigured() || !canPlaceSomewhere(container, carried)) {
+            return false;
+        }
+
+        String itemId = CopperGolemLlmService.itemId(carried);
+        List<String> itemTags = CopperGolemLlmService.itemTags(carried);
+        Optional<Boolean> cachedDecision = getCachedLlmDecision(config, itemId, itemTags);
+        if (cachedDecision.isPresent()) {
+            return cachedDecision.get();
+        }
+
+        CopperGolemLlmService.requestClassification(
+                level.getServer(),
+                golem.getUUID(),
+                binding,
+                carried.copyWithCount(1),
+                itemId,
+                itemTags,
+                config.prompt(),
+                golemConfig.apiUrl(),
+                golemConfig.apiKey(),
+                golemConfig.model()
+        );
+        return false;
+    }
+
+    private static boolean canPlaceSomewhere(Container container, ItemStack carried) {
+        for (int slot = 0; slot < container.getContainerSize(); slot++) {
+            ItemStack stack = container.getItem(slot);
+            if (stack.isEmpty()) {
+                if (container.canPlaceItem(slot, carried)) {
+                    return true;
+                }
+                continue;
+            }
+
+            if (ItemStack.isSameItemSameComponents(stack, carried) && container.canPlaceItem(slot, carried)) {
+                int maxStackSize = Math.min(stack.getMaxStackSize(), container.getMaxStackSize(carried));
+                if (stack.getCount() < maxStackSize) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static Optional<Boolean> getCachedLlmDecision(BindingLlmConfig config, String itemId, List<String> itemTags) {
+        if (config.allowedItemIds().contains(itemId)) {
+            return Optional.of(true);
+        }
+        if (config.deniedItemIds().contains(itemId)) {
+            return Optional.of(false);
+        }
+
+        for (String tag : itemTags) {
+            if (config.allowedTags().contains(tag)) {
+                return Optional.of(true);
+            }
+            if (config.deniedTags().contains(tag)) {
+                return Optional.of(false);
+            }
+        }
+
+        return Optional.empty();
     }
 
     private static boolean hasItems(Container container) {
@@ -604,7 +784,7 @@ public final class CopperGolemWrenchHandler {
             }
 
             TransportItemTarget target = tryCreateBoundTarget(level, binding.containerPos());
-            if (target != null && canSortInto(target.container(), candidate)) {
+            if (target != null && canSortInto(golem, level, binding, target.container(), candidate)) {
                 return true;
             }
         }
@@ -976,11 +1156,228 @@ public final class CopperGolemWrenchHandler {
         tag.putInt(zKey, binding.containerPos().getZ());
     }
 
+    private static BindingLlmConfig getBindingLlmConfig(CopperGolem golem, Binding binding) {
+        return getBindingLlmConfig(readBindingLlmConfigs(getEntityCustomDataTag(golem)), binding);
+    }
+
+    private static GolemLlmConfig getGolemLlmConfig(CopperGolem golem) {
+        CompoundTag tag = getEntityCustomDataTag(golem);
+        return new GolemLlmConfig(
+                tag.getStringOr(TAG_LLM_API_URL, ""),
+                tag.getStringOr(TAG_LLM_API_KEY, ""),
+                tag.getStringOr(TAG_LLM_MODEL, "")
+        );
+    }
+
+    private static void setGolemLlmConfig(CopperGolem golem, String apiUrl, String apiKey, String model) {
+        CompoundTag tag = getEntityCustomDataTag(golem);
+        putOrRemoveString(tag, TAG_LLM_API_URL, apiUrl);
+        putOrRemoveString(tag, TAG_LLM_API_KEY, apiKey);
+        putOrRemoveString(tag, TAG_LLM_MODEL, model);
+        removeSortingBlockedTags(tag);
+        setEntityCustomDataTag(golem, tag);
+        resetTransportMemories(golem);
+    }
+
+    private static BindingLlmConfig getBindingLlmConfig(List<BindingLlmConfig> configs, Binding binding) {
+        for (BindingLlmConfig config : configs) {
+            if (config.binding().equals(binding)) {
+                return config;
+            }
+        }
+
+        return new BindingLlmConfig(binding, false, "", List.of(), List.of(), List.of(), List.of());
+    }
+
+    private static void setBindingLlmConfig(CopperGolem golem, Binding binding, boolean enabled, String prompt) {
+        CompoundTag tag = getEntityCustomDataTag(golem);
+        List<BindingLlmConfig> configs = new ArrayList<>(readBindingLlmConfigs(tag));
+        BindingLlmConfig current = getBindingLlmConfig(configs, binding);
+        String normalizedPrompt = prompt == null ? "" : prompt.trim();
+        boolean promptChanged = !normalizedPrompt.equals(current.prompt());
+        putBindingLlmConfig(configs, new BindingLlmConfig(
+                binding,
+                enabled,
+                normalizedPrompt,
+                promptChanged ? List.of() : current.allowedItemIds(),
+                promptChanged ? List.of() : current.deniedItemIds(),
+                promptChanged ? List.of() : current.allowedTags(),
+                promptChanged ? List.of() : current.deniedTags()
+        ));
+        writeBindingLlmConfigs(tag, configs);
+        removeSortingBlockedTags(tag);
+        setEntityCustomDataTag(golem, tag);
+        resetTransportMemories(golem);
+    }
+
+    private static int countActiveLlmBindings(CopperGolem golem) {
+        int count = 0;
+        for (BindingLlmConfig config : readBindingLlmConfigs(getEntityCustomDataTag(golem))) {
+            if (config.enabled()) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static List<BindingLlmConfig> readBindingLlmConfigs(CompoundTag tag) {
+        List<BindingLlmConfig> configs = new ArrayList<>();
+        tag.getList(TAG_LLM_BINDINGS).ifPresent(list -> {
+            for (CompoundTag configTag : list.compoundStream().toList()) {
+                Optional<Binding> binding = readBinding(configTag, TAG_BINDING_DIM, TAG_BINDING_X, TAG_BINDING_Y, TAG_BINDING_Z);
+                if (binding.isEmpty()) {
+                    continue;
+                }
+
+                configs.add(new BindingLlmConfig(
+                        binding.get(),
+                        configTag.getBooleanOr(TAG_LLM_ENABLED, false),
+                        configTag.getStringOr(TAG_LLM_PROMPT, ""),
+                        readStringList(configTag, TAG_LLM_ALLOWED_ITEM_IDS),
+                        readStringList(configTag, TAG_LLM_DENIED_ITEM_IDS),
+                        readStringList(configTag, TAG_LLM_ALLOWED_TAGS),
+                        readStringList(configTag, TAG_LLM_DENIED_TAGS)
+                ));
+            }
+        });
+        return configs;
+    }
+
+    private static void writeBindingLlmConfigs(CompoundTag tag, List<BindingLlmConfig> configs) {
+        net.minecraft.nbt.ListTag list = new net.minecraft.nbt.ListTag();
+        for (BindingLlmConfig config : configs) {
+            if (!shouldKeepBindingLlmConfig(config)) {
+                continue;
+            }
+
+            CompoundTag configTag = new CompoundTag();
+            writeBinding(configTag, config.binding(), TAG_BINDING_DIM, TAG_BINDING_X, TAG_BINDING_Y, TAG_BINDING_Z);
+            configTag.putBoolean(TAG_LLM_ENABLED, config.enabled());
+            configTag.putString(TAG_LLM_PROMPT, config.prompt());
+            writeStringList(configTag, TAG_LLM_ALLOWED_ITEM_IDS, config.allowedItemIds());
+            writeStringList(configTag, TAG_LLM_DENIED_ITEM_IDS, config.deniedItemIds());
+            writeStringList(configTag, TAG_LLM_ALLOWED_TAGS, config.allowedTags());
+            writeStringList(configTag, TAG_LLM_DENIED_TAGS, config.deniedTags());
+            list.add(configTag);
+        }
+
+        if (list.isEmpty()) {
+            tag.remove(TAG_LLM_BINDINGS);
+        } else {
+            tag.put(TAG_LLM_BINDINGS, list);
+        }
+    }
+
+    private static void pruneBindingLlmConfigs(CompoundTag tag, List<Binding> bindings) {
+        List<BindingLlmConfig> kept = readBindingLlmConfigs(tag).stream()
+                .filter(config -> bindings.contains(config.binding()))
+                .toList();
+        writeBindingLlmConfigs(tag, kept);
+    }
+
+    private static boolean shouldKeepBindingLlmConfig(BindingLlmConfig config) {
+        return config.enabled()
+                || !config.prompt().isBlank()
+                || !config.allowedItemIds().isEmpty()
+                || !config.deniedItemIds().isEmpty()
+                || !config.allowedTags().isEmpty()
+                || !config.deniedTags().isEmpty();
+    }
+
+    private static void putBindingLlmConfig(List<BindingLlmConfig> configs, BindingLlmConfig config) {
+        for (int i = 0; i < configs.size(); i++) {
+            if (configs.get(i).binding().equals(config.binding())) {
+                configs.set(i, config);
+                return;
+            }
+        }
+        configs.add(config);
+    }
+
+    private static List<String> readStringList(CompoundTag tag, String key) {
+        List<String> values = new ArrayList<>();
+        tag.getList(key).ifPresent(list -> {
+            for (int i = 0; i < list.size(); i++) {
+                String value = list.getStringOr(i, "");
+                if (!value.isBlank() && !values.contains(value)) {
+                    values.add(value);
+                }
+            }
+        });
+        return List.copyOf(values);
+    }
+
+    private static void writeStringList(CompoundTag tag, String key, List<String> values) {
+        net.minecraft.nbt.ListTag list = new net.minecraft.nbt.ListTag();
+        for (String value : values) {
+            if (!value.isBlank()) {
+                list.add(StringTag.valueOf(value));
+            }
+        }
+
+        if (list.isEmpty()) {
+            tag.remove(key);
+        } else {
+            tag.put(key, list);
+        }
+    }
+
+    private static void addUnique(List<String> values, String value) {
+        if (value != null && !value.isBlank() && !values.contains(value)) {
+            values.add(value);
+        }
+    }
+
+    private static void putOrRemoveString(CompoundTag tag, String key, String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.isEmpty()) {
+            tag.remove(key);
+        } else {
+            tag.putString(key, normalized);
+        }
+    }
+
+    private static boolean canManageLlmConfig(ServerPlayer player) {
+        if (player.getAbilities().instabuild || player.isCreative()) {
+            return true;
+        }
+
+        MinecraftServer server = player.level().getServer();
+        if (server == null) {
+            return false;
+        }
+
+        if (server.isSingleplayer()) {
+            var owner = server.getSingleplayerProfile();
+            if (owner != null && owner.id().equals(player.getGameProfile().id())) {
+                return true;
+            }
+        }
+
+        return server.getPlayerList().isOp(new NameAndId(player.getGameProfile()));
+    }
+
     private static void notify(Player player, Component message) {
         player.sendOverlayMessage(message);
     }
 
     public record Binding(net.minecraft.resources.ResourceKey<Level> dimension, BlockPos containerPos) {
+    }
+
+    private record BindingLlmConfig(
+            Binding binding,
+            boolean enabled,
+            String prompt,
+            List<String> allowedItemIds,
+            List<String> deniedItemIds,
+            List<String> allowedTags,
+            List<String> deniedTags) {
+    }
+
+    private record GolemLlmConfig(String apiUrl, String apiKey, String model) {
+        private boolean isConfigured() {
+            return !apiUrl.isBlank() && !model.isBlank();
+        }
     }
 
     private record Source(net.minecraft.resources.ResourceKey<Level> dimension, BlockPos containerPos, int slot) {
