@@ -7,7 +7,7 @@
 ### 📊 技術資訊
 - **Minecraft 版本**：26.2
 - **模組載入器**：Fabric（需 Fabric API）
-- **當前版本**：v2.0.8
+- **當前版本**：v2.1.1
 - **授權**：BSD-3-Clause
 
 ---
@@ -65,7 +65,7 @@
 
 #### 生存體驗流程
 1. **死亡**：玩家因任何原因死亡
-2. **自動收集**：模組掃描死亡地點附近 **10 格範圍**內的所有掉落物，但跳過背包類物品
+2. **自動收集**：模組先記錄死亡前附近已存在的掉落物，再於死亡後掃描死亡地點附近 **10 格範圍**內新產生的掉落物，並跳過背包類物品
 3. **生成背包**：死亡背包（物品實體）出現在死亡座標
 4. **收到通知**：聊天欄顯示 `§e你的物品已被收集到死亡背包中！`
 5. **取回物品**：返回死亡地點，等待 **2 秒拾取延遲**後拾起背包，右鍵打開取回物品
@@ -128,7 +128,10 @@
 |------|---------|------|
 | 銅板手 | `deadrecall:copper_wrench` | 用來選取銅魁儡並綁定分類容器 |
 
-> 目前尚未加入生存合成配方，測試時可用 `/give @s deadrecall:copper_wrench` 取得。
+#### 合成配方
+| 物品 | 配方類型 | 材料 | 結果 |
+|------|----------|------|------|
+| 銅板手 | 工作台有序合成 | 銅錠 x2、木棒 x1 | `deadrecall:copper_wrench` x1 |
 
 #### 使用方法
 1. 手持銅板手，左鍵點擊一隻銅魁儡來選取目標魁儡
@@ -161,7 +164,8 @@
 | 右鍵非容器方塊 | 顯示錯誤提示，不會綁定 |
 | 重複綁定同一個容器 | 顯示已綁定提示，不會重複加入 |
 | 已綁定的目標方塊被破壞或不再是容器 | 自動從該銅魁儡的綁定清單移除 |
-| 綁定容器在其他維度 | 不會被當成本次搬運目標 |
+| 選取銅魁儡後到其他維度右鍵容器 | 直接拒絕綁定並清除扳手上的選取資料 |
+| 綁定容器在其他維度 | 不會被當成本次搬運目標；新綁定流程不再允許建立跨維度目標 |
 
 > 綁定清單 UI 是 client 自訂畫面，不使用玩家物品欄或原版箱子介面；清單過長時可滾動。
 > 失效綁定只會在目標座標所在 chunk 已載入時判定；chunk 未載入時會先保留，避免誤刪。
@@ -331,7 +335,7 @@
 
 #### `/back` 指令說明
 - 玩家死亡後，死亡座標會被**自動記錄**
-- 執行 `/back` 後立即傳送至死亡地點
+- 執行 `/back` 後立即傳送至死亡地點，包含死亡時所在維度
 - **傳送後座標清除**，同一次死亡只能使用一次
 - 若無死亡座標，顯示 `§c沒有死亡座標可傳送！`
 
@@ -339,7 +343,7 @@
 
 ## 📈 更新日誌
 
-### v2.0.8（當前版本）
+### v2.1.1（當前版本）
 - ✅ Discord Bridge 補齊伺服器開啟與關閉狀態提示，專用伺服器、LAN 與 Essential 類型開房都會正確回報
 - ✅ Cloudflare Worker 範例的 `/api/mc/server/status` 會實際發送 Discord Webhook 狀態訊息
 - ✅ 銅魁儡新增 OpenAI-compatible LLM 分類輔助，每隻銅魁儡可設定 API URL、API Key、Model，並提供測試連線
@@ -347,6 +351,11 @@
 - ✅ 銅魁儡 UI 壓縮高度、支援非全螢幕尺寸、顯示接受/拒絕快取物品圖示，容器名稱會依玩家目前語言翻譯
 - ✅ 新增內建 LLM 分類參照表，支援礦物、食物、工具、作物、動物、材料、建材、畜牧等常用分類詞
 - ✅ 新增漏斗抽取熔爐、高爐、煙燻爐成品時自動產生該批燒製經驗球
+- ✅ 新增銅板手生存合成配方
+- ✅ `/back` 支援跨維度傳送回死亡地點
+- ✅ 銅魁儡綁定容器時直接拒絕跨維度目標
+- ✅ 修正死亡背包可能生成兩個、誤收死亡前地上物品或與其他掉落物合併導致無法開啟的問題
+- ✅ 修正背包介面儲存時可能把死亡背包內容寫入目前手持其他物品的問題
 
 ### v1.7.2
 - ✅ 新增背包整理快捷鍵（預設中鍵）
@@ -397,7 +406,7 @@ DeadRecall/
 ├── src/main/java/com/adaptor/deadrecall/
 │   ├── Deadrecall.java                 # 主入口：物品註冊、事件監聽、指令
 │   ├── DiscordBridge.java              # Discord 橋接（Cloudflare Worker HTTP）
-│   ├── DeathLocationManager.java       # 死亡座標管理（UUID → BlockPos）
+│   ├── DeathLocationManager.java       # 死亡座標管理（UUID → 維度 + BlockPos）
 │   ├── alchemy/
 │   │   └── AlchemyHandler.java        # 豬糞採集、煉藥鍋投料與掉落物投入處理
 │   ├── block/
@@ -429,6 +438,7 @@ DeadRecall/
 │   ├── backpack_standard_smithing.json
 │   ├── backpack_advanced_smithing.json
 │   ├── backpack_netherite_smithing.json
+│   ├── copper_wrench.json
 │   ├── wood_ash_from_hay_block_smelting.json
 │   ├── gunpowder_from_alchemy.json
 │   └── stone_bowl.json
@@ -453,21 +463,26 @@ DeadRecall/
 - `MinecraftServer.unpublishServer()` 成功，或伺服器停止流程開始時，回報 `伺服器已關閉`
 
 #### 死亡背包
+- 使用 `ServerLivingEntityEvents.ALLOW_DEATH` 在死亡前記錄附近既有掉落物 UUID
 - 使用 `ServerLivingEntityEvents.AFTER_DEATH` 監聽，雙層 `execute()` 確保在物品掉落後才收集
-- 收集範圍：`AABB.inflate(10.0)`，收集所有實體（非僅特定玩家的）
+- 收集範圍：`AABB.inflate(10.0)`，只收集死亡後新出現且不在死亡前快照內的 `ItemEntity`
 - 收集時會跳過 `TieredBackpackItem` 與 `DeathBackpackItem`，讓玩家身上的背包保持為獨立掉落物
 - 使用 `DataComponents.CONTAINER` + `ItemContainerContents` 儲存物品
+- 生成的死亡背包會寫入唯一 `CUSTOM_DATA`，避免兩個死亡背包 ItemEntity 因內容相同而被原版合併
+- 同一玩家的死亡背包收集流程有短時間排程 guard，避免同一次死亡重複生成死亡背包
 - `setUnlimitedLifetime()` 防止背包自然消失
 - `setPickUpDelay(40)` = 2 秒（20 ticks/秒）
 
 #### `/back` 指令
-- `DeathLocationManager` 以 `HashMap<UUID, DeathLocation>` 暫存死亡座標
+- `DeathLocationManager` 以 `HashMap<UUID, DeathLocation>` 暫存死亡維度與座標
+- 傳送時用死亡維度取得對應 `ServerLevel`，可從其他維度傳回死亡地點
 - 使用後呼叫 `clearDeathLocation()` 清除，避免重複傳送
-- 注意：目前不處理跨維度死亡傳送（`worldRegistryKey` 已儲存但未使用）
 
 #### 背包儲存
 - 使用原版 `DataComponents.CONTAINER`（`ItemContainerContents`）儲存物品，相容性高
 - `BackpackInventory` 在開啟時從 DataComponent 讀取，關閉時寫回
+- `BackpackInventory` 會固定追蹤開啟瞬間的背包 `ItemStack`，儲存前確認該物品仍是背包且仍在玩家物品欄中，避免資料寫入後來換到手上的其他物品
+- 死亡背包清空後會等介面關閉才移除背包物品，讓原版先處理滑鼠上拿著的物品，避免操作最後一格時提前刪包
 - 死亡背包的容量為動態計算：`Math.max(1, Math.min(6, ceil(itemCount / 9.0)))` 排
 - `BackpackItemHelper` 統一判斷 `TieredBackpackItem` 與 `DeathBackpackItem`，並負責把 `DataComponents.CONTAINER` 內物品生成回世界
 - `ItemEntityMixin` 攔截背包物品實體被傷害破壞與自然時間到消失，於原本 `discard()` 前掉出內部物品
@@ -502,6 +517,7 @@ DeadRecall/
   - 左鍵容器：若扳手已選取銅魁儡，從該銅魁儡的 `deadrecall_bound_containers` 移除目前容器座標
   - Shift+左鍵銅魁儡：讀取銅魁儡 `DataComponents.CUSTOM_DATA` 的綁定清單，對所有同維度且可用容器顯示粒子路徑
   - 右鍵容器：把容器維度與座標寫入目前選取銅魁儡的 `DataComponents.CUSTOM_DATA`
+  - 右鍵容器時若銅魁儡與容器不在同一維度，會直接拒絕綁定並清除扳手選取資料
   - 寫入完成後保留扳手上的銅魁儡 UUID，方便連續綁定多個容器
   - Shift+右鍵銅魁儡：server 送出 `CopperWrenchBindingsPayload`，client 開啟 `CopperWrenchBindingsScreen`
 - `CopperWrenchBindingsScreen` 以較緊湊的自訂選項畫面顯示綁定清單；「箱子」分頁每列包含容器 icon、依玩家目前語言翻譯的容器名稱、維度、座標、狀態、LLM 開關與快取數量
@@ -537,12 +553,9 @@ DeadRecall/
 - 來源銅箱子內容、綁定清單或綁定目標容器內容任一 hash 改變時，會清除阻塞 tag 並重置搬運記憶
 
 ### 待辦 / 已知問題
-- ⚠️ `/back` 指令未處理跨維度傳送（如從地獄傳回主世界）
 - ⚠️ 死亡背包收集範圍未過濾所有者，多人同時死亡可能互相收集到對方物品
 - ⚠️ 舊版 `deadrecall:backpack` 物品 ID 仍保留但標記為 `@Deprecated`
-- ⚠️ 銅板手目前沒有生存合成配方
 - ⚠️ 銅魁儡綁定容器尚未實作一鍵清空；單一容器可用銅板手左鍵解除，失效容器會自動移除
-- ⚠️ 綁定容器跨維度時不會被本次搬運使用
 
 ### 構建指令
 ```bash

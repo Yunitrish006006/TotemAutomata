@@ -44,7 +44,7 @@
   "message.deadrecall.copper_wrench.unbind_missing": "That container is not a target of the selected copper golem",
   "message.deadrecall.copper_wrench.golem_unavailable": "The selected copper golem is no longer available",
   "message.deadrecall.copper_wrench.target_unavailable": "The bound container is no longer available",
-  "message.deadrecall.copper_wrench.target_other_dimension": "The bound container is in another dimension",
+  "message.deadrecall.copper_wrench.target_other_dimension": "The copper golem and container are in different dimensions and cannot be bound or shown as a path",
   "message.deadrecall.copper_wrench.path_shown": "Showing bound container paths",
   "container.deadrecall.copper_wrench.bindings": "Copper Golem Bound Containers",
   "message.deadrecall.copper_wrench.binding_list_empty": "No bound containers",

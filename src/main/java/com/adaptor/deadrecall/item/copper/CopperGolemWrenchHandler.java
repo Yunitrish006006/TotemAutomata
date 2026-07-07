@@ -205,6 +205,7 @@ public final class CopperGolemWrenchHandler {
             }
 
             if (!golem.level().dimension().equals(world.dimension())) {
+                clearSelection(stack);
                 notify(player, Component.translatable("message.deadrecall.copper_wrench.target_other_dimension"));
                 return InteractionResult.SUCCESS;
             }

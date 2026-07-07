@@ -44,7 +44,7 @@
   "message.deadrecall.copper_wrench.unbind_missing": "這個容器不是目前選取銅魁儡的目標容器",
   "message.deadrecall.copper_wrench.golem_unavailable": "選取的銅魁儡已不可用",
   "message.deadrecall.copper_wrench.target_unavailable": "綁定容器所在世界不可用",
-  "message.deadrecall.copper_wrench.target_other_dimension": "綁定容器在其他維度，無法顯示路徑",
+  "message.deadrecall.copper_wrench.target_other_dimension": "銅魁儡與容器在不同維度，不能綁定或顯示路徑",
   "message.deadrecall.copper_wrench.path_shown": "已顯示綁定容器路徑",
   "message.deadrecall.copper_wrench.transfer_success": "已搬運 %s 個物品到綁定容器",
   "message.deadrecall.copper_wrench.transfer_empty": "沒有可搬運的物品，或目標容器已滿",
