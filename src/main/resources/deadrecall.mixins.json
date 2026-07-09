@@ -12,6 +12,7 @@
     "MinecraftServerPublishMixin",
     "PigMixin",
     "RecipeManagerMixin",
+    "SnowballMixin",
     "StructureTemplateMixin",
     "TransportItemsBetweenContainersMixin",
     "VillagerEntityMixin"

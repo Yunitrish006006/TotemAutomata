@@ -103,6 +103,32 @@ public abstract class TransportItemsBetweenContainersMixin {
         ci.cancel();
     }
 
+    @Inject(method = "putDownItem", at = @At("HEAD"), cancellable = true)
+    private void deadrecall$putDownItemIntoNestedBackpack(PathfinderMob mob, Container container, CallbackInfo ci) {
+        if (!(mob instanceof CopperGolem golem)
+                || !CopperGolemWrenchHandler.hasBinding(golem)
+                || !CopperGolemWrenchHandler.isTransportEnabled(golem)
+                || !(mob.level() instanceof ServerLevel level)
+                || target == null) {
+            return;
+        }
+
+        Optional<ItemStack> remaining = CopperGolemWrenchHandler.putCarriedItemIntoNestedBackpack(golem, level, target.pos(), container);
+        if (remaining.isEmpty()) {
+            return;
+        }
+
+        ItemStack remainingStack = remaining.get();
+        mob.setItemSlot(EquipmentSlot.MAINHAND, remainingStack);
+        if (remainingStack.isEmpty()) {
+            clearMemoriesAfterMatchingTargetFound(mob);
+            CopperGolemWrenchHandler.clearRememberedSource(golem);
+        } else {
+            stopTargetingCurrentTarget(mob);
+        }
+        ci.cancel();
+    }
+
     @Inject(method = "putDownItem", at = @At("TAIL"))
     private void deadrecall$clearSourceAfterPuttingDownItem(PathfinderMob mob, Container container, CallbackInfo ci) {
         if (mob instanceof CopperGolem golem && mob.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) {

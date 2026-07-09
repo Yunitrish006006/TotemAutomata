@@ -1,9 +1,14 @@
 package com.adaptor.deadrecall;
 
 import com.adaptor.deadrecall.alchemy.AlchemyHandler;
+import com.adaptor.deadrecall.alchemy.CherryBrewInteractions;
+import com.adaptor.deadrecall.alchemy.PigManureInteractions;
+import com.adaptor.deadrecall.advancement.ModCriteriaTriggers;
 import com.adaptor.deadrecall.block.ModBlocks;
 import com.adaptor.deadrecall.block.entity.ModBlockEntities;
+import com.adaptor.deadrecall.effect.ModMobEffects;
 import com.adaptor.deadrecall.item.BackpackItemHelper;
+import com.adaptor.deadrecall.item.ModItemGroups;
 import com.adaptor.deadrecall.item.ModItems;
 import com.adaptor.deadrecall.item.copper.CopperGolemLlmService;
 import com.adaptor.deadrecall.item.copper.CopperGolemWrenchHandler;
@@ -63,6 +68,7 @@ import java.util.UUID;
 public class Deadrecall implements ModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("DeadRecall");
     private static final int BOOKSHELF_REPLACE_INTERVAL_TICKS = 20;
+    private static final int PLAYER_HOTBAR_SLOT_COUNT = 9;
     private static final double DEATH_BACKPACK_COLLECTION_RADIUS = 10.0D;
     private static final String TAG_DEATH_BACKPACK_ID = "deadrecall_death_backpack_id";
     private static final Map<UUID, PendingDeathCollection> pendingDeathCollections = new HashMap<>();
@@ -75,8 +81,13 @@ public class Deadrecall implements ModInitializer {
         // 註冊物品與方塊
         ModBlocks.registerModBlocks();
         ModBlockEntities.registerModBlockEntities();
+        ModMobEffects.registerModEffects();
+        ModCriteriaTriggers.registerModCriteriaTriggers();
         ModItems.registerModItems();
+        ModItemGroups.registerModItemGroups();
         AlchemyHandler.register();
+        CherryBrewInteractions.register();
+        PigManureInteractions.register();
         CopperGolemWrenchHandler.register();
         ModRecipes.registerModRecipes();
 
@@ -608,7 +619,10 @@ public class Deadrecall implements ModInitializer {
         int nonEquipmentSlotCount = player.getInventory().getNonEquipmentItems().size();
         for (int i = 0; i < menu.slots.size(); i++) {
             Slot slot = menu.slots.get(i);
-            if (slot.container == player.getInventory() && slot.getContainerSlot() < nonEquipmentSlotCount) {
+            int containerSlot = slot.getContainerSlot();
+            if (slot.container == player.getInventory()
+                    && containerSlot >= PLAYER_HOTBAR_SLOT_COUNT
+                    && containerSlot < nonEquipmentSlotCount) {
                 playerSlots.add(i);
             }
         }
