@@ -36,7 +36,8 @@ public abstract class TransportItemsBetweenContainersMixin {
         if (mob instanceof CopperGolem golem
                 && (!CopperGolemWrenchHandler.hasBinding(golem)
                 || !CopperGolemWrenchHandler.isTransportEnabled(golem)
-                || CopperGolemWrenchHandler.isSortingBlocked(golem))) {
+                || CopperGolemWrenchHandler.isSortingBlocked(golem)
+                || (golem.getMainHandItem().isEmpty() && !CopperGolemWrenchHandler.hasFuelAvailable(golem, level)))) {
             cir.setReturnValue(false);
         }
     }
@@ -86,6 +87,12 @@ public abstract class TransportItemsBetweenContainersMixin {
                 || !CopperGolemWrenchHandler.isTransportEnabled(golem)
                 || !(mob.level() instanceof ServerLevel level)
                 || target == null) {
+            return;
+        }
+
+        if (!CopperGolemWrenchHandler.hasFuelAvailable(golem, level)) {
+            stopTargetingCurrentTarget(mob);
+            ci.cancel();
             return;
         }
 

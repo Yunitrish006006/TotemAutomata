@@ -13,6 +13,7 @@ import com.adaptor.deadrecall.item.ModItems;
 import com.adaptor.deadrecall.item.copper.CopperGolemLlmService;
 import com.adaptor.deadrecall.item.copper.CopperGolemWrenchHandler;
 import com.adaptor.deadrecall.network.CopperGolemOperationPayload;
+import com.adaptor.deadrecall.network.CopperGolemFuelSlotPayload;
 import com.adaptor.deadrecall.network.CopperWrenchBindingsPayload;
 import com.adaptor.deadrecall.network.DiscordConfigSyncPayload;
 import com.adaptor.deadrecall.network.ManageDiscordChannelPayload;
@@ -106,6 +107,8 @@ public class Deadrecall implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(
                 CopperGolemOperationPayload.TYPE, CopperGolemOperationPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(
+                CopperGolemFuelSlotPayload.TYPE, CopperGolemFuelSlotPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
                 SaveCopperGolemLlmConfigPayload.TYPE, SaveCopperGolemLlmConfigPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(
                 TestCopperGolemLlmConnectionPayload.TYPE, TestCopperGolemLlmConnectionPayload.CODEC);
@@ -191,6 +194,10 @@ public class Deadrecall implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(CopperGolemOperationPayload.TYPE,
                 (payload, context) -> context.server().execute(() ->
                         CopperGolemWrenchHandler.setTransportEnabledFromUi(context.player(), payload.golemId(), payload.running())));
+
+        ServerPlayNetworking.registerGlobalReceiver(CopperGolemFuelSlotPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.handleFuelSlotFromUi(context.player(), payload.golemId(), payload.action())));
 
         ServerPlayNetworking.registerGlobalReceiver(SaveCopperGolemLlmConfigPayload.TYPE,
                 (payload, context) -> context.server().execute(() -> {
