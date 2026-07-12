@@ -7,29 +7,21 @@ import net.minecraft.resources.Identifier;
 
 import java.util.UUID;
 
-public record UpdateCopperGolemBindingLlmPayload(UUID golemId, String dimension, int x, int y, int z, boolean enabled, String prompt, int revision)
+public record UpdateCopperGolemGatheringLlmPayload(UUID golemId, boolean enabled, String prompt, int revision)
         implements CustomPacketPayload {
-    public static final Type<UpdateCopperGolemBindingLlmPayload> TYPE =
-            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "update_copper_golem_binding_llm"));
+    public static final Type<UpdateCopperGolemGatheringLlmPayload> TYPE =
+            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "update_copper_golem_gathering_llm"));
 
-    public static final StreamCodec<FriendlyByteBuf, UpdateCopperGolemBindingLlmPayload> CODEC =
+    public static final StreamCodec<FriendlyByteBuf, UpdateCopperGolemGatheringLlmPayload> CODEC =
             StreamCodec.of(
                     (buf, payload) -> {
                         buf.writeUUID(payload.golemId());
-                        buf.writeUtf(payload.dimension(), 128);
-                        buf.writeInt(payload.x());
-                        buf.writeInt(payload.y());
-                        buf.writeInt(payload.z());
                         buf.writeBoolean(payload.enabled());
                         buf.writeUtf(payload.prompt(), 2048);
                         buf.writeInt(payload.revision());
                     },
-                    buf -> new UpdateCopperGolemBindingLlmPayload(
+                    buf -> new UpdateCopperGolemGatheringLlmPayload(
                             buf.readUUID(),
-                            buf.readUtf(128),
-                            buf.readInt(),
-                            buf.readInt(),
-                            buf.readInt(),
                             buf.readBoolean(),
                             buf.readUtf(2048),
                             buf.readInt()

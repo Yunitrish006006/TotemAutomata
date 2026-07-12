@@ -7,12 +7,20 @@ import net.minecraft.resources.Identifier;
 
 import java.util.UUID;
 
-public record UpdateCopperGolemBindingLlmPayload(UUID golemId, String dimension, int x, int y, int z, boolean enabled, String prompt, int revision)
-        implements CustomPacketPayload {
-    public static final Type<UpdateCopperGolemBindingLlmPayload> TYPE =
-            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "update_copper_golem_binding_llm"));
+public record UpdateCopperGolemBindingCachePayload(
+        UUID golemId,
+        String dimension,
+        int x,
+        int y,
+        int z,
+        String value,
+        boolean tag,
+        boolean allowed,
+        int revision) implements CustomPacketPayload {
+    public static final Type<UpdateCopperGolemBindingCachePayload> TYPE =
+            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "update_copper_golem_binding_cache"));
 
-    public static final StreamCodec<FriendlyByteBuf, UpdateCopperGolemBindingLlmPayload> CODEC =
+    public static final StreamCodec<FriendlyByteBuf, UpdateCopperGolemBindingCachePayload> CODEC =
             StreamCodec.of(
                     (buf, payload) -> {
                         buf.writeUUID(payload.golemId());
@@ -20,18 +28,20 @@ public record UpdateCopperGolemBindingLlmPayload(UUID golemId, String dimension,
                         buf.writeInt(payload.x());
                         buf.writeInt(payload.y());
                         buf.writeInt(payload.z());
-                        buf.writeBoolean(payload.enabled());
-                        buf.writeUtf(payload.prompt(), 2048);
+                        buf.writeUtf(payload.value(), 256);
+                        buf.writeBoolean(payload.tag());
+                        buf.writeBoolean(payload.allowed());
                         buf.writeInt(payload.revision());
                     },
-                    buf -> new UpdateCopperGolemBindingLlmPayload(
+                    buf -> new UpdateCopperGolemBindingCachePayload(
                             buf.readUUID(),
                             buf.readUtf(128),
                             buf.readInt(),
                             buf.readInt(),
                             buf.readInt(),
+                            buf.readUtf(256),
                             buf.readBoolean(),
-                            buf.readUtf(2048),
+                            buf.readBoolean(),
                             buf.readInt()
                     )
             );

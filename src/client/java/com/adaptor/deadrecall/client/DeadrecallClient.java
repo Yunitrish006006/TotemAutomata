@@ -25,6 +25,8 @@ public class DeadrecallClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        CopperGolemVisualizationClient.initialize();
+
         KeyMapping.Category category = KeyMapping.Category.register(
                 Identifier.fromNamespaceAndPath("deadrecall", "category")
         );

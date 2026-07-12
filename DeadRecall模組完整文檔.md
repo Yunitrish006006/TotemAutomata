@@ -7,7 +7,7 @@
 ### 📊 技術資訊
 - **Minecraft 版本**：26.2
 - **模組載入器**：Fabric（需 Fabric API）
-- **當前版本**：v2.2.0
+- **當前版本**：v2.2.1
 - **授權**：BSD-3-Clause
 
 ---
@@ -158,35 +158,44 @@ DeadRecall 會新增自己的創造模式頁籤，集中顯示模組新增物品
 | 銅板手 | 工作台有序合成 | 銅錠 x2、木棒 x1 | `deadrecall:copper_wrench` x1 |
 
 #### 使用方法
-1. 手持銅板手，左鍵點擊一隻銅魁儡來選取目標魁儡
-2. 系統提示已選取銅魁儡後，右鍵點擊要綁定的容器
-3. 綁定成功後，該容器會被加入這隻銅魁儡的綁定清單
-   - 第一次成功綁定容器會完成進度「第一份工作合約」
-4. 選取的銅魁儡會保留在銅板手資料中，可連續右鍵多個容器加入同一隻銅魁儡
-5. 若要解除單一目標容器，先選取該銅魁儡，再左鍵點擊要解除的已綁定容器
-6. Shift+右鍵銅魁儡會開啟自訂選項 UI，顯示已綁定容器的 icon、依玩家目前語言翻譯的類型、維度與座標
-7. Shift+左鍵銅魁儡會顯示粒子路徑，指向目前同維度且可用的所有綁定容器
-8. 綁定清單 UI 右上角可以切換這隻銅魁儡的「運作 / 停止」狀態
-9. 綁定清單 UI 的「箱子」分頁可以查看容器清單、切換每個箱子的 LLM 開關，並替每個箱子設定獨立 prompt
-10. 綁定清單 UI 的「LLM」分頁可以設定這隻銅魁儡共用的 API URL、API Key、Model，並顯示目前啟用 LLM 的箱子數量
-11. 「LLM」分頁的「測試連線」會用目前欄位送出一次最小 chat completions 請求；測試不會保存設定，成功後仍需按儲存
-12. 選取綁定箱子後，底部會用物品圖示顯示該箱子的接受/拒絕物品快取；滑鼠停在圖示上可看 item id
+1. 手持銅板手，Shift+右鍵銅魁儡：把這隻銅魁儡綁到板手上，並開啟自訂 GUI
+2. GUI 右上角可切換「運作 / 停止」，旁邊可切換「分類 / 採集」模式
+3. 右鍵銅箱子系列（`BlockTags.COPPER_CHESTS`）：設定這隻銅魁儡唯一的來源銅箱
+   - 分類模式：來源銅箱是取出待分類物品的位置
+   - 採集模式：來源銅箱是採集物存回去的 Home
+   - 第一次成功綁定來源或容器會完成進度「第一份工作合約」
+4. 左鍵目前的來源銅箱：解除來源銅箱綁定
+5. 分類模式下，右鍵一般容器：加入分類目的地清單
+6. 分類模式下，左鍵已綁定的一般容器：移除該分類目的地
+7. 採集模式下，右鍵普通方塊：設定 Corner A；Shift+右鍵普通方塊：設定 Corner B
+8. 採集模式下，左鍵普通非容器方塊：新增或移除該 Block ID 作為手動採集目標
+9. 採集模式 GUI 會顯示來源銅箱、工作區、工具欄、採集倉庫和手動目標清單；目標清單右側的 `X` 可直接刪除該目標
+10. LLM 分頁可以設定這隻銅魁儡共用的 API URL、API Key、Model，並可用「測試連線」送出最小 chat completions 請求
+11. 分類模式的箱子清單中，每個目的地容器可以獨立切換 LLM 與 prompt；接受/拒絕快取會直接顯示在可滾動的箱子卡片內
+12. 採集模式的箱子分頁上方可切換採集 LLM 並編輯採集規則；手動採集目標會優先於 LLM 判定
+13. 手持已綁定銅魁儡的銅板手時，client 會自動用本地粒子顯示目前模式的來源、目的地、工作區角點、採集目標與阻塞提示
+
+> 採集模式在世界中設定 Corner 或切換手動採集目標時只會顯示提示，不會強制彈出管理 GUI；需要看完整清單時再 Shift+右鍵銅魁儡開啟。
 
 #### 綁定規則
 | 行為 | 結果 |
 |------|------|
-| 沒有綁定容器的銅魁儡 | 不會搬運銅箱子內的物品 |
-| 左鍵銅魁儡 | 選取這隻銅魁儡，並避免造成攻擊傷害 |
-| 右鍵容器且銅板手已有選取魁儡 | 把該容器加入選取魁儡的綁定清單 |
+| 沒有綁定來源銅箱的銅魁儡 | 不會執行分類或採集 |
+| 手持銅錠右鍵受傷銅魁儡 | 消耗 1 個銅錠並修復 4 點生命值，創造模式不消耗 |
+| Shift+右鍵銅魁儡 | 選取這隻銅魁儡並開啟 GUI |
+| 普通左鍵銅魁儡 | 不再作為選取操作 |
+| 右鍵一般容器且處於分類模式 | 把該容器加入分類目的地清單 |
 | 右鍵容器但銅板手沒有選取魁儡 | 不綁定，保留原方塊互動 |
-| 左鍵容器且銅板手已有選取魁儡 | 若該容器在選取魁儡的綁定清單中，移除該容器 |
+| 左鍵一般容器且處於分類模式 | 若該容器已綁定，移除該容器 |
 | 左鍵容器但銅板手沒有選取魁儡 | 顯示先選取銅魁儡的提示，避免誤破壞容器 |
-| 右鍵銅箱子系列（`BlockTags.COPPER_CHESTS`） | 不允許綁定；銅箱子系列只作為來源容器 |
-| Shift+右鍵銅魁儡 | 開啟自訂選項 UI，顯示綁定容器 icon、依玩家目前語言翻譯的類型、維度與座標 |
-| Shift+左鍵已綁定的銅魁儡 | 顯示所有同維度且可用綁定容器的粒子路徑 |
+| 右鍵銅箱子系列（`BlockTags.COPPER_CHESTS`） | 設定為唯一來源銅箱，不會加入分類目的地 |
+| 左鍵目前的來源銅箱 | 解除來源銅箱 |
+| 採集模式右鍵普通方塊 | 設定 Corner A |
+| 採集模式 Shift+右鍵普通方塊 | 設定 Corner B |
+| 採集模式左鍵普通非容器方塊 | 新增或移除該 Block ID 的手動採集目標 |
 | UI 右上角按下「停止」 | 該銅魁儡停止搬運；已有綁定仍保留 |
 | UI 右上角按下「運作」 | 該銅魁儡恢復搬運 |
-| 右鍵非容器方塊 | 顯示錯誤提示，不會綁定 |
+| 分類模式右鍵非容器方塊 | 顯示錯誤提示，不會綁定 |
 | 重複綁定同一個容器 | 顯示已綁定提示，不會重複加入 |
 | 已綁定的目標方塊被破壞或不再是容器 | 自動從該銅魁儡的綁定清單移除 |
 | 選取銅魁儡後到其他維度右鍵容器 | 直接拒絕綁定並清除扳手上的選取資料 |
@@ -195,11 +204,11 @@ DeadRecall 會新增自己的創造模式頁籤，集中顯示模組新增物品
 > 綁定清單 UI 是 client 自訂畫面，不使用玩家物品欄或原版箱子介面；清單過長時可滾動。
 > 失效綁定只會在目標座標所在 chunk 已載入時判定；chunk 未載入時會先保留，避免誤刪。
 
-#### 搬運與分類邏輯
-- 銅魁儡至少要綁定 1 個容器才會開始搬運物品
+#### 分類模式邏輯
+- 銅魁儡至少要綁定來源銅箱與 1 個分類目的地，才會開始分類物品
 - 銅魁儡必須處於「運作中」才會啟動搬運；「停止」狀態會保留綁定但不搬運
-- 銅魁儡的**來源**仍是原版銅箱子（`BlockTags.COPPER_CHESTS`）
-- 銅魁儡的**目的地**會改成銅板手綁定的容器清單
+- 銅魁儡的**來源**是玩家綁定的來源銅箱（`BlockTags.COPPER_CHESTS`）
+- 銅魁儡的**目的地**是銅板手綁定的一般容器清單
 - 銅箱子系列只作為來源，不允許綁定成目的地；舊資料若已綁定銅箱子，會被自動清理
 - 取物時會從來源銅箱子的 slot 0 開始往後掃，拿第一個非空格的物品
 - 每次最多從來源銅箱子拿出 16 個物品，沿用原版銅魁儡搬運量
@@ -208,8 +217,29 @@ DeadRecall 會新增自己的創造模式頁籤，集中顯示模組新增物品
 - 若已有相同物品但該堆疊已滿，仍可放入同一容器的空格
 - 綁定容器內若放有一般背包，銅魁儡會讀取背包內容；背包內已有相同物品時，可直接把物品放進該背包
 - 死亡背包不會被當成銅魁儡分類用的背包目標
+- 成功放進目的容器或目的容器內背包後，會立即更新銅魁儡手上剩餘數量；若已全部放完，會清除本次來源記錄，不會再把已分類物品放回來源銅箱
 - 單純空箱或只有空格的容器不算分類命中，避免最近空箱吃掉所有物品
 - 取物前會先掃描整個來源銅箱子；只要還有任一物品能放進任一綁定容器，就繼續搬運
+
+#### 採集模式邏輯
+- 採集模式使用同一個來源銅箱作為 Home；採集到的資源會先放進銅魁儡身上的採集倉庫，再走回 Home 存入
+- 採集前必須完成來源銅箱、Corner A、Corner B、至少 1 個手動採集目標、工具欄、燃料
+- 若採集 LLM 已啟用且 API/Model/prompt 完整，手動目標可以為空；銅魁儡會用方塊 ID、方塊名稱、方塊 tags、預期掉落與工具摘要詢問 LLM 是否採集
+- 工具欄只放 1 個採集工具；調整工具欄或取回採集倉庫前，需要先把銅魁儡停止
+- 採集倉庫最多保存 16 個物品，且同一趟只接受相同物品與相同 Data Components 的掉落
+- 採集倉庫未滿 16 且工作區還有可合併的同物品目標時，銅魁儡會繼續採集；倉庫滿 16 或完整掃描後找不到可合併目標時才回 Home 存放
+- 工作區會正規化兩個角點；每軸最多 64 格，總體積最多 262144 格，超過時會拒絕設定
+- 搜尋採集目標時從工作區最上層往下掃描，每 tick 最多檢查 512 個候選方塊；成功找到並採集後會保存掃描游標，下一個目標從上次位置後方繼續找，不會每次重頭掃
+- 掃描採集目標時只處理已載入方塊，並排除來源銅箱、分類綁定箱、容器、流體、不可破壞方塊與 TNT、火、岩漿、仙人掌、岩漿方塊、營火、重生錨等危險方塊
+- 破壞前會先計算掉落；若沒有掉落、掉落混雜、需要正確工具但工具不符、或倉庫放不下，就跳過該方塊
+- 可站位置會使用銅魁儡本身的碰撞箱判定；只要腳下有穩固支撐且銅魁儡實際碰撞箱塞得進去，就不需要像玩家一樣保留固定兩格高空間
+- 採集距離包含一般水平約 2 格，以及頭頂上方或腳下方有限 3x3 區域；遇到草方塊、地表層或側面被遮住的方塊時，會優先嘗試站到目標上方往下挖
+- 抵達目標後會依方塊硬度與工具對該方塊的挖掘速度累積工作進度，不會抵達後立刻破壞
+- 成功破壞後才會消耗燃料與工具耐久；工具損壞時會停止採集並顯示阻塞狀態
+- 回 Home 存放時若 Home 滿或失效，倉庫物品會保留在銅魁儡身上並阻塞
+- 採集 LLM 結果會快取方塊 ID 與方塊 tag；prompt 改變時會清除採集快取，過期的非同步回應不會寫回
+- 搜尋或移動時銅魁儡不顯示採集工具；只有真正破壞方塊時才顯示工具並揮動，回 Home 存放時會改顯示採集倉庫中的物品
+- 銅魁儡死亡時，採集工具與採集倉庫物品會掉落在原地
 
 #### LLM 分類輔助
 - LLM API URL、API Key、Model 儲存在銅魁儡實體 `CUSTOM_DATA`，每隻銅魁儡各自共用一組設定
@@ -219,8 +249,8 @@ DeadRecall 會新增自己的創造模式頁籤，集中顯示模組新增物品
 - 銅魁儡詢問 LLM 時會附帶內建分類參照表，讓箱子 prompt 可直接使用常見短詞，例如「礦物」、「食物」、「工具」、「作物」、「動物」、「材料」、「建材」、「畜牧」
 - 分類時會先跑原本規則：目標容器已有相同物品與相同 Data Components 時，不會詢問 LLM
 - 原本規則找不到位置時，若該箱子 LLM 已啟用且仍有可放入空格，才會檢查 LLM 快取
-- 快取會先看物品 ID，再看物品 tag；命中允許快取就會把物品分到該箱子，命中拒絕快取就跳過
-- 綁定清單 UI 會用物品圖示顯示選取箱子的接受/拒絕物品快取；滑鼠停在圖示上才顯示 item id，tag 快取仍以文字摘要顯示
+- 分類快取由 LLM 判定與玩家手動校正共用；分類時會先看物品 ID，再看物品 tag；命中允許快取就會把物品分到該箱子，命中拒絕快取就跳過
+- 綁定清單 UI 會在箱子卡片內用圖示顯示接受/拒絕快取；物品快取顯示原物品 icon，tag 快取顯示命名牌 icon，滑鼠停在圖示上會顯示 item id 或 tag id；對快取圖示按右鍵會把該 item id 或 tag id 移到另一邊
 - 若沒有快取，server 會在背景執行緒詢問 LLM，本次搬運先跳過該箱子，等回覆寫回銅魁儡後下次再使用
 - LLM 回覆格式要求為 JSON：`{"match":true|false,"tags":["tag_id"]}`
 - 若 LLM 判定符合，會把物品 ID 記入允許清單，並把 LLM 回傳的相關 tag 記入允許 tag 清單
@@ -264,6 +294,11 @@ DeadRecall 會新增自己的創造模式頁籤，集中顯示模組新增物品
 |------|----------|------|
 | 暫時選取的銅魁儡 UUID | 銅板手物品 `CUSTOM_DATA` | 點銅魁儡後、點容器前暫存 |
 | 綁定容器清單 | 銅魁儡實體 `CUSTOM_DATA` | 每筆包含維度與 `x/y/z` 座標 |
+| 來源銅箱 | 銅魁儡實體 `CUSTOM_DATA` | 唯一來源銅箱，分類模式取物、採集模式回存 |
+| 目前模式 | 銅魁儡實體 `CUSTOM_DATA` | `sorting` 或 `gathering`；舊資料未寫入時預設分類模式 |
+| 運作狀態與燃料 | 銅魁儡實體 `CUSTOM_DATA` | 運作/停止、燃料欄與剩餘燃燒 tick |
+| 採集作業區與目標 | 銅魁儡實體 `CUSTOM_DATA` | Corner A/B、掃描游標、目前目標與手動 Block ID 清單 |
+| 採集工具與倉庫 | 銅魁儡實體 `CUSTOM_DATA` | 工具欄 1 格、倉庫 1 格且最多 16 個 |
 | 本次搬運來源 | 銅魁儡實體 `CUSTOM_DATA` | 記錄來源銅箱子與來源槽位，失敗回放用 |
 | 本次已嘗試目的地 | 銅魁儡實體 `CUSTOM_DATA` | 同一個手上物品已試過哪些綁定容器 |
 | 全箱無法分類阻塞狀態 | 銅魁儡實體 `CUSTOM_DATA` | 記錄來源、綁定與目標容器快照，等待資料更新後解除 |
@@ -433,7 +468,14 @@ data/<namespace>/deadrecall/cauldron_recipes/<recipe_id>.json
 
 ## 📈 更新日誌
 
-### v2.2.0（當前版本）
+### v2.2.1（當前版本）
+- ✅ 銅魁儡採集掃描預算由每 tick 64 格提高為 512 格，大型工作區搜尋更快
+- ✅ 銅魁儡成功採集後會保留掃描游標，下一個目標從上次位置後方繼續搜尋，不再每次從工作區最上層重頭掃
+- ✅ 銅魁儡採集站位改用自身碰撞箱判定，不再硬性要求玩家兩格高空間，降低「看起來挖得到但不挖」的情況
+- ✅ 銅魁儡可用銅錠右鍵修復，並補齊玩家操作文件
+- ✅ 整理根 README、銅魁儡指南、完整文檔與 OpenSpec 採集規格
+
+### v2.2.0
 - ✅ 新增 DeadRecall 創造模式頁籤，集中顯示模組新增物品
 - ✅ 死亡背包落地後會顯示類似烽火台的紅色光柱，方便找回死亡地點掉落物
 - ✅ 豬糞採集改為鏟子左鍵，豬糞物品可右鍵投擲；命中草地會生成帶豬糞草地，命中生物會造成臭味並讓附近友善生物遠離
@@ -441,7 +483,7 @@ data/<namespace>/deadrecall/cauldron_recipes/<recipe_id>.json
 - ✅ 新增被豬糞砸中的玩家進度「誰掉到茅坑裡啦」，以及首次綁定銅魁儡容器進度「第一份工作合約」
 - ✅ 取得燧石會解鎖缽配方，合成缽會完成進度「有缽而來」
 - ✅ 新增煉藥鍋新配方：櫻花釀還有熱可可
-- ✅ 銅魁儡AI增強（能翻包包）
+- ✅ 銅魁儡分類時可讀取容器內 DeadRecall 背包內容，並避開死亡背包
 
 ### v2.1.2
 - ✅ 修正背包整理快捷鍵整理玩家背包時會移動工具快捷列的問題，現在只整理主背包，並避開快捷列、裝備欄與副手
@@ -452,7 +494,7 @@ data/<namespace>/deadrecall/cauldron_recipes/<recipe_id>.json
 - ✅ Cloudflare Worker 範例的 `/api/mc/server/status` 會實際發送 Discord Webhook 狀態訊息
 - ✅ 銅魁儡新增 OpenAI-compatible LLM 分類輔助，每隻銅魁儡可設定 API URL、API Key、Model，並提供測試連線
 - ✅ 每個綁定容器可獨立設定 LLM 開關與 prompt，銅魁儡會快取允許/拒絕的 item id 與 tag，避免重複詢問
-- ✅ 銅魁儡 UI 壓縮高度、支援非全螢幕尺寸、顯示接受/拒絕快取物品圖示，容器名稱會依玩家目前語言翻譯
+- ✅ 銅魁儡 UI 壓縮高度、支援非全螢幕尺寸、顯示接受/拒絕快取圖示；物品用原物品 icon，tag 用命名牌 icon，容器名稱會依玩家目前語言翻譯
 - ✅ 新增內建 LLM 分類參照表，支援礦物、食物、工具、作物、動物、材料、建材、畜牧等常用分類詞
 - ✅ 新增漏斗抽取熔爐、高爐、煙燻爐成品時自動產生該批燒製經驗球
 - ✅ 新增銅板手生存合成配方
@@ -628,40 +670,58 @@ DeadRecall/
 
 #### 銅魁儡綁定分類
 - `CopperWrenchItem` 只負責物品型別，本身不直接處理互動邏輯
-- `CopperGolemWrenchHandler.register()` 註冊 Fabric `AttackEntityCallback`、`AttackBlockCallback`、`UseEntityCallback` 與 `UseBlockCallback`
+- `CopperGolemWrenchHandler.register()` 註冊 Fabric `AttackBlockCallback`、`UseEntityCallback` 與 `UseBlockCallback`
 - 銅板手點擊流程：
-  - 左鍵銅魁儡：把銅魁儡 UUID 暫存在扳手 `DataComponents.CUSTOM_DATA`，並取消原本攻擊傷害
-  - 左鍵容器：若扳手已選取銅魁儡，從該銅魁儡的 `deadrecall_bound_containers` 移除目前容器座標
-  - Shift+左鍵銅魁儡：讀取銅魁儡 `DataComponents.CUSTOM_DATA` 的綁定清單，對所有同維度且可用容器顯示粒子路徑
-  - 右鍵容器：把容器維度與座標寫入目前選取銅魁儡的 `DataComponents.CUSTOM_DATA`
+  - Shift+右鍵銅魁儡：把銅魁儡 UUID 暫存在板手 `DataComponents.CUSTOM_DATA`，server 送出 `CopperWrenchBindingsPayload`，client 開啟 `CopperWrenchBindingsScreen`
+  - 右鍵銅箱子系列：寫入唯一來源銅箱 `deadrecall_source_copper_container_*`
+  - 左鍵目前來源銅箱：解除來源銅箱
+  - 分類模式右鍵一般容器：把容器維度與座標寫入 `deadrecall_bound_containers`
+  - 分類模式左鍵一般容器：若扳手已選取銅魁儡，從 `deadrecall_bound_containers` 移除目前容器座標
+  - 採集模式右鍵普通方塊：設定 Corner A；Shift+右鍵普通方塊：設定 Corner B
+  - 採集模式左鍵普通非容器方塊：切換 `deadrecall_gathering_manual_targets` 內的 Block ID
   - 右鍵容器時若銅魁儡與容器不在同一維度，會直接拒絕綁定並清除扳手選取資料
   - 寫入完成後保留扳手上的銅魁儡 UUID，方便連續綁定多個容器
-  - Shift+右鍵銅魁儡：server 送出 `CopperWrenchBindingsPayload`，client 開啟 `CopperWrenchBindingsScreen`
-- `CopperWrenchBindingsScreen` 以較緊湊的自訂選項畫面顯示綁定清單；「箱子」分頁每列包含容器 icon、依玩家目前語言翻譯的容器名稱、維度、座標、狀態、LLM 開關與快取數量
-- UI 右上角按鈕送出 `CopperGolemOperationPayload`，切換 `deadrecall_transport_enabled`
+- `CopperWrenchBindingsScreen` 以較緊湊的自訂選項畫面顯示綁定清單；「箱子」分頁上方左半顯示來源銅箱，右半顯示目前模式的 prompt；每列容器卡片包含容器 icon、依玩家目前語言翻譯的容器名稱、座標、狀態、LLM 開關與快取數量；因新綁定只允許同維度容器，GUI 不顯示容器維度
+- 採集模式的「箱子」分頁改為顯示來源銅箱、上方採集 Prompt 區塊、工作區、工具欄、採集倉庫與採集目標預覽；預覽會合併手動目標與 Prompt 快取，只有手動目標列右側 `X` 會透過 `CopperGolemGatheringTargetPayload` 移除目標
+- UI 右上角運作按鈕送出 `CopperGolemOperationPayload`，切換 `deadrecall_transport_enabled`
+- UI 右上角模式按鈕送出 `CopperGolemModePayload`；伺服器切換前會檢查停止狀態、手上貨物、分類來源記錄、採集工具、採集倉庫與目前採集目標
+- UI 採集工具/倉庫欄透過 `CopperGolemGatheringSlotPayload` 操作；運作中不可調整，避免工作交易中途被抽走物品
 - UI 的「LLM」分頁提供 API URL、API Key、Model 設定；設定透過 `SaveCopperGolemLlmConfigPayload` 送回 server，並寫入該銅魁儡實體 `CUSTOM_DATA`
 - UI 的「測試連線」透過 `TestCopperGolemLlmConnectionPayload` 送出目前欄位，server 會在背景執行緒呼叫 OpenAI-compatible chat completions endpoint，並把成功或失敗訊息回覆給玩家
 - server 只會把 API Key 同步給 OP、單人世界主人或創造權限玩家；一般玩家開 GUI 時 API Key 欄位為空
-- 每列綁定箱子有 LLM 開關；選取箱子後可在「箱子」分頁底部 prompt 欄編輯，並以物品圖示查看該箱子的接受/拒絕物品快取；prompt 透過 `UpdateCopperGolemBindingLlmPayload` 寫回銅魁儡資料
+- 每列綁定箱子有 LLM 開關；選取箱子後可在「箱子」分頁上方 prompt 欄編輯；接受/拒絕分類快取以圖示顯示在可滾動的箱子卡片內，不放在 prompt 區；接受圖示會合併手動分類可命中的物品與允許快取，拒絕圖示顯示拒絕快取；其中物品用原物品 icon，tag 用命名牌 icon；右鍵快取圖示會透過 `UpdateCopperGolemBindingCachePayload` 把 item id 或 tag id 移到另一邊；prompt 透過 `UpdateCopperGolemBindingLlmPayload` 寫回銅魁儡資料
+- 採集模式上方 prompt 欄為採集 LLM 規則，透過 `UpdateCopperGolemGatheringLlmPayload` 寫入 `deadrecall_gathering_llm_*`；允許/拒絕的方塊與 tag 快取會併入採集目標預覽清單
+- 手持已綁定板手時，client 會用 `RequestCopperGolemVisualizationPayload` 低頻請求精簡視覺化資料，server 以 `CopperGolemVisualizationPayload` 回傳座標；後續線條、工作區與阻塞提示由 client 本地粒子重繪，不需要 server 每 tick 廣播完整粒子路徑
 - 銅魁儡永久綁定資料使用 `deadrecall_bound_containers` 清單儲存
+- 銅魁儡來源銅箱使用 `deadrecall_source_copper_container_*` 儲存；分類模式作為取物來源，採集模式作為 Home
+- 銅魁儡模式使用 `deadrecall_mode` 儲存；未寫入時預設 `sorting`
 - 銅魁儡運作狀態使用 `deadrecall_transport_enabled` 儲存；未寫入時預設為運作中
+- 銅魁儡燃料欄與剩餘燃燒 tick 使用 `deadrecall_fuel_stack`、`deadrecall_fuel_ticks` 儲存；分類成功取物或採集成功破壞後才消耗工作燃料
+- 採集工具與採集倉庫使用 `deadrecall_gathering_tool_stack`、`deadrecall_gathering_storage_stack` 儲存；採集倉庫最多 16 個且只能合併相同 Item 與 Components
+- 採集作業區使用 `deadrecall_gathering_area_dim` 與 Corner A/B 座標儲存；掃描游標與目前目標分別使用 `deadrecall_gathering_scan_index`、`deadrecall_gathering_target_*`
 - 銅魁儡共用 LLM API 設定使用 `deadrecall_llm_api_url`、`deadrecall_llm_api_key`、`deadrecall_llm_model` 儲存
 - 銅魁儡 LLM 綁定設定使用 `deadrecall_llm_bindings` 儲存，每筆包含綁定座標、啟用狀態、prompt、允許/拒絕物品 ID 與允許/拒絕 tag
 - 舊版單一容器資料 `deadrecall_bound_container_*` 仍會讀取並遷移到新清單格式
 - `CopperGolemWrenchHandler.tickCopperGolemWrenchState()` 由 server tick 呼叫，用來清理失效綁定、處理全箱無法分類時的原地跳躍與自動解除
 - 失效綁定清理每 20 tick 執行一次；若目標維度存在、目標 chunk 已載入，但該座標已無法建立 `TransportItemTarget`，或該方塊屬於 `BlockTags.COPPER_CHESTS`，就會從 `deadrecall_bound_containers` 移除
 - 綁定目的地解析使用 `tryCreateBoundTarget()`，會排除 `BlockTags.COPPER_CHESTS`，避免把銅魁儡來源容器當成分類目的地
+- 採集 tick 只在 `mode == gathering` 且運作中執行；有倉庫物品時優先返回來源銅箱存放，沒有倉庫物品時才檢查燃料、工具、作業區與目標
+- 採集掃描每 tick 最多檢查 512 個方塊，只處理已載入位置，並排除來源銅箱、分類綁定箱、容器、流體、不可破壞與危險方塊；找到目標後會保存下一段掃描游標，成功採集後從上次位置後方繼續搜尋
+- 採集站位使用銅魁儡自身碰撞箱驗證，不要求玩家兩格高空間；腳下仍需有穩固支撐
+- 採集破壞前會先用工具計算掉落並驗證倉庫容量；抵達後依工具挖掘速度累積破壞進度，成功破壞後才寫入倉庫、扣燃料與扣工具耐久
+- 銅魁儡死亡時會把採集工具與採集倉庫物品掉在原地，避免隱藏欄位內物品消失
 - `TransportItemsBetweenContainersMixin` 攔截原版銅魁儡搬運行為：
   - `checkExtraStartConditions`：沒有綁定容器、已停止或正在阻塞跳躍的銅魁儡不啟動搬運行為
   - `getTransportTarget`：手上有物品時，依綁定順序找下一個未嘗試的分類容器
   - `pickUpItems`：手上沒物品時，先判斷整個銅箱子是否仍有可分類物，再從 slot 0 往後拿第一個非空格物品
-  - `putDownItem`：若目標容器內的一般背包可以接收目前物品，會直接寫入該背包的 `DataComponents.CONTAINER`；物品成功放下後，清除本次來源槽位記錄
+  - `putDownItem`：由 DeadRecall 自行把物品寫入目的容器或目的容器內的一般背包；放入成功後更新銅魁儡手上剩餘數量，全部放完時清除本次來源槽位記錄
   - `isWantedBlock`：讓已綁定銅魁儡在手持物品時接受綁定容器作為有效目標
 - `deadrecall_tried_destinations` 會記錄同一個手上物品已經試過哪些綁定容器
 - 分類容器或容器內的一般背包必須已存在相同物品與相同 Data Components；空箱與空背包不會被傳統規則視為分類目標
 - 死亡背包會被排除在巢狀背包分類外，不會被銅魁儡寫入內容
 - 若傳統分類規則失敗，但該綁定箱子 LLM 已啟用、該箱子有 prompt、該銅魁儡有 API/model 設定且有可放入空格，會先查銅魁儡身上的 item id/tag 快取；沒有快取才由 `CopperGolemLlmService` 背景呼叫 OpenAI-compatible chat completions API
 - LLM 回覆會切回 server thread 寫入銅魁儡資料；允許結果會讓該 item id 或 LLM 回傳的 tag 後續直接命中，拒絕結果會避免同一 item id 反覆詢問
+- 玩家可在 GUI 右鍵接受/拒絕快取圖示手動校正 item id 或 tag id；分類快取與傳統相同物品分類規則共用，拒絕快取會優先阻止相同物品分類，允許快取可讓該箱子以空格接收該物品
 - 修改箱子 prompt 時會清空該箱子的 LLM item id/tag 快取；若 LLM 回覆回來時該容器已解除綁定，結果會被忽略
 - 若銅魁儡已拿起物品但所有綁定容器都找不到可分類目的地，會依 `deadrecall_source_container_*` 與 `deadrecall_source_slot` 把物品放回來源銅箱子後段
 - 回放時若後段沒有空槽或可堆疊位置，會把來源槽位後方物品往前位移，並把無法分類的物品放到最後面

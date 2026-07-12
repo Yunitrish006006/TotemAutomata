@@ -7,23 +7,29 @@ import net.minecraft.resources.Identifier;
 
 import java.util.UUID;
 
-public record CopperGolemFuelSlotPayload(UUID golemId, Action action, int revision) implements CustomPacketPayload {
-    public static final Type<CopperGolemFuelSlotPayload> TYPE =
-            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "copper_golem_fuel_slot"));
+public record CopperGolemGatheringSlotPayload(UUID golemId, Slot slot, Action action, int revision) implements CustomPacketPayload {
+    public static final Type<CopperGolemGatheringSlotPayload> TYPE =
+            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "copper_golem_gathering_slot"));
+
+    public enum Slot {
+        TOOL,
+        STORAGE
+    }
 
     public enum Action {
         INSERT_MAIN_HAND,
         TAKE_ALL
     }
 
-    public static final StreamCodec<FriendlyByteBuf, CopperGolemFuelSlotPayload> CODEC =
+    public static final StreamCodec<FriendlyByteBuf, CopperGolemGatheringSlotPayload> CODEC =
             StreamCodec.of(
                     (buf, payload) -> {
                         buf.writeUUID(payload.golemId());
+                        buf.writeEnum(payload.slot());
                         buf.writeEnum(payload.action());
                         buf.writeInt(payload.revision());
                     },
-                    buf -> new CopperGolemFuelSlotPayload(buf.readUUID(), buf.readEnum(Action.class), buf.readInt())
+                    buf -> new CopperGolemGatheringSlotPayload(buf.readUUID(), buf.readEnum(Slot.class), buf.readEnum(Action.class), buf.readInt())
             );
 
     @Override

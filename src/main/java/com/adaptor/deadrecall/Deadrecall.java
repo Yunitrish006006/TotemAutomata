@@ -14,15 +14,22 @@ import com.adaptor.deadrecall.item.copper.CopperGolemLlmService;
 import com.adaptor.deadrecall.item.copper.CopperGolemWrenchHandler;
 import com.adaptor.deadrecall.network.CopperGolemOperationPayload;
 import com.adaptor.deadrecall.network.CopperGolemFuelSlotPayload;
+import com.adaptor.deadrecall.network.CopperGolemGatheringSlotPayload;
+import com.adaptor.deadrecall.network.CopperGolemGatheringTargetPayload;
+import com.adaptor.deadrecall.network.CopperGolemModePayload;
+import com.adaptor.deadrecall.network.CopperGolemVisualizationPayload;
 import com.adaptor.deadrecall.network.CopperWrenchBindingsPayload;
 import com.adaptor.deadrecall.network.DiscordConfigSyncPayload;
 import com.adaptor.deadrecall.network.ManageDiscordChannelPayload;
 import com.adaptor.deadrecall.network.RequestDiscordConfigPayload;
+import com.adaptor.deadrecall.network.RequestCopperGolemVisualizationPayload;
 import com.adaptor.deadrecall.network.SaveCopperGolemLlmConfigPayload;
 import com.adaptor.deadrecall.network.SortBackpackPayload;
 import com.adaptor.deadrecall.network.SaveDiscordConfigPayload;
 import com.adaptor.deadrecall.network.TestCopperGolemLlmConnectionPayload;
+import com.adaptor.deadrecall.network.UpdateCopperGolemBindingCachePayload;
 import com.adaptor.deadrecall.network.UpdateCopperGolemBindingLlmPayload;
+import com.adaptor.deadrecall.network.UpdateCopperGolemGatheringLlmPayload;
 import com.adaptor.deadrecall.recipe.ModRecipes;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
@@ -109,15 +116,29 @@ public class Deadrecall implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(
                 CopperGolemFuelSlotPayload.TYPE, CopperGolemFuelSlotPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(
+                CopperGolemGatheringSlotPayload.TYPE, CopperGolemGatheringSlotPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                CopperGolemGatheringTargetPayload.TYPE, CopperGolemGatheringTargetPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                CopperGolemModePayload.TYPE, CopperGolemModePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
                 SaveCopperGolemLlmConfigPayload.TYPE, SaveCopperGolemLlmConfigPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(
                 TestCopperGolemLlmConnectionPayload.TYPE, TestCopperGolemLlmConnectionPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(
                 UpdateCopperGolemBindingLlmPayload.TYPE, UpdateCopperGolemBindingLlmPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                UpdateCopperGolemBindingCachePayload.TYPE, UpdateCopperGolemBindingCachePayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                UpdateCopperGolemGatheringLlmPayload.TYPE, UpdateCopperGolemGatheringLlmPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(
+                RequestCopperGolemVisualizationPayload.TYPE, RequestCopperGolemVisualizationPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(
                 DiscordConfigSyncPayload.TYPE, DiscordConfigSyncPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(
                 CopperWrenchBindingsPayload.TYPE, CopperWrenchBindingsPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(
+                CopperGolemVisualizationPayload.TYPE, CopperGolemVisualizationPayload.CODEC);
 
         // 收到客戶端請求時，回傳目前設定
         ServerPlayNetworking.registerGlobalReceiver(RequestDiscordConfigPayload.TYPE,
@@ -193,11 +214,31 @@ public class Deadrecall implements ModInitializer {
 
         ServerPlayNetworking.registerGlobalReceiver(CopperGolemOperationPayload.TYPE,
                 (payload, context) -> context.server().execute(() ->
-                        CopperGolemWrenchHandler.setTransportEnabledFromUi(context.player(), payload.golemId(), payload.running())));
+                        CopperGolemWrenchHandler.setTransportEnabledFromUi(context.player(), payload.golemId(), payload.running(), payload.revision())));
 
         ServerPlayNetworking.registerGlobalReceiver(CopperGolemFuelSlotPayload.TYPE,
                 (payload, context) -> context.server().execute(() ->
-                        CopperGolemWrenchHandler.handleFuelSlotFromUi(context.player(), payload.golemId(), payload.action())));
+                        CopperGolemWrenchHandler.handleFuelSlotFromUi(context.player(), payload.golemId(), payload.action(), payload.revision())));
+
+        ServerPlayNetworking.registerGlobalReceiver(CopperGolemGatheringSlotPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.handleGatheringSlotFromUi(context.player(), payload.golemId(), payload.slot(), payload.action(), payload.revision())));
+
+        ServerPlayNetworking.registerGlobalReceiver(CopperGolemGatheringTargetPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.handleGatheringTargetFromUi(
+                                context.player(),
+                                payload.golemId(),
+                                payload.value(),
+                                payload.tag(),
+                                payload.targetSet(),
+                                payload.action(),
+                                payload.revision()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(CopperGolemModePayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.setModeFromUi(context.player(), payload.golemId(), payload.mode(), payload.revision())));
 
         ServerPlayNetworking.registerGlobalReceiver(SaveCopperGolemLlmConfigPayload.TYPE,
                 (payload, context) -> context.server().execute(() -> {
@@ -208,7 +249,7 @@ public class Deadrecall implements ModInitializer {
                         return;
                     }
 
-                    CopperGolemWrenchHandler.setGolemLlmConfigFromUi(player, payload.golemId(), payload.apiUrl(), payload.apiKey(), payload.model());
+                    CopperGolemWrenchHandler.setGolemLlmConfigFromUi(player, payload.golemId(), payload.apiUrl(), payload.apiKey(), payload.model(), payload.revision());
                     player.sendSystemMessage(Component.literal("§a銅魁儡 LLM API 設定已更新"));
                 }));
 
@@ -240,12 +281,44 @@ public class Deadrecall implements ModInitializer {
                                 payload.y(),
                                 payload.z(),
                                 payload.enabled(),
-                                payload.prompt()
+                                payload.prompt(),
+                                payload.revision()
                         )));
+
+        ServerPlayNetworking.registerGlobalReceiver(UpdateCopperGolemBindingCachePayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.moveBindingLlmCacheFromUi(
+                                context.player(),
+                                payload.golemId(),
+                                payload.dimension(),
+                                payload.x(),
+                                payload.y(),
+                                payload.z(),
+                                payload.value(),
+                                payload.tag(),
+                                payload.allowed(),
+                                payload.revision()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(UpdateCopperGolemGatheringLlmPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.setGatheringLlmFromUi(
+                                context.player(),
+                                payload.golemId(),
+                                payload.enabled(),
+                                payload.prompt(),
+                                payload.revision()
+                        )));
+
+        ServerPlayNetworking.registerGlobalReceiver(RequestCopperGolemVisualizationPayload.TYPE,
+                (payload, context) -> context.server().execute(() ->
+                        CopperGolemWrenchHandler.sendVisualization(context.player(), payload.golemId())));
 
         ServerLivingEntityEvents.ALLOW_DEATH.register((entity, damageSource, damageAmount) -> {
             if (entity instanceof ServerPlayer player) {
                 rememberExistingDropsBeforeDeath(player);
+            } else if (entity instanceof net.minecraft.world.entity.animal.golem.CopperGolem golem) {
+                CopperGolemWrenchHandler.clearGatheringDisplayedItem(golem);
             }
             return true;
         });
@@ -255,6 +328,8 @@ public class Deadrecall implements ModInitializer {
             if (entity instanceof ServerPlayer player) {
                 DeathLocationManager.setDeathLocation(player, player.blockPosition(), player.level());
                 handlePlayerDeath(player);
+            } else if (entity instanceof net.minecraft.world.entity.animal.golem.CopperGolem golem) {
+                CopperGolemWrenchHandler.dropGatheringInventory(golem);
             }
         });
 
