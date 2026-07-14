@@ -17,12 +17,16 @@
       "com.adaptor.deadrecall.client.DeadrecallClient"
     ],
     "main": [
-      "com.adaptor.deadrecall.Deadrecall"
+      "com.adaptor.deadrecall.Deadrecall",
+      "com.adaptor.deadrecall.space.SpaceUnitRefreshNetworking"
     ]
   },
   "mixins": [
     "deadrecall.mixins.json",
-    "deadrecall.client.mixins.json"
+    {
+      "config": "deadrecall.client.mixins.json",
+      "environment": "client"
+    }
   ],
   "depends": {
     "fabricloader": ">=${loader_version}",
