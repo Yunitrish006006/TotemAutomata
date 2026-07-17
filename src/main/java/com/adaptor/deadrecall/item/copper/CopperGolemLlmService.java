@@ -1,6 +1,7 @@
 package com.adaptor.deadrecall.item.copper;
 
 import com.adaptor.deadrecall.Deadrecall;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -40,6 +41,13 @@ public final class CopperGolemLlmService {
             - 畜牧 / 牧場: animal husbandry and farm-animal management items such as animal feed, wheat, seeds, carrots, potatoes, beetroot, hay bales, leads, name tags, saddles, shears, buckets, eggs.
             Use these references only as interpretation help. The player's container prompt has priority.
             """;
+
+    static {
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
+            CLASSIFICATION_GATE.clear();
+            PENDING_CONNECTION_TESTS.clear();
+        });
+    }
 
     private CopperGolemLlmService() {
     }
