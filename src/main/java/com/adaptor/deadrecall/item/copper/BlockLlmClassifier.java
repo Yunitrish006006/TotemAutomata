@@ -1,6 +1,7 @@
 package com.adaptor.deadrecall.item.copper;
 
 import com.adaptor.deadrecall.Deadrecall;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.animal.golem.CopperGolem;
 
@@ -11,6 +12,10 @@ public final class BlockLlmClassifier {
     private static final long FAILURE_RETRY_DELAY_MS = 60_000L;
     private static final LlmRequestGate REQUEST_GATE =
             new LlmRequestGate(FAILURE_RETRY_DELAY_MS, System::currentTimeMillis);
+
+    static {
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> REQUEST_GATE.clear());
+    }
 
     private BlockLlmClassifier() {
     }
