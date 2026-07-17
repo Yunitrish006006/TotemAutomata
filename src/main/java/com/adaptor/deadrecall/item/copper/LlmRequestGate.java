@@ -67,6 +67,11 @@ final class LlmRequestGate {
         pendingQueries.remove(queryKey);
     }
 
+    void clear() {
+        pendingQueries.clear();
+        retryAfterMs.clear();
+    }
+
     boolean isPending(String queryKey) {
         return pendingQueries.contains(queryKey);
     }
