@@ -147,9 +147,11 @@
   - [x] 箱內 DeadRecall 背包優先接收匹配貨物，且禁止背包作為被分類貨物再次巢狀。
   - [x] 移除最後目的地時，主手貨物 exactly-once 回滾至記憶來源。
   - [x] 未載入區塊的綁定不被修剪；載入後可恢復使用，已載入且容器消失時才移除。
-- [ ] 13.6 採集、返回、Home 滿、工具損壞 GameTests。
+- [x] 13.6 採集、返回、Home 滿、工具損壞 GameTests。
   - [x] Home 滿載 preflight 不改資料、相容 stack 合併與工具最後耐久原子損壞。
-  - [ ] 自動掃描、尋路、破壞、返回 Home、Home 失效及工具破損後 activity 的完整世界流程。
+  - [x] 真實 Server tick 驗證掃描、尋路、可視破壞、掉落入倉、返回 Home 與存放。
+  - [x] 返回途中移除 Home 時進入 `BLOCKED_HOME_UNAVAILABLE`，且倉庫內容保持不變。
+  - [x] 工具最後耐久耗盡後保留掉落，清空工具欄，並跨 30 tick 維持 `BLOCKED_TOOL_BROKEN`。
 - [ ] 13.7 重啟、區塊卸載與資料恢復測試。
   - [x] Copper Golem Entity NBT round-trip 保留 mode、running、revision、工具、倉庫 Components、區域與手動規則。
   - [ ] 區塊卸載／重載與三次獨立 Dedicated Server JVM world persistence probe。
