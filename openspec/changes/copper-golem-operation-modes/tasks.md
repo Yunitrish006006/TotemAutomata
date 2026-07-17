@@ -136,9 +136,11 @@
   - 驗證 16 個上限、相同 Components 合併、不同 Components／Item 拒絕及 menu 寫入 clamp。
 - [x] 13.3 工作區與跨維度測試。
   - 驗證 64 軸長、262,144 體積上限，以及跨 Dimension 編輯時清除舊角點。
-- [ ] 13.4 手動／LLM 優先序及過期回應測試。
+- [x] 13.4 手動／LLM 優先序及過期回應測試。
   - [x] 手動 Block ID 規則覆蓋 cached LLM deny。
-  - [ ] Prompt revision 改變期間的過期非同步回應與 pending 去重 fixture。
+  - [x] 採集 Prompt revision 改變後，過期 allow／deny 非同步回應不得寫入。
+  - [x] 分類 Prompt 改變或停用後，過期回應不得重新污染快取。
+  - [x] pending query 原子去重、失敗 cooldown、精確重試邊界及 query generation 分離。
 - [ ] 13.5 分類完整回歸 GameTests。
   - [x] 真實 Chest source／destination 的 16 個取貨、來源 exactly-once 回滾與目的地存放。
   - [ ] blocked snapshot、nested backpack destination、綁定移除與區塊卸載完整矩陣。

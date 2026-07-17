@@ -87,14 +87,24 @@ public final class BlockLlmClassifier {
                     expectedDrops,
                     toolSummary
             );
-            server.execute(() -> applyDecisionIfCurrent(
-                    CopperGolemLlmService.findCopperGolem(server, golemId),
-                    blockId,
-                    blockTags,
-                    decision,
-                    promptRevision
-            ));
-            REQUEST_GATE.completeSuccess(queryKey);
+            server.execute(() -> {
+                try {
+                    applyDecisionIfCurrent(
+                            CopperGolemLlmService.findCopperGolem(server, golemId),
+                            blockId,
+                            blockTags,
+                            decision,
+                            promptRevision
+                    );
+                    REQUEST_GATE.completeSuccess(queryKey);
+                } catch (RuntimeException callbackException) {
+                    REQUEST_GATE.completeFailure(queryKey);
+                    Deadrecall.LOGGER.warn(
+                            "[CopperGolemLLM] 套用採集方塊分類結果失敗: {}",
+                            callbackException.getMessage()
+                    );
+                }
+            });
         } catch (Exception exception) {
             REQUEST_GATE.completeFailure(queryKey);
             Deadrecall.LOGGER.warn("[CopperGolemLLM] 採集方塊分類請求失敗: {}", exception.getMessage());
