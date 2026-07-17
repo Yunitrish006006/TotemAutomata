@@ -98,6 +98,25 @@ class LlmRequestGateTest {
     }
 
     @Test
+    void clearRemovesPendingAndRetryStateForServerShutdown() {
+        AtomicLong clock = new AtomicLong(1_000L);
+        LlmRequestGate gate = new LlmRequestGate(60_000L, clock::get);
+
+        assertTrue(gate.tryStart("pending"));
+        assertTrue(gate.tryStart("failed"));
+        gate.completeFailure("failed");
+        assertTrue(gate.isPending("pending"));
+        assertFalse(gate.tryStart("failed"));
+
+        gate.clear();
+
+        assertFalse(gate.isPending("pending"));
+        assertEquals(0L, gate.retryAfter("failed"));
+        assertTrue(gate.tryStart("pending"));
+        assertTrue(gate.tryStart("failed"));
+    }
+
+    @Test
     void queryKeysCanonicalizeTagsAndSeparatePromptGenerations() {
         UUID golemId = UUID.fromString("1e8fa638-3cf3-4fbb-a989-65fd29cd708f");
         CopperGolemWrenchHandler.Binding binding = new CopperGolemWrenchHandler.Binding(
