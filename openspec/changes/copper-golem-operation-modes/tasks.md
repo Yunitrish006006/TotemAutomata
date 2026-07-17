@@ -129,14 +129,28 @@
 
 ## 13. Tests
 
-- [ ] 13.1 模式切換單元測試矩陣。
-- [ ] 13.2 倉庫容量、Components、多掉落拒絕測試。
-- [ ] 13.3 工作區與跨維度測試。
+- [x] 13.1 模式切換單元測試矩陣。
+  - stopped、cargo、pending source、工具、倉庫與工作 target 均由 Server GameTest 驗證。
+  - 成功切換驗證 revision 增加及 activity／scanner state 清除。
+- [x] 13.2 倉庫容量、Components、多掉落拒絕測試。
+  - 驗證 16 個上限、相同 Components 合併、不同 Components／Item 拒絕及 menu 寫入 clamp。
+- [x] 13.3 工作區與跨維度測試。
+  - 驗證 64 軸長、262,144 體積上限，以及跨 Dimension 編輯時清除舊角點。
 - [ ] 13.4 手動／LLM 優先序及過期回應測試。
+  - [x] 手動 Block ID 規則覆蓋 cached LLM deny。
+  - [ ] Prompt revision 改變期間的過期非同步回應與 pending 去重 fixture。
 - [ ] 13.5 分類完整回歸 GameTests。
+  - [x] 真實 Chest source／destination 的 16 個取貨、來源 exactly-once 回滾與目的地存放。
+  - [ ] blocked snapshot、nested backpack destination、綁定移除與區塊卸載完整矩陣。
 - [ ] 13.6 採集、返回、Home 滿、工具損壞 GameTests。
+  - [x] Home 滿載 preflight 不改資料、相容 stack 合併與工具最後耐久原子損壞。
+  - [ ] 自動掃描、尋路、破壞、返回 Home、Home 失效及工具破損後 activity 的完整世界流程。
 - [ ] 13.7 重啟、區塊卸載與資料恢復測試。
+  - [x] Copper Golem Entity NBT round-trip 保留 mode、running、revision、工具、倉庫 Components、區域與手動規則。
+  - [ ] 區塊卸載／重載與三次獨立 Dedicated Server JVM world persistence probe。
 - [ ] 13.8 偽造 payload、多人操作與壓力測試。
+  - [x] 未綁定板手、錯誤 UUID、距離過遠、running slot edit 與雙玩家獨立板手權限。
+  - [ ] stale revision 封包、同 tick 多人競態及大量銅傀儡掃描壓力 fixture。
 
 ## 14. Documentation
 
