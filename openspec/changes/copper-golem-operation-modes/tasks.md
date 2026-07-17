@@ -141,9 +141,12 @@
   - [x] 採集 Prompt revision 改變後，過期 allow／deny 非同步回應不得寫入。
   - [x] 分類 Prompt 改變或停用後，過期回應不得重新污染快取。
   - [x] pending query 原子去重、失敗 cooldown、精確重試邊界及 query generation 分離。
-- [ ] 13.5 分類完整回歸 GameTests。
+- [x] 13.5 分類完整回歸 GameTests。
   - [x] 真實 Chest source／destination 的 16 個取貨、來源 exactly-once 回滾與目的地存放。
-  - [ ] blocked snapshot、nested backpack destination、綁定移除與區塊卸載完整矩陣。
+  - [x] blocked snapshot 在 source、target 或 bindings 改變時解除，未改變時保持阻塞。
+  - [x] 箱內 DeadRecall 背包優先接收匹配貨物，且禁止背包作為被分類貨物再次巢狀。
+  - [x] 移除最後目的地時，主手貨物 exactly-once 回滾至記憶來源。
+  - [x] 未載入區塊的綁定不被修剪；載入後可恢復使用，已載入且容器消失時才移除。
 - [ ] 13.6 採集、返回、Home 滿、工具損壞 GameTests。
   - [x] Home 滿載 preflight 不改資料、相容 stack 合併與工具最後耐久原子損壞。
   - [ ] 自動掃描、尋路、破壞、返回 Home、Home 失效及工具破損後 activity 的完整世界流程。
