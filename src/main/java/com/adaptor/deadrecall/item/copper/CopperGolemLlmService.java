@@ -114,15 +114,25 @@ public final class CopperGolemLlmService {
                     itemName,
                     itemTags,
                     CLASSIFICATION_REFERENCE_TABLE);
-            server.execute(() -> applyDecisionIfCurrent(
-                    findCopperGolem(server, golemId),
-                    binding,
-                    prompt,
-                    itemId,
-                    itemTags,
-                    decision
-            ));
-            CLASSIFICATION_GATE.completeSuccess(queryKey);
+            server.execute(() -> {
+                try {
+                    applyDecisionIfCurrent(
+                            findCopperGolem(server, golemId),
+                            binding,
+                            prompt,
+                            itemId,
+                            itemTags,
+                            decision
+                    );
+                    CLASSIFICATION_GATE.completeSuccess(queryKey);
+                } catch (RuntimeException callbackException) {
+                    CLASSIFICATION_GATE.completeFailure(queryKey);
+                    Deadrecall.LOGGER.warn(
+                            "[CopperGolemLLM] 套用分類結果失敗: {}",
+                            callbackException.getMessage()
+                    );
+                }
+            });
         } catch (Exception exception) {
             CLASSIFICATION_GATE.completeFailure(queryKey);
             Deadrecall.LOGGER.warn("[CopperGolemLLM] 分類請求失敗: {}", exception.getMessage());
