@@ -3,8 +3,8 @@ package com.adaptor.deadrecall.item.copper;
 import com.adaptor.deadrecall.Deadrecall;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -24,10 +24,10 @@ public final class CopperGolemLlmService {
         thread.setDaemon(true);
         return thread;
     });
-    private static final Set<String> PENDING_QUERIES = ConcurrentHashMap.newKeySet();
     private static final Set<UUID> PENDING_CONNECTION_TESTS = ConcurrentHashMap.newKeySet();
-    private static final ConcurrentHashMap<String, Long> RETRY_AFTER_MS = new ConcurrentHashMap<>();
     private static final long FAILURE_RETRY_DELAY_MS = 60_000L;
+    private static final LlmRequestGate CLASSIFICATION_GATE =
+            new LlmRequestGate(FAILURE_RETRY_DELAY_MS, System::currentTimeMillis);
     private static final String CLASSIFICATION_REFERENCE_TABLE = """
             Keyword reference for container prompts:
             - 礦物 / 礦石 / 金屬: ores, raw ores, ingots, nuggets, gems, coal, charcoal, redstone, lapis, quartz, amethyst, copper, iron, gold, diamond, emerald, netherite materials.
@@ -64,40 +64,98 @@ public final class CopperGolemLlmService {
             return;
         }
 
-        String queryKey = queryKey(golemId, binding, itemId, itemTags);
-        long now = System.currentTimeMillis();
-        if (PENDING_QUERIES.contains(queryKey) || RETRY_AFTER_MS.getOrDefault(queryKey, 0L) > now) {
+        String normalizedPrompt = prompt.trim();
+        String queryKey = queryKey(golemId, binding, itemId, itemTags, normalizedPrompt);
+        if (!CLASSIFICATION_GATE.tryStart(queryKey)) {
             return;
         }
 
-        PENDING_QUERIES.add(queryKey);
         String itemName = stack.getHoverName().getString();
+        try {
+            submit(() -> executeClassificationRequest(
+                    server,
+                    golemId,
+                    binding,
+                    itemId,
+                    itemName,
+                    itemTags,
+                    normalizedPrompt,
+                    apiUrl,
+                    apiKey,
+                    model,
+                    queryKey
+            ));
+        } catch (RuntimeException exception) {
+            CLASSIFICATION_GATE.completeFailure(queryKey);
+            Deadrecall.LOGGER.warn("[CopperGolemLLM] 無法排程分類請求: {}", exception.getMessage());
+        }
+    }
 
-        EXECUTOR.submit(() -> {
-            try {
-                CopperGolemLlmClient.Decision decision = CopperGolemLlmClient.askItemClassification(
-                        apiUrl,
-                        apiKey,
-                        model,
-                        prompt,
-                        itemId,
-                        itemName,
-                        itemTags,
-                        CLASSIFICATION_REFERENCE_TABLE);
-                server.execute(() -> {
-                    CopperGolem golem = findCopperGolem(server, golemId);
-                    if (golem != null) {
-                        CopperGolemWrenchHandler.recordLlmDecision(golem, binding, itemId, itemTags, decision.matches(), decision.tags());
-                    }
-                });
-                RETRY_AFTER_MS.remove(queryKey);
-            } catch (Exception e) {
-                RETRY_AFTER_MS.put(queryKey, System.currentTimeMillis() + FAILURE_RETRY_DELAY_MS);
-                Deadrecall.LOGGER.warn("[CopperGolemLLM] 分類請求失敗: {}", e.getMessage());
-            } finally {
-                PENDING_QUERIES.remove(queryKey);
-            }
-        });
+    private static void executeClassificationRequest(
+            MinecraftServer server,
+            UUID golemId,
+            CopperGolemWrenchHandler.Binding binding,
+            String itemId,
+            String itemName,
+            List<String> itemTags,
+            String prompt,
+            String apiUrl,
+            String apiKey,
+            String model,
+            String queryKey
+    ) {
+        try {
+            CopperGolemLlmClient.Decision decision = CopperGolemLlmClient.askItemClassification(
+                    apiUrl,
+                    apiKey,
+                    model,
+                    prompt,
+                    itemId,
+                    itemName,
+                    itemTags,
+                    CLASSIFICATION_REFERENCE_TABLE);
+            server.execute(() -> applyDecisionIfCurrent(
+                    findCopperGolem(server, golemId),
+                    binding,
+                    prompt,
+                    itemId,
+                    itemTags,
+                    decision
+            ));
+            CLASSIFICATION_GATE.completeSuccess(queryKey);
+        } catch (Exception exception) {
+            CLASSIFICATION_GATE.completeFailure(queryKey);
+            Deadrecall.LOGGER.warn("[CopperGolemLLM] 分類請求失敗: {}", exception.getMessage());
+        }
+    }
+
+    static void applyDecisionIfCurrent(
+            CopperGolem golem,
+            CopperGolemWrenchHandler.Binding binding,
+            String requestPrompt,
+            String itemId,
+            List<String> itemTags,
+            CopperGolemLlmClient.Decision decision
+    ) {
+        if (golem == null || decision == null) {
+            return;
+        }
+
+        CopperGolemWrenchHandler.BindingLlmConfig current =
+                CopperGolemWrenchHandler.getBindingLlmConfig(golem, binding);
+        String normalizedPrompt = requestPrompt == null ? "" : requestPrompt.trim();
+        if (!current.enabled() || !current.prompt().equals(normalizedPrompt)) {
+            return;
+        }
+
+        CopperGolemWrenchHandler.recordLlmDecision(
+                golem,
+                binding,
+                itemId,
+                itemTags,
+                decision.matches(),
+                decision.tags()
+        );
     }
 
     public static void testConnection(MinecraftServer server, UUID playerId, String apiUrl, String apiKey, String model) {
@@ -159,8 +217,35 @@ public final class CopperGolemLlmService {
         return message.length() <= maxLength ? message : message.substring(0, maxLength) + "...";
     }
 
-    private static String queryKey(UUID golemId, CopperGolemWrenchHandler.Binding binding, String itemId, List<String> itemTags) {
-        return golemId + "|" + binding.dimension().identifier() + "|" + binding.containerPos().asLong() + "|" + itemId + "|" + String.join(",", itemTags);
+    static String queryKey(
+            UUID golemId,
+            CopperGolemWrenchHandler.Binding binding,
+            String itemId,
+            List<String> itemTags,
+            String prompt
+    ) {
+        return golemId
+                + "|"
+                + binding.dimension().identifier()
+                + "|"
+                + binding.containerPos().asLong()
+                + "|prompt|"
+                + (prompt == null ? "" : prompt.trim())
+                + "|"
+                + itemId
+                + "|"
+                + canonicalTags(itemTags);
+    }
+
+    private static String canonicalTags(List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return "";
+        }
+        return String.join(",", tags.stream()
+                .filter(tag -> tag != null && !tag.isBlank())
+                .distinct()
+                .sorted()
+                .toList());
     }
 
     public static String itemId(ItemStack stack) {
