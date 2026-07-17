@@ -100,7 +100,7 @@ public final class CopperGolemGatheringLifecycleGameTest {
         }
     }
 
-    @GameTest(maxTicks = 120)
+    @GameTest(maxTicks = 180)
     public void finalToolDurabilityKeepsToolBrokenActivityAndStorage(GameTestHelper helper) {
         prepareWalkway(helper);
         helper.setBlock(HOME_POS, copperChest(helper));
@@ -113,7 +113,7 @@ public final class CopperGolemGatheringLifecycleGameTest {
         configureGathering(helper, golem, operator, NEAR_TARGET_POS, tool, ItemStack.EMPTY);
 
         int[] brokenTicks = {0};
-        for (int tick = 1; tick < 110; tick++) {
+        for (int tick = 1; tick < 170; tick++) {
             helper.runAtTickTime(tick, () -> {
                 if (!helper.getLevel().getBlockState(helper.absolutePos(NEAR_TARGET_POS)).isAir()) {
                     return;
@@ -129,7 +129,7 @@ public final class CopperGolemGatheringLifecycleGameTest {
                 require(helper, stored.is(Items.COBBLESTONE) && stored.getCount() == 1,
                         "Tool break did not preserve the successfully gathered drop");
 
-                if (brokenTicks[0] >= 5) {
+                if (brokenTicks[0] >= 30) {
                     cleanup(golem, operator);
                     helper.succeed();
                 }
