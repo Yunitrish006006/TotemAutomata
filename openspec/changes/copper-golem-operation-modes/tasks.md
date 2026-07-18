@@ -156,9 +156,13 @@
   - [x] Copper Golem Entity NBT round-trip 保留 mode、running、revision、工具、倉庫 Components、區域與手動規則。
   - [x] 真實遠端 chunk unload／reload 保留相同 Entity UUID、Home、target、activity、fuel、工具、倉庫 Components、手動規則與 scanner cursor。
   - [x] `seed → recover → verify` 三次獨立 Dedicated Server JVM world persistence probe 通過；詳細證據見 `13.7-persistence-evidence.md`。
-- [ ] 13.8 偽造 payload、多人操作與壓力測試。
+- [x] 13.8 偽造 payload、多人操作與壓力測試。
   - [x] 未綁定板手、錯誤 UUID、距離過遠、running slot edit 與雙玩家獨立板手權限。
-  - [ ] stale revision 封包、同 tick 多人競態及大量銅傀儡掃描壓力 fixture。
+  - [x] stale revision 的 mode、running 與 gathering LLM payload 全部拒絕，且不得增加 revision。
+  - [x] 兩名已綁定玩家以相同 revision 連續提交操作時，只有第一個 mutation 生效，revision 只增加一次。
+  - [x] 已開啟 Menu 在 running 或 mode 改變後，`ContainerInput.PICKUP` 仍會重新驗證 live slot 權限。
+  - [x] 128 隻 Copper Golem 的 512-block scanner fixture 維持 cursor 上限，移除 96 隻後 controller 清除失效 UUID 並保留 32 隻存活實體。
+  - [x] 遠端 chunk 卸載後 controller 移除追蹤；相同 UUID 的 managed entity 重載後在 20 個 controller tick 內重新發現。
 
 ## 14. Documentation
 
