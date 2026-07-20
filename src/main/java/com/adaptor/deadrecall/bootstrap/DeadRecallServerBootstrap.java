@@ -1,5 +1,7 @@
 package com.adaptor.deadrecall.bootstrap;
 
+import com.adaptor.deadrecall.registry.DeadRecallRegistryBootstrap;
+
 import java.nio.file.Path;
 
 /**
@@ -10,7 +12,8 @@ public final class DeadRecallServerBootstrap {
     }
 
     public static void register(Path configDir) {
-        LegacyGameplayBootstrap.registerContent();
+        DeadRecallRegistryBootstrap.registerContent();
+        LegacyGameplayBootstrap.registerInteractions();
         TotemAutomataBootstrap.register();
         TotemNexusBootstrap.register();
         LegacyGameplayBootstrap.registerRecipes();

@@ -1,7 +1,7 @@
 package com.adaptor.deadrecall.client;
 
 import com.adaptor.deadrecall.item.copper.CopperGolemMenu;
-import com.adaptor.deadrecall.menu.ModMenus;
+import com.adaptor.deadrecall.registry.TotemAutomataMenuRegistration;
 import com.adaptor.deadrecall.mixin.client.MenuScreensAccessor;
 import com.adaptor.deadrecall.network.CopperWrenchBindingsPayload;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -51,7 +51,7 @@ public final class TotemAutomataClientBootstrap {
                         };
                     }
             );
-            MenuScreensAccessor.deadrecall$getScreens().put(ModMenus.COPPER_GOLEM, factory);
+            MenuScreensAccessor.deadrecall$getScreens().put(TotemAutomataMenuRegistration.COPPER_GOLEM, factory);
         } catch (ReflectiveOperationException e) {
             throw new IllegalStateException("Failed to register copper golem screen", e);
         }
