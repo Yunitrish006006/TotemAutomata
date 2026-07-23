@@ -7,7 +7,8 @@
   "entrypoints": {
     "fabric-gametest": [
       "dev.totem.automata.copper.CopperGolemDataGameTest",
-      "dev.totem.automata.copper.CopperGolemFuelGameTest"
+      "dev.totem.automata.copper.CopperGolemFuelGameTest",
+      "dev.totem.automata.copper.CopperGolemMigrationGameTest"
     ]
   },
   "depends": {

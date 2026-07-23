@@ -55,3 +55,9 @@ server directory with exactly Fabric API and TotemCore. The server reached
 and the TotemCore initializer. No DeadRecall or Cognition JAR was present.
 This establishes standalone dependency safety only; it does not replace the
 sorting, gathering, pressure and restart qualification required before cutover.
+
+The additive primitives are now also exercised by six Fabric GameTests: legacy
+binding migration, fuel persistence, component-safe sorting, binding restart
+round-tripping, and duplicate-request/backoff pressure handling. These tests
+qualify the extracted primitives only; the live Wrench handler, gathering
+interaction and compatibility-bundle cutover remain pending.
