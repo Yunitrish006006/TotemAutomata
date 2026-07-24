@@ -63,4 +63,19 @@ public final class CopperGolemMigrationGameTest {
         }
         helper.succeed();
     }
+
+    @GameTest(maxTicks = 20)
+    public void gatheringAreaAndCursorSurvivePersistedScanState(GameTestHelper helper) {
+        CompoundTag persisted = new CompoundTag();
+        GatheringConfiguration.setCorner(persisted, Level.OVERWORLD, new BlockPos(0, 64, 0), false);
+        GatheringConfiguration.setCorner(persisted, Level.OVERWORLD, new BlockPos(1, 65, 1), true);
+        var bounds = GatheringConfiguration.scanBounds(persisted, Level.OVERWORLD).orElse(null);
+        if (bounds == null) { helper.fail("Gathering area did not produce scan bounds"); return; }
+        var step = PersistedGatheringScanner.tick(persisted, bounds, 20L, pos -> pos.equals(new BlockPos(0, 65, 0)));
+        if (step.target().isEmpty() || !step.target().get().equals(new BlockPos(0, 65, 0))
+                || GatheringRuntimeState.target(persisted).isEmpty()) {
+            helper.fail("Gathering scan did not persist its selected target"); return;
+        }
+        helper.succeed();
+    }
 }

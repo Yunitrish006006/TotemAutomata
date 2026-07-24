@@ -49,4 +49,25 @@ class CopperGolemDataTest {
         CopperGolemData.writeBindings(tag, bindings);
         assertEquals(bindings, CopperGolemData.readBindings(tag));
     }
+
+    @Test
+    void sortingLlmStateRetainsLegacyBindingAndClearsCacheWhenPromptChanges() {
+        CopperGolemBinding binding = new CopperGolemBinding(Level.OVERWORLD, new BlockPos(3, 65, -7));
+        CompoundTag tag = new CompoundTag();
+        SortingLlmState.configure(tag, binding, true, "ores");
+        SortingLlmState.recordDecision(tag, binding, "minecraft:iron_ore", List.of("minecraft:ores"), true, List.of("minecraft:ores"));
+        assertEquals(true, SortingLlmState.get(tag, binding).enabled());
+        assertEquals(List.of("minecraft:iron_ore"), SortingLlmState.get(tag, binding).allowedItemIds());
+        SortingLlmState.configure(tag, binding, true, "gems");
+        assertTrue(SortingLlmState.get(tag, binding).allowedItemIds().isEmpty());
+        assertTrue(SortingLlmState.get(tag, binding).allowedTags().isEmpty());
+    }
+
+    @Test
+    void golemLlmStateUsesThePreservedConnectionKeys() {
+        CompoundTag tag = new CompoundTag();
+        GolemLlmState.write(tag, new GolemLlmState.Config("https://example.invalid/v1", "key", "model"));
+        assertTrue(GolemLlmState.read(tag).configured());
+        assertEquals("model", GolemLlmState.read(tag).model());
+    }
 }

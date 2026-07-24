@@ -1,12 +1,15 @@
 package dev.totem.automata.copper;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
+import net.minecraft.world.entity.Entity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -118,6 +121,15 @@ public final class CopperGolemData {
         } else {
             tag.store(key, ItemStack.OPTIONAL_CODEC, stack.copy());
         }
+    }
+
+    public static CompoundTag readEntityTag(Entity entity) {
+        CustomData customData = entity.get(DataComponents.CUSTOM_DATA);
+        return customData == null ? new CompoundTag() : customData.copyTag();
+    }
+
+    public static void writeEntityTag(Entity entity, CompoundTag tag) {
+        entity.setComponent(DataComponents.CUSTOM_DATA, CustomData.of(tag));
     }
 
     private static boolean migrateLegacySortingBindings(CompoundTag tag) {

@@ -3,12 +3,26 @@ package dev.totem.automata.network;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 
+import java.util.Objects;
+
 /** Registers the first migrated Automata payload family exactly once per server graph. */
 public final class CopperGolemPayloadRegistration {
+    private static CopperGolemPayloadHandler registeredHandler;
     private CopperGolemPayloadRegistration() {
     }
 
-    public static void register(CopperGolemPayloadHandler handler) {
+    /**
+     * Activates the complete serverbound receiver family exactly once. This is
+     * intentionally not called by the additive module entrypoint.
+     */
+    public static synchronized void register(CopperGolemPayloadHandler handler) {
+        Objects.requireNonNull(handler, "handler");
+        if (registeredHandler != null) {
+            if (registeredHandler != handler) {
+                throw new IllegalStateException("Copper Golem payloads already registered by another authority");
+            }
+            return;
+        }
         PayloadTypeRegistry.serverboundPlay().register(CopperGolemModePayload.TYPE, CopperGolemModePayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(CopperGolemOperationPayload.TYPE, CopperGolemOperationPayload.CODEC);
         PayloadTypeRegistry.serverboundPlay().register(
@@ -38,5 +52,12 @@ public final class CopperGolemPayloadRegistration {
                 (payload, context) -> context.server().execute(() -> handler.updateBindingCache(context.player(), payload)));
         ServerPlayNetworking.registerGlobalReceiver(UpdateCopperGolemGatheringLlmPayload.TYPE,
                 (payload, context) -> context.server().execute(() -> handler.updateGatheringLlm(context.player(), payload)));
+        registeredHandler = handler;
+    }
+
+    /** Registers the legacy clientbound payload types with the future client cutover. */
+    public static void registerClientboundTypes() {
+        PayloadTypeRegistry.clientboundPlay().register(CopperWrenchBindingsPayload.TYPE, CopperWrenchBindingsPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(CopperGolemVisualizationPayload.TYPE, CopperGolemVisualizationPayload.CODEC);
     }
 }

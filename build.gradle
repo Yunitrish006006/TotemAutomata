@@ -8,6 +8,15 @@ group = project.maven_group
 
 base { archivesName = project.archives_base_name }
 
+def totemCoreJar = file(providers.gradleProperty('totemCoreJar')
+        .getOrElse('../TotemCore/build/libs/totem-core-0.1.1.jar'))
+def automataRestartProbePhase = providers.gradleProperty('totemAutomataRestartProbePhase')
+        .orElse(providers.environmentVariable('TOTEM_AUTOMATA_RESTART_PROBE_PHASE'))
+        .orNull
+def automataRestartProbeMarkerDirectory = providers.gradleProperty('totemAutomataRestartProbeMarkerDir')
+        .orElse(providers.environmentVariable('TOTEM_AUTOMATA_RESTART_PROBE_MARKER_DIR'))
+        .orNull
+
 loom {
     splitEnvironmentSourceSets()
     mods {
@@ -28,6 +37,25 @@ fabricApi {
     }
 }
 
+loom {
+    runs {
+        automataRestartProbe {
+            server()
+            setConfigName('TotemAutomata Restart Probe')
+            ideConfigGenerated(false)
+            runDir('run/automataRestartProbe')
+            source sourceSets.gametest
+            programArg('--nogui')
+            if (automataRestartProbePhase != null) {
+                environmentVariable('TOTEM_AUTOMATA_RESTART_PROBE_PHASE', automataRestartProbePhase)
+            }
+            if (automataRestartProbeMarkerDirectory != null) {
+                environmentVariable('TOTEM_AUTOMATA_RESTART_PROBE_MARKER_DIR', automataRestartProbeMarkerDirectory)
+            }
+        }
+    }
+}
+
 repositories {
     mavenCentral()
     maven { url = 'https://repo.codemc.io/repository/relativitymc/' }
@@ -41,13 +69,26 @@ dependencies {
     runtimeOnly "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     // The local development artifact mirrors the eventual versioned Core dependency.
-    modImplementation files('../TotemCore/build/libs/totem-core-0.1.0-SNAPSHOT.jar')
+    modImplementation files(totemCoreJar)
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.withType(Test).configureEach { useJUnitPlatform() }
+
+tasks.named('runAutomataRestartProbe').configure {
+    doFirst {
+        File runDirectory = file('run/automataRestartProbe')
+        runDirectory.mkdirs()
+        new File(runDirectory, 'eula.txt').text = 'eula=true\n'
+    }
+}
+
+tasks.named('generateDLIConfig').configure {
+    inputs.property('totemAutomataRestartProbePhase', automataRestartProbePhase ?: '')
+    inputs.property('totemAutomataRestartProbeMarkerDirectory', automataRestartProbeMarkerDirectory ?: '')
+}
 
 java {
     withSourcesJar()

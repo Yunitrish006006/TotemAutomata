@@ -1,0 +1,49 @@
+package dev.totem.automata.copper;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.entity.animal.golem.CopperGolem;
+import net.minecraft.world.item.ItemStack;
+
+/**
+ * Module-owned gathering behavior shell.
+ *
+ * <p>It owns persisted prerequisite/scan state today; its injected world
+ * operations provide the remaining navigation, break, and deposit execution
+ * until those branches are fully migrated.</p>
+ */
+public final class PersistedGatheringBehavior implements CopperGolemBehavior {
+    private static final String STORAGE = "deadrecall_gathering_storage_stack", TOOL = "deadrecall_gathering_tool_stack";
+    private final WorldOperations world;
+    public PersistedGatheringBehavior(WorldOperations world) { this.world = world; }
+    @Override public boolean shouldTrack(CopperGolem golem) {
+        CompoundTag tag = CopperGolemData.readEntityTag(golem);
+        return CopperGolemData.mode(tag) == CopperGolemMode.GATHERING && tag.getBooleanOr(CopperGolemData.TAG_TRANSPORT_ENABLED, false);
+    }
+    @Override public void tick(MinecraftServer server, ServerLevel level, CopperGolem golem, boolean shouldPruneBindings) {
+        CompoundTag tag = CopperGolemData.readEntityTag(golem); if (CopperGolemData.migrate(tag)) CopperGolemData.writeEntityTag(golem, tag);
+        var bounds = GatheringConfiguration.scanBounds(tag, level.dimension());
+        if (bounds.isEmpty()) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_AREA); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); return; }
+        if (!world.hasHome(golem, level)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_HOME); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); return; }
+        ItemStack storage = CopperGolemData.readItemStack(tag, STORAGE);
+        GatheringTickPlan.Action action = GatheringTickPlan.decide(true, true, GatheringStorage.full(storage), CopperGolemData.activity(tag));
+        if (!storage.isEmpty() && action == GatheringTickPlan.Action.DEPOSIT) { world.deposit(golem, level, storage); return; }
+        if (!world.hasFuel(golem, level)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_FUEL); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); return; }
+        if (CopperGolemData.readItemStack(tag, TOOL).isEmpty()) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_TOOL); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); return; }
+        if (!world.hasTargetRules(golem, tag)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_VALID_TARGET); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); return; }
+        PersistedGatheringScanner.tick(tag, bounds.get(), level.getGameTime(), pos -> world.isValidTarget(golem, level, tag, pos));
+        CopperGolemData.writeEntityTag(golem, tag);
+        GatheringRuntimeState.target(CopperGolemData.readEntityTag(golem)).ifPresent(pos -> world.tickTarget(golem, level, pos));
+    }
+    public interface WorldOperations {
+        boolean hasHome(CopperGolem golem, ServerLevel level);
+        boolean hasFuel(CopperGolem golem, ServerLevel level);
+        boolean hasTargetRules(CopperGolem golem, CompoundTag tag);
+        boolean isValidTarget(CopperGolem golem, ServerLevel level, CompoundTag tag, BlockPos pos);
+        void deposit(CopperGolem golem, ServerLevel level, ItemStack storage);
+        void stop(CopperGolem golem);
+        void tickTarget(CopperGolem golem, ServerLevel level, BlockPos target);
+    }
+}
