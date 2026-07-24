@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "totem-automata-gametest",
+  "version": "1.0.0",
+  "name": "Totem Automata GameTests",
+  "environment": "server",
+  "entrypoints": {
+    "main": [
+      "dev.totem.automata.gametest.AutomataRestartProbe"
+    ],
+    "fabric-gametest": [
+      "dev.totem.automata.copper.CopperGolemDataGameTest",
+      "dev.totem.automata.copper.CopperGolemFuelGameTest",
+      "dev.totem.automata.copper.CopperGolemMigrationGameTest"
+    ]
+  },
+  "depends": {
+    "fabricloader": "*",
+    "fabric-api": "*",
+    "minecraft": "*",
+    "totem-automata": "*"
+  }
+}
