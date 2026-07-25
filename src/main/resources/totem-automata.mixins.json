@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "dev.totem.automata.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "CopperGolemEntityMixin",
+    "TransportItemsBetweenContainersMixin"
+  ],
+  "client": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

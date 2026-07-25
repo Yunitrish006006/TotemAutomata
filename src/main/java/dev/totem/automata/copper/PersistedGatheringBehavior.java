@@ -25,17 +25,25 @@ public final class PersistedGatheringBehavior implements CopperGolemBehavior {
     @Override public void tick(MinecraftServer server, ServerLevel level, CopperGolem golem, boolean shouldPruneBindings) {
         CompoundTag tag = CopperGolemData.readEntityTag(golem); if (CopperGolemData.migrate(tag)) CopperGolemData.writeEntityTag(golem, tag);
         var bounds = GatheringConfiguration.scanBounds(tag, level.dimension());
-        if (bounds.isEmpty()) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_AREA); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); return; }
-        if (!world.hasHome(golem, level)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_HOME); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); return; }
+        if (bounds.isEmpty()) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_AREA); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); CopperGolemLifecycle.clearGatheringDisplayedItem(golem); return; }
+        if (!world.hasHome(golem, level)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_HOME); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); CopperGolemLifecycle.clearGatheringDisplayedItem(golem); return; }
         ItemStack storage = CopperGolemData.readItemStack(tag, STORAGE);
         GatheringTickPlan.Action action = GatheringTickPlan.decide(true, true, GatheringStorage.full(storage), CopperGolemData.activity(tag));
-        if (!storage.isEmpty() && action == GatheringTickPlan.Action.DEPOSIT) { world.deposit(golem, level, storage); return; }
-        if (!world.hasFuel(golem, level)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_FUEL); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); return; }
-        if (CopperGolemData.readItemStack(tag, TOOL).isEmpty()) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_TOOL); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); return; }
-        if (!world.hasTargetRules(golem, tag)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_VALID_TARGET); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); return; }
+        if (!storage.isEmpty() && action == GatheringTickPlan.Action.DEPOSIT) { CopperGolemLifecycle.showGatheringDisplayedItem(golem, storage); world.deposit(golem, level, storage); return; }
+        if (!world.hasFuel(golem, level)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_FUEL); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); CopperGolemLifecycle.clearGatheringDisplayedItem(golem); return; }
+        ItemStack tool = CopperGolemData.readItemStack(tag, TOOL);
+        if (tool.isEmpty()) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_TOOL); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); CopperGolemLifecycle.clearGatheringDisplayedItem(golem); return; }
+        if (!world.hasTargetRules(golem, tag)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_VALID_TARGET); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); CopperGolemLifecycle.clearGatheringDisplayedItem(golem); return; }
         PersistedGatheringScanner.tick(tag, bounds.get(), level.getGameTime(), pos -> world.isValidTarget(golem, level, tag, pos));
         CopperGolemData.writeEntityTag(golem, tag);
-        GatheringRuntimeState.target(CopperGolemData.readEntityTag(golem)).ifPresent(pos -> world.tickTarget(golem, level, pos));
+        GatheringRuntimeState.target(CopperGolemData.readEntityTag(golem)).ifPresentOrElse(pos -> {
+            if (CopperGolemActivityResolver.isAtGatheringTarget(golem, pos)) {
+                CopperGolemLifecycle.showGatheringDisplayedItem(golem, tool);
+            } else {
+                CopperGolemLifecycle.clearGatheringDisplayedItem(golem);
+            }
+            world.tickTarget(golem, level, pos);
+        }, () -> CopperGolemLifecycle.clearGatheringDisplayedItem(golem));
     }
     public interface WorldOperations {
         boolean hasHome(CopperGolem golem, ServerLevel level);

@@ -33,4 +33,13 @@ class CopperGolemMenuClientControllerTest {
         assertEquals("https://api.example", command.apiUrl()); assertEquals("key", command.apiKey()); assertEquals("model", command.model()); assertEquals(7, command.revision());
         assertEquals("model", controller.snapshot().orElseThrow().llmModel());
     }
+
+    @Test void movesTrimmedCachedDecisionsUsingTheSelectedBindingRevision() {
+        var controller = new CopperGolemMenuClientController(); controller.apply(snapshot());
+        var command = controller.moveCachedDecision(0, " minecraft:logs ", true, false).orElseThrow();
+        assertEquals("minecraft:logs", command.value()); assertTrue(command.tag()); assertFalse(command.allowed()); assertEquals(7, command.revision());
+        var binding = controller.snapshot().orElseThrow().bindings().getFirst();
+        assertEquals(List.of("minecraft:logs"), binding.llmDeniedTags());
+        assertTrue(binding.llmAllowedTags().isEmpty());
+    }
 }

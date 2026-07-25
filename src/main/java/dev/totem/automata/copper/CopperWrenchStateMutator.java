@@ -41,6 +41,11 @@ public final class CopperWrenchStateMutator {
         GatheringRuntimeState.resetSearch(tag, true); CopperGolemData.bumpRevision(tag); return added;
     }
     private static void writeBindingsAndReset(CompoundTag tag, List<CopperGolemBinding> bindings) {
-        SortingBindingService.writeBindings(tag, bindings); GatheringRuntimeState.resetSearch(tag, true); CopperGolemData.bumpRevision(tag);
+        SortingBindingService.writeBindings(tag, bindings);
+        SortingLlmState.write(tag, SortingLlmState.read(tag).stream()
+                .filter(config -> bindings.contains(config.binding()))
+                .toList());
+        CopperGolemStateMutation.clearSortingBlocked(tag);
+        CopperGolemData.bumpRevision(tag);
     }
 }

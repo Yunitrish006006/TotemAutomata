@@ -1,5 +1,6 @@
 package dev.totem.automata.copper;
 
+import dev.totem.automata.containersafety.ContainerSafetyBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -115,12 +116,14 @@ public abstract class AbstractSortingOperations implements SortingOperations {
         tag.put(key, list);
     }
     private static void merge(Container container, int slot, ItemStack remaining) {
+        if (!ContainerSafetyBridge.mayInsertIntoContainer(container, remaining)) return;
         ItemStack stack = container.getItem(slot);
         if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, remaining) || !container.canPlaceItem(slot, remaining)) return;
         int move = Math.min(remaining.getCount(), Math.min(stack.getMaxStackSize(), container.getMaxStackSize(remaining)) - stack.getCount());
         if (move > 0) { stack.grow(move); remaining.shrink(move); container.setItem(slot, stack); }
     }
     private static void place(Container container, int slot, ItemStack remaining) {
+        if (!ContainerSafetyBridge.mayInsertIntoContainer(container, remaining)) return;
         if (remaining.isEmpty() || !container.getItem(slot).isEmpty() || !container.canPlaceItem(slot, remaining)) return;
         int move = Math.min(remaining.getCount(), Math.min(remaining.getMaxStackSize(), container.getMaxStackSize(remaining)));
         container.setItem(slot, remaining.copyWithCount(move)); remaining.shrink(move);

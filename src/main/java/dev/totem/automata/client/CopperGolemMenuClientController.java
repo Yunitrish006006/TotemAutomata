@@ -49,14 +49,15 @@ public final class CopperGolemMenuClientController {
     }
 
     public Optional<BindingCacheCommand> moveCachedDecision(int index, String value, boolean tag, boolean allowed) {
-        if (!validBinding(index) || value == null || value.isBlank()) return Optional.empty();
+        String normalizedValue = normalize(value);
+        if (!validBinding(index) || normalizedValue.isBlank()) return Optional.empty();
         CopperWrenchBindingsPayload.BindingEntry previous = snapshot.bindings().get(index);
         List<CopperWrenchBindingsPayload.BindingEntry> bindings = new ArrayList<>(snapshot.bindings());
-        bindings.set(index, CopperGolemMenuEditor.moveCachedDecision(previous, value, tag, allowed));
+        bindings.set(index, CopperGolemMenuEditor.moveCachedDecision(previous, normalizedValue, tag, allowed));
         snapshot = copy(snapshot, snapshot.running(), snapshot.activity(), snapshot.mode(), snapshot.llmApiUrl(), snapshot.llmApiKey(),
                 snapshot.llmModel(), snapshot.gatheringLlmEnabled(), snapshot.gatheringLlmPrompt(), bindings);
         return Optional.of(new BindingCacheCommand(snapshot.golemId(), previous.dimension(), previous.x(), previous.y(), previous.z(),
-                value, tag, allowed, snapshot.revision()));
+                normalizedValue, tag, allowed, snapshot.revision()));
     }
 
     public Optional<GatheringLlmCommand> updateGatheringLlm(boolean enabled, String prompt) {

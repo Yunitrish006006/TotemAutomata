@@ -8,6 +8,13 @@
     "main": ["dev.totem.automata.TotemAutomata"],
     "client": ["dev.totem.automata.client.TotemAutomataClient"]
   },
+  "mixins": [
+    "totem-automata.mixins.json",
+    {
+      "config": "totem-automata.client.mixins.json",
+      "environment": "client"
+    }
+  ],
   "depends": {
     "fabricloader": ">=0.19.3",
     "fabric-api": "*",
