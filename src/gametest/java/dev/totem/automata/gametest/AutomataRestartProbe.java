@@ -22,6 +22,7 @@ import net.minecraft.world.entity.animal.golem.CopperGolem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.Block;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -39,6 +40,7 @@ public final class AutomataRestartProbe implements ModInitializer {
     private static final String PROBE_MARKER = "totem_automata_restart_probe";
     private static final BlockPos POS = new BlockPos(72, 200, 72);
     private static final BlockPos SOURCE_POS = POS.offset(3, 0, 0);
+    private static final BlockPos DESTINATION_POS = POS.offset(-3, 0, 0);
     private static final int CHUNK_X = SectionPos.blockToSectionCoord(POS.getX());
     private static final int CHUNK_Z = SectionPos.blockToSectionCoord(POS.getZ());
 
@@ -70,6 +72,10 @@ public final class AutomataRestartProbe implements ModInitializer {
             throw new IllegalStateException("Seed phase found a stale Automata copper golem");
         }
         require(level.setBlockAndUpdate(POS.below(), Blocks.STONE.defaultBlockState()), "Could not create probe floor");
+        require(level.setBlockAndUpdate(SOURCE_POS, copperChest().defaultBlockState()),
+                "Could not create probe source container");
+        require(level.setBlockAndUpdate(DESTINATION_POS, Blocks.CHEST.defaultBlockState()),
+                "Could not create probe destination container");
         CopperGolem golem = constructGolem(level);
         golem.setPersistenceRequired();
         CompoundTag tag = CopperGolemData.readEntityTag(golem);
@@ -77,12 +83,12 @@ public final class AutomataRestartProbe implements ModInitializer {
         tag.putInt(CopperGolemData.TAG_DATA_VERSION, CopperGolemData.DATA_VERSION);
         tag.putInt(CopperGolemData.TAG_REVISION, 41);
         tag.putString(CopperGolemData.TAG_MODE, CopperGolemMode.GATHERING.id());
-        tag.putBoolean(CopperGolemData.TAG_TRANSPORT_ENABLED, true);
+        tag.putBoolean(CopperGolemData.TAG_TRANSPORT_ENABLED, false);
         tag.putString(CopperGolemData.TAG_ACTIVITY, CopperGolemActivity.SEARCHING.id());
         CopperGolemData.writeItemStack(tag, CopperGolemData.TAG_FUEL_STACK, new ItemStack(Items.COAL, 3));
         CopperGolemData.writeItemStack(tag, "deadrecall_gathering_tool_stack", namedStack(Items.IRON_PICKAXE, 11, "Automata restart tool"));
         CopperGolemData.writeItemStack(tag, "deadrecall_gathering_storage_stack", namedStack(Items.COBBLESTONE, 9, "Automata restart storage"));
-        CopperGolemData.writeBindings(tag, List.of(new CopperGolemBinding(level.dimension(), SOURCE_POS)));
+        CopperGolemData.writeBindings(tag, List.of(new CopperGolemBinding(level.dimension(), DESTINATION_POS)));
         SortingBindingService.writeSourceContainer(tag, new CopperGolemBinding(level.dimension(), SOURCE_POS));
         CopperGolemData.writeEntityTag(golem, tag);
         require(level.addFreshEntity(golem), "Could not add Automata copper golem");
@@ -102,9 +108,9 @@ public final class AutomataRestartProbe implements ModInitializer {
         require(tag.getIntOr(CopperGolemData.TAG_DATA_VERSION, 0) == CopperGolemData.DATA_VERSION, "Data version did not persist");
         require(tag.getIntOr(CopperGolemData.TAG_REVISION, 0) == 41, "Revision did not persist");
         require(CopperGolemData.mode(tag) == CopperGolemMode.GATHERING, "Mode did not persist");
-        require(tag.getBooleanOr(CopperGolemData.TAG_TRANSPORT_ENABLED, false), "Transport state did not persist");
+        require(!tag.getBooleanOr(CopperGolemData.TAG_TRANSPORT_ENABLED, true), "Stopped transport state did not persist");
         require(CopperGolemData.activity(tag) == CopperGolemActivity.SEARCHING, "Activity did not persist");
-        require(CopperGolemData.readBindings(tag).equals(List.of(new CopperGolemBinding(level.dimension(), SOURCE_POS))), "Bindings did not persist");
+        require(CopperGolemData.readBindings(tag).equals(List.of(new CopperGolemBinding(level.dimension(), DESTINATION_POS))), "Bindings did not persist");
         require(SortingBindingService.getSourceContainer(tag)
                         .filter(binding -> binding.dimension().equals(level.dimension()) && binding.containerPos().equals(SOURCE_POS))
                         .isPresent(), "Source binding did not persist");
@@ -160,6 +166,12 @@ public final class AutomataRestartProbe implements ModInitializer {
             throw new IllegalStateException("Could not construct probe copper golem", exception);
         }
         throw new IllegalStateException("No compatible CopperGolem constructor was found");
+    }
+
+    private static Block copperChest() {
+        Block block = BuiltInRegistries.BLOCK.getValue(Identifier.fromNamespaceAndPath("minecraft", "copper_chest"));
+        require(block != null && block != Blocks.AIR, "Missing minecraft:copper_chest block");
+        return block;
     }
 
     private static Path markerDirectory() {
