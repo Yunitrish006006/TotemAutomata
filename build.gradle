@@ -32,7 +32,7 @@ fabricApi {
         createSourceSet = true
         modId = "totem-automata-gametest"
         enableGameTests = true
-        enableClientGameTests = false
+        enableClientGameTests = true
         eula = true
     }
 }

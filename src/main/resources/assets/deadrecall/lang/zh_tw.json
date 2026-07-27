@@ -1,0 +1,12 @@
+{
+  "message.deadrecall.copper_wrench.action_start": "運作",
+  "message.deadrecall.copper_wrench.action_stop": "停止",
+  "message.deadrecall.copper_wrench.mode_sorting": "分類",
+  "message.deadrecall.copper_wrench.mode_gathering": "採集",
+  "message.deadrecall.copper_wrench.tab_bindings": "箱子",
+  "message.deadrecall.copper_wrench.tab_llm": "LLM",
+  "message.deadrecall.copper_wrench.prompt_hint": "例：這個箱子只收礦物、金屬與礦石相關物品",
+  "message.deadrecall.copper_wrench.save": "儲存",
+  "message.deadrecall.copper_wrench.save_api": "儲存這隻魁儡的 API 設定",
+  "message.deadrecall.copper_wrench.test_connection": "測試連線"
+}

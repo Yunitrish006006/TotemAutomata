@@ -150,6 +150,11 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         super.removed();
     }
 
+    /** Supplies deterministic, non-secret state to the client visual GameTest. */
+    void acceptSnapshotForVisualTest(dev.totem.automata.network.CopperWrenchBindingsPayload snapshot) {
+        lifecycle.session().accept(snapshot);
+    }
+
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         var snapshot = lifecycle.session().controller().snapshot().orElse(null);
@@ -313,18 +318,18 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                 .map(snapshot -> Component.translatable(snapshot.running()
                         ? "message.deadrecall.copper_wrench.action_stop"
                         : "message.deadrecall.copper_wrench.action_start"))
-                .orElse(Component.translatable("message.deadrecall.copper_wrench.operation"));
+                .orElse(Component.literal("Operation"));
     }
 
     private Component modeText() {
         return lifecycle.session().controller().snapshot()
                 .map(snapshot -> Component.translatable("message.deadrecall.copper_wrench.mode_" + snapshot.mode()))
-                .orElse(Component.translatable("message.deadrecall.copper_wrench.mode"));
+                .orElse(Component.literal("Mode"));
     }
 
     private Component tabText(CopperGolemMenuUiState.Tab tab) {
         String key = tab == CopperGolemMenuUiState.Tab.BINDINGS ? "tab_bindings" : "tab_llm";
-        Component label = Component.translatable("gui.deadrecall.copper_wrench." + key);
+        Component label = Component.translatable("message.deadrecall.copper_wrench." + key);
         return tab == ui.tab() ? Component.literal("[").append(label).append(Component.literal("]")) : label;
     }
 

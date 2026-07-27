@@ -1,0 +1,12 @@
+{
+  "message.deadrecall.copper_wrench.action_start": "运行",
+  "message.deadrecall.copper_wrench.action_stop": "停止",
+  "message.deadrecall.copper_wrench.mode_sorting": "分类",
+  "message.deadrecall.copper_wrench.mode_gathering": "采集",
+  "message.deadrecall.copper_wrench.tab_bindings": "箱子",
+  "message.deadrecall.copper_wrench.tab_llm": "LLM",
+  "message.deadrecall.copper_wrench.prompt_hint": "例：这个箱子只收矿物、金属与矿石相关物品",
+  "message.deadrecall.copper_wrench.save": "保存",
+  "message.deadrecall.copper_wrench.save_api": "保存这只傀儡的 API 设置",
+  "message.deadrecall.copper_wrench.test_connection": "测试连接"
+}

@@ -3,7 +3,7 @@
   "id": "totem-automata-gametest",
   "version": "1.0.0",
   "name": "Totem Automata GameTests",
-  "environment": "server",
+  "environment": "*",
   "entrypoints": {
     "main": [
       "dev.totem.automata.gametest.AutomataRestartProbe"
@@ -12,6 +12,9 @@
       "dev.totem.automata.copper.CopperGolemDataGameTest",
       "dev.totem.automata.copper.CopperGolemFuelGameTest",
       "dev.totem.automata.copper.CopperGolemMigrationGameTest"
+    ],
+    "fabric-client-gametest": [
+      "dev.totem.automata.client.CopperGolemMenuVisualGameTest"
     ]
   },
   "depends": {

@@ -1,0 +1,12 @@
+{
+  "message.deadrecall.copper_wrench.action_start": "Run",
+  "message.deadrecall.copper_wrench.action_stop": "Stop",
+  "message.deadrecall.copper_wrench.mode_sorting": "Sorting",
+  "message.deadrecall.copper_wrench.mode_gathering": "Gathering",
+  "message.deadrecall.copper_wrench.tab_bindings": "Containers",
+  "message.deadrecall.copper_wrench.tab_llm": "LLM",
+  "message.deadrecall.copper_wrench.prompt_hint": "Example: this container accepts only ores, metals, and ore-related items",
+  "message.deadrecall.copper_wrench.save": "Save",
+  "message.deadrecall.copper_wrench.save_api": "Save this golem's API settings",
+  "message.deadrecall.copper_wrench.test_connection": "Test"
+}
