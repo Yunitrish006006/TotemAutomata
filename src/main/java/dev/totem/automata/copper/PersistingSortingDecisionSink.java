@@ -19,6 +19,7 @@ public final class PersistingSortingDecisionSink implements SortingDecisionSink 
         SortingLlmState.Config current = SortingLlmState.get(tag, binding);
         if (!current.enabled() || !current.prompt().equals(prompt)) return;
         SortingLlmState.recordDecision(tag, binding, itemId, itemTags, decision.matches(), decision.tags());
+        CopperGolemStateMutation.clearSortingBlocked(tag);
         CopperGolemData.writeEntityTag(golem, tag);
     }
     private static CopperGolem find(MinecraftServer server, UUID id) {

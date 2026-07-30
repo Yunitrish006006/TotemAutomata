@@ -65,7 +65,8 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
         if (!(entity instanceof CopperGolem golem)) return InteractionResult.PASS;
         if (wrench.is(Items.COPPER_INGOT)) return repair(player, level, wrench, golem);
         if (!CopperWrenchSelection.isCopperWrench(wrench)) return InteractionResult.PASS;
-        if (CopperWrenchInteractionPlanner.useGolem(true, player.isShiftKeyDown()) == CopperWrenchInteractionPlanner.Intent.PASS) return InteractionResult.PASS;
+        // A Wrench right-click both selects the Golem for target configuration
+        // and opens its menu. Shift is not required.
         debounce.recordEntityUse(player.getUUID(), hand, level.isClientSide(), level.getGameTime());
         if (level.isClientSide()) return InteractionResult.SUCCESS;
         CopperWrenchSelection.select(wrench, golem.getUUID());

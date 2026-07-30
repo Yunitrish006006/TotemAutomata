@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 /** Data/fuel/source implementation shared by the future live sorting authority. */
 public abstract class AbstractSortingOperations implements SortingOperations {
@@ -26,7 +27,7 @@ public abstract class AbstractSortingOperations implements SortingOperations {
     @Override public boolean canAccept(CopperGolem golem, ServerLevel level, CopperGolemBinding binding, Container container, ItemStack carried) {
         return acceptsByCachedDecision(golem, binding, carried) && SortingDestinationService.canAccept(container, carried);
     }
-    @Override public boolean hasAnySortableItem(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos) {
+    @Override public OptionalInt sortableSourceSlot(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos) {
         for (int slot = 0; slot < source.getContainerSize(); slot++) {
             ItemStack stack = source.getItem(slot);
             if (stack.isEmpty()) continue;
@@ -34,10 +35,13 @@ public abstract class AbstractSortingOperations implements SortingOperations {
             for (CopperGolemBinding binding : bindings(golem)) {
                 if (!binding.dimension().equals(level.dimension()) || binding.containerPos().equals(sourcePos)) continue;
                 var target = target(level, binding.containerPos());
-                if (target != null && canAccept(golem, level, binding, target.container(), candidate)) return true;
+                if (target != null && canAccept(golem, level, binding, target.container(), candidate)) return OptionalInt.of(slot);
             }
         }
-        return false;
+        return OptionalInt.empty();
+    }
+    @Override public boolean hasAnySortableItem(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos) {
+        return sortableSourceSlot(golem, level, source, sourcePos).isPresent();
     }
     @Override public List<CopperGolemBinding> triedDestinations(CopperGolem golem) {
         CompoundTag tag = tag(golem);

@@ -11,6 +11,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 import java.util.Optional;
+import java.util.OptionalInt;
 
 /** Sorting controller separated from the Wrench/menu authority through {@link SortingOperations}. */
 public final class SortingModeController {
@@ -36,14 +37,19 @@ public final class SortingModeController {
     }
     public static ItemStack pickUp(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos, SortingOperations ops) {
         if (!ops.hasFuel(golem, level)) return ItemStack.EMPTY;
-        if (!source.isEmpty() && !ops.hasAnySortableItem(golem, level, source, sourcePos)) { ops.markBlocked(golem, level, sourcePos, source); return ItemStack.EMPTY; }
-        for (int slot = 0; slot < source.getContainerSize(); slot++) {
-            ItemStack stack = source.getItem(slot); if (stack.isEmpty()) continue;
-            ItemStack picked = source.removeItem(slot, Math.min(stack.getCount(), ops.maxTransportStackSize()));
-            if (!picked.isEmpty()) { ops.rememberSource(golem, level, sourcePos, slot); ops.consumeFuel(golem, level); }
-            return picked;
+        OptionalInt sortableSlot = ops.sortableSourceSlot(golem, level, source, sourcePos);
+        if (sortableSlot.isEmpty()) {
+            if (!source.isEmpty() && !ops.awaitingSortingDecision(golem, level, source, sourcePos)) {
+                ops.markBlocked(golem, level, sourcePos, source);
+            }
+            return ItemStack.EMPTY;
         }
-        return ItemStack.EMPTY;
+        int slot = sortableSlot.getAsInt();
+        ItemStack stack = source.getItem(slot);
+        if (stack.isEmpty()) return ItemStack.EMPTY;
+        ItemStack picked = source.removeItem(slot, Math.min(stack.getCount(), ops.maxTransportStackSize()));
+        if (!picked.isEmpty()) { ops.rememberSource(golem, level, sourcePos, slot); ops.consumeFuel(golem, level); }
+        return picked;
     }
     public static boolean returnCarried(CopperGolem golem, ServerLevel level, SortingOperations ops) {
         ItemStack carried = golem.getMainHandItem();

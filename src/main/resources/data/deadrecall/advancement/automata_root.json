@@ -1,0 +1,27 @@
+{
+  "parent": "deadrecall:root",
+  "criteria": {
+    "ready": {
+      "trigger": "minecraft:tick"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:gui/advancements/backgrounds/adventure",
+    "description": {
+      "translate": "advancements.deadrecall.automata_root.description"
+    },
+    "icon": {
+      "id": "deadrecall:copper_wrench"
+    },
+    "show_toast": false,
+    "title": {
+      "translate": "advancements.deadrecall.automata_root.title"
+    }
+  },
+  "requirements": [
+    [
+      "ready"
+    ]
+  ]
+}

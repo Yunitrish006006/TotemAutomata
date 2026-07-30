@@ -31,8 +31,9 @@ class CopperWrenchInteractionPlannerTest {
                 CopperWrenchInteractionPlanner.useBlock(true, CopperWrenchInteractionPlanner.Mode.GATHERING, false, CONTAINER));
     }
 
-    @Test void requiresShiftWrenchUseToSelectAndOpenGolemMenu() {
-        assertEquals(CopperWrenchInteractionPlanner.Intent.PASS, CopperWrenchInteractionPlanner.useGolem(true, false));
+    @Test void allowsWrenchUseToSelectAndOpenGolemMenuWithoutShift() {
+        assertEquals(CopperWrenchInteractionPlanner.Intent.SELECT_GOLEM_AND_OPEN_MENU, CopperWrenchInteractionPlanner.useGolem(true, false));
         assertEquals(CopperWrenchInteractionPlanner.Intent.SELECT_GOLEM_AND_OPEN_MENU, CopperWrenchInteractionPlanner.useGolem(true, true));
+        assertEquals(CopperWrenchInteractionPlanner.Intent.PASS, CopperWrenchInteractionPlanner.useGolem(false, false));
     }
 }

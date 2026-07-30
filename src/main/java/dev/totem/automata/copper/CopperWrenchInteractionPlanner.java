@@ -26,8 +26,8 @@ public final class CopperWrenchInteractionPlanner {
         return target.container() ? Intent.ADD_BINDING : Intent.NEED_CONTAINER;
     }
 
-    public static Intent useGolem(boolean holdsWrench, boolean secondaryUse) {
-        return holdsWrench && secondaryUse ? Intent.SELECT_GOLEM_AND_OPEN_MENU : Intent.PASS;
+    public static Intent useGolem(boolean holdsWrench, boolean ignoredSecondaryUse) {
+        return holdsWrench ? Intent.SELECT_GOLEM_AND_OPEN_MENU : Intent.PASS;
     }
 
     public enum Mode { SORTING, GATHERING }

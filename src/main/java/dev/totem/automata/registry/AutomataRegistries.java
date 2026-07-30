@@ -5,12 +5,17 @@ import dev.totem.automata.copper.CopperWrenchSelection;
 import dev.totem.automata.item.CopperWrenchItem;
 import dev.totem.automata.menu.CopperGolemMenuRegistration;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
+import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 
 /**
  * Automata-owned registrations that preserve the established {@code deadrecall}
@@ -20,6 +25,8 @@ import net.minecraft.world.item.Item;
 public final class AutomataRegistries {
     private static final Identifier DEADRECALL_MAIN_TAB =
             Identifier.fromNamespaceAndPath("deadrecall", "main");
+    private static final ResourceKey<CreativeModeTab> DEADRECALL_MAIN_TAB_KEY =
+            ResourceKey.create(Registries.CREATIVE_MODE_TAB, DEADRECALL_MAIN_TAB);
 
     public static final Item COPPER_WRENCH = registerItem(
             CopperWrenchSelection.ITEM_ID,
@@ -52,9 +59,28 @@ public final class AutomataRegistries {
         if (creativeTabRegistered) {
             return;
         }
-        CreativeModeTabEvents.modifyOutputEvent(ResourceKey.create(Registries.CREATIVE_MODE_TAB, DEADRECALL_MAIN_TAB))
+        registerStandaloneCreativeTab();
+        CreativeModeTabEvents.modifyOutputEvent(DEADRECALL_MAIN_TAB_KEY)
                 .register(output -> output.accept(COPPER_WRENCH));
         creativeTabRegistered = true;
+    }
+
+    /**
+     * The compatibility bundle owns this tab when it is installed.  A
+     * standalone feature still needs the same legacy tab so its only item is
+     * discoverable in Creative mode.  The registry lookup lets independently
+     * loaded feature modules share one tab without registering it twice.
+     */
+    private static void registerStandaloneCreativeTab() {
+        if (FabricLoader.getInstance().isModLoaded("deadrecall")
+                || BuiltInRegistries.CREATIVE_MODE_TAB.getOptional(DEADRECALL_MAIN_TAB_KEY).isPresent()) {
+            return;
+        }
+        Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, DEADRECALL_MAIN_TAB_KEY,
+                FabricCreativeModeTab.builder()
+                        .title(Component.translatable("itemGroup.deadrecall.main"))
+                        .icon(() -> new ItemStack(COPPER_WRENCH))
+                        .build());
     }
 
     private static Item registerItem(Identifier id, java.util.function.Function<Item.Properties, Item> factory) {

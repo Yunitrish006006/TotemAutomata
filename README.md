@@ -4,6 +4,12 @@ Optional Copper Golem automation for Totem. It depends on TotemCore only.
 Cognition is an optional integration: without it, Automata uses its rules, GUI
 and manual configuration without class-loading a Cognition implementation.
 
+`0.1.6` is the current candidate built against TotemCore `0.2.0`. Its optional
+portable-container safety adapter now consumes TotemRemnant's versioned API
+and its rate-limited rejection diagnostics when Remnant is installed, while
+retaining a vanilla fallback when it is absent. The immutable
+`0.1.3` client-visual artifact remains the rollback baseline.
+
 ## Verification baseline
 
 `./gradlew build` passes the unit suite and the Fabric GameTest suite. A clean

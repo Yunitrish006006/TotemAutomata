@@ -9,7 +9,7 @@ group = project.maven_group
 base { archivesName = project.archives_base_name }
 
 def totemCoreJar = file(providers.gradleProperty('totemCoreJar')
-        .getOrElse('../TotemCore/build/libs/totem-core-0.1.2.jar'))
+        .getOrElse('../TotemCore/build/libs/totem-core-0.2.0.jar'))
 def automataRestartProbePhase = providers.gradleProperty('totemAutomataRestartProbePhase')
         .orElse(providers.environmentVariable('TOTEM_AUTOMATA_RESTART_PROBE_PHASE'))
         .orNull
@@ -142,6 +142,15 @@ tasks.register("normalizeFabricApiTweakersForNamedDevRuntime") {
 
 tasks.matching { task -> task.name in ["runClientGameTest"] }.configureEach {
     dependsOn("normalizeFabricApiTweakersForNamedDevRuntime")
+    doLast {
+        copy {
+            from(file("${buildDir}/run/clientGameTest/screenshots"))
+            include("*_automata-menu-*-before.png", "*_automata-menu-*-after.png",
+                    "*_automata-menu-*-gathering-icons.png", "*_automata-menu-*-hover-tooltip.png")
+            rename { name -> name.replaceFirst(/^\d+_/, "") }
+            into(file("test-artifacts/screenshots/safe-multi-repo-modularization"))
+        }
+    }
 }
 
 tasks.named('runAutomataRestartProbe').configure {
@@ -166,6 +175,14 @@ java {
 tasks.named('processResources', ProcessResources) {
     inputs.property 'version', project.version
     filesMatching('fabric.mod.json') { expand(version: project.version) }
+    // zh_cn intentionally reuses zh_tw; maintain only the Traditional Chinese source.
+    doLast {
+        copy {
+            from(file('src/main/resources/assets/deadrecall/lang/zh_tw.json'))
+            into(file("${destinationDir}/assets/deadrecall/lang"))
+            rename { 'zh_cn.json' }
+        }
+    }
 }
 
 // Loom derives this manifest attribute from a set of client classes. Its

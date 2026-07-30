@@ -36,7 +36,7 @@ public final class PortableBackpackSorting {
 
     private static boolean mayInsert(ItemStack carried) {
         return !RemnantBackpackBridge.isBackpack(carried)
-                && ContainerSafetyBridge.mayInsertIntoPortableContainer(carried);
+                && ContainerSafetyBridge.mayInsertIntoBackpack(carried);
     }
 
     private static NonNullList<ItemStack> load(ItemStack backpack) {

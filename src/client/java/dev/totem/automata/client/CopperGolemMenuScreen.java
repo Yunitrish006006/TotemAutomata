@@ -9,9 +9,14 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.Slot;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.UUID;
 import java.util.ArrayList;
@@ -25,6 +30,12 @@ import java.util.Set;
  * cutover-only for now.
  */
 public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperGolemMenu> {
+    private static final int INFO_ICON_SIZE = 20;
+    private static final int INFO_ICON_STRIDE = 24;
+    private static final int BINDING_ICON_Y = 82;
+    private static final int GATHERING_ACCEPTED_ICON_Y = 84;
+    private static final int GATHERING_DENIED_ICON_Y = 110;
+
     private final CopperGolemMenuScreenLifecycle lifecycle;
     private final CopperGolemMenuUiState ui = new CopperGolemMenuUiState();
     private Button operationButton;
@@ -67,6 +78,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         leftPos = bounds.x();
         topPos = bounds.y();
         updateMenuSlotLayout(bounds);
+        positionInventoryLabel(bounds);
         operationButton = addRenderableWidget(Button.builder(operationText(), button -> lifecycle.session().toggleOperation())
                 .bounds(bounds.x() + bounds.width() - 86, bounds.y() + 7, 74, 18).build());
         modeButton = addRenderableWidget(Button.builder(modeText(), button -> lifecycle.session().switchMode())
@@ -78,11 +90,11 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         int editorX = bounds.x() + 12;
         int editorY = bounds.y() + 86;
         int editorWidth = settingsWidth(bounds);
-        apiUrlField = addRenderableWidget(editor(Component.literal("LLM API URL"), editorX, editorY, editorWidth, 2048,
+        apiUrlField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.llm_api_url"), editorX, editorY, editorWidth, 2048,
                 Component.literal("https://api.openai.com/v1/chat/completions")));
-        apiKeyField = addRenderableWidget(editor(Component.literal("LLM API Key"), editorX, editorY + 24, editorWidth, 512,
+        apiKeyField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.llm_api_key"), editorX, editorY + 24, editorWidth, 512,
                 Component.literal("sk-…")));
-        modelField = addRenderableWidget(editor(Component.literal("LLM Model"), editorX, editorY + 48, editorWidth, 256,
+        modelField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.llm_model"), editorX, editorY + 48, editorWidth, 256,
                 Component.literal("gpt-4o-mini")));
         saveApiButton = addRenderableWidget(Button.builder(Component.translatable("message.deadrecall.copper_wrench.save_api"), button ->
                 lifecycle.session().saveApiConfig(apiUrlField.getValue(), apiKeyField.getValue(), modelField.getValue()))
@@ -90,33 +102,33 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         testApiButton = addRenderableWidget(Button.builder(Component.translatable("message.deadrecall.copper_wrench.test_connection"), button ->
                 lifecycle.session().testApiConnection(apiUrlField.getValue(), apiKeyField.getValue(), modelField.getValue()))
                 .bounds(editorX + 122, editorY + 74, 122, 18).build());
-        gatheringLlmToggleButton = addRenderableWidget(Button.builder(Component.literal("Gathering LLM"), button -> toggleGatheringLlm())
+        gatheringLlmToggleButton = addRenderableWidget(Button.builder(Component.translatable("message.deadrecall.copper_wrench.gathering_llm_prompt"), button -> toggleGatheringLlm())
                 .bounds(editorX, editorY + 108, 124, 18).build());
-        gatheringPromptField = addRenderableWidget(editor(Component.literal("Gathering LLM Prompt"), editorX, editorY + 132, editorWidth, 2048,
+        gatheringPromptField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.gathering_llm_prompt"), editorX, editorY + 132, editorWidth, 2048,
                 Component.translatable("message.deadrecall.copper_wrench.prompt_hint")));
         saveGatheringPromptButton = addRenderableWidget(Button.builder(Component.translatable("message.deadrecall.copper_wrench.save"), button -> saveGatheringPrompt())
                 .bounds(editorX, editorY + 156, 74, 18).build());
         int bindingControlsY = bindingControlsY(bounds);
-        bindingLlmToggleButton = addRenderableWidget(Button.builder(Component.literal("Binding LLM"), button -> toggleBindingLlm())
+        bindingLlmToggleButton = addRenderableWidget(Button.builder(Component.translatable("message.deadrecall.copper_wrench.binding_llm_prompt"), button -> toggleBindingLlm())
                 .bounds(editorX, bindingControlsY, 110, 18).build());
         int promptWidth = Math.max(80, editorWidth - 58);
-        bindingPromptField = addRenderableWidget(editor(Component.literal("Binding LLM Prompt"), editorX, bindingControlsY + 22, promptWidth, 2048,
-                Component.translatable("message.deadrecall.copper_wrench.prompt_hint")));
+        bindingPromptField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.binding_llm_prompt"), editorX, bindingControlsY + 20, promptWidth, 2048,
+                Component.translatable("message.deadrecall.copper_wrench.binding_prompt_hint")));
         saveBindingPromptButton = addRenderableWidget(Button.builder(Component.translatable("message.deadrecall.copper_wrench.save"), button -> saveBindingPrompt())
-                .bounds(editorX + promptWidth + 4, bindingControlsY + 22, 54, 18).build());
+                .bounds(editorX + promptWidth + 4, bindingControlsY + 20, 54, 18).build());
         int cacheValueWidth = Math.max(64, editorWidth - 142);
-        cacheValueField = addRenderableWidget(editor(Component.literal("Cached item or tag"), editorX, bindingControlsY + 44, cacheValueWidth, 256,
+        cacheValueField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.cache_value"), editorX, bindingControlsY + 40, cacheValueWidth, 256,
                 Component.literal("minecraft:iron_ingot")));
         cacheTypeButton = addRenderableWidget(Button.builder(Component.literal("Item"), button -> {
                     cacheValueIsTag = !cacheValueIsTag;
                     updateCacheButtons();
-                }).bounds(editorX + cacheValueWidth, bindingControlsY + 44, 42, 18).build());
+                }).bounds(editorX + cacheValueWidth, bindingControlsY + 40, 42, 18).build());
         cacheDestinationButton = addRenderableWidget(Button.builder(Component.literal("Allow"), button -> {
                     cacheValueAllowed = !cacheValueAllowed;
                     updateCacheButtons();
-                }).bounds(editorX + cacheValueWidth + 42, bindingControlsY + 44, 54, 18).build());
+                }).bounds(editorX + cacheValueWidth + 42, bindingControlsY + 40, 54, 18).build());
         moveCacheButton = addRenderableWidget(Button.builder(Component.literal("Move"), button -> moveCachedDecision())
-                .bounds(editorX + cacheValueWidth + 96, bindingControlsY + 44, 46, 18).build());
+                .bounds(editorX + cacheValueWidth + 96, bindingControlsY + 40, 46, 18).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
                 .bounds(bounds.x() + bounds.width() / 2 - 45, bounds.y() + bounds.height() - 21, 90, 18).build());
         updateEditorVisibility();
@@ -135,8 +147,10 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
             }
             operationButton.setMessage(operationText());
             modeButton.setMessage(modeText());
-            gatheringLlmToggleButton.setMessage(Component.literal(snapshot.gatheringLlmEnabled()
-                    ? "Gathering LLM: on" : "Gathering LLM: off"));
+            gatheringLlmToggleButton.setMessage(Component.translatable("message.deadrecall.copper_wrench.llm_state",
+                    Component.translatable(snapshot.gatheringLlmEnabled()
+                            ? "message.deadrecall.copper_wrench.enabled"
+                            : "message.deadrecall.copper_wrench.disabled")));
             refreshBindingEditor(snapshot);
         });
         bindingsTabButton.setMessage(tabText(CopperGolemMenuUiState.Tab.BINDINGS));
@@ -153,6 +167,11 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
     /** Supplies deterministic, non-secret state to the client visual GameTest. */
     void acceptSnapshotForVisualTest(dev.totem.automata.network.CopperWrenchBindingsPayload snapshot) {
         lifecycle.session().accept(snapshot);
+    }
+
+    /** Selects a binding without sending input, solely for the deterministic visual GameTest. */
+    void selectBindingForVisualTest(int index) {
+        lifecycle.session().controller().snapshot().ifPresent(snapshot -> ui.select(index, snapshot.bindings().size()));
     }
 
     @Override
@@ -183,12 +202,12 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         }
         var bounds = CopperGolemMenuPanelLayout.bounds(width, height);
         if ("sorting".equals(snapshot.mode())) {
-            int max = Math.max(0, snapshot.bindings().size() - visibleBindingRows(bounds));
+            int max = Math.max(0, snapshot.bindings().size() - visibleBindingIcons(bounds));
             ui.scroll(ui.scroll() + (verticalAmount < 0 ? 1 : -1), max);
             return true;
         }
         if ("gathering".equals(snapshot.mode())) {
-            int visible = visibleGatheringTargetRows(bounds);
+            int visible = visibleGatheringTargetIcons(bounds);
             int targetCount = Math.max(gatheringAcceptedTargets(snapshot).size(), gatheringDeniedTargets(snapshot).size());
             gatheringTargetScroll = Math.max(0, Math.min(gatheringTargetScroll + (verticalAmount < 0 ? 1 : -1),
                     Math.max(0, targetCount - visible)));
@@ -210,107 +229,216 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         graphics.outline(bounds.x(), bounds.y(), bounds.width(), bounds.height(), 0xFF6A6A6A);
         graphics.text(font, title, bounds.x() + CopperGolemMenuPanelLayout.PADDING, bounds.y() + 9, 0xFFFFFFFF);
         lifecycle.session().controller().snapshot().ifPresentOrElse(
-                snapshot -> drawSnapshot(graphics, bounds, snapshot),
-                () -> graphics.text(font, Component.literal("Waiting for Copper Golem state…"), bounds.x() + 12, bounds.y() + 58, 0xFFFFC857));
+                snapshot -> drawSnapshot(graphics, bounds, snapshot, mouseX, mouseY),
+                () -> graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_waiting_state"),
+                        bounds.x() + 12, bounds.y() + 58, 0xFFFFC857));
         drawSlotBackings(graphics);
         super.extractRenderState(graphics, mouseX, mouseY, tick);
     }
 
+    @Override
+    protected void extractLabels(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        graphics.text(font, playerInventoryTitle, inventoryLabelX, inventoryLabelY, 0xFFB8B8B8, false);
+    }
+
     private void drawSnapshot(GuiGraphicsExtractor graphics, CopperGolemMenuPanelLayout.Bounds bounds,
-                              dev.totem.automata.network.CopperWrenchBindingsPayload snapshot) {
+                              dev.totem.automata.network.CopperWrenchBindingsPayload snapshot,
+                              int mouseX, int mouseY) {
         int x = bounds.x() + 12;
         int y = bounds.y() + 54;
         int activityColor = snapshot.running() && snapshot.activity().startsWith("blocked_") ? 0xFFFFC857
                 : snapshot.running() ? 0xFF64D26D : 0xFFFF6B6B;
-        graphics.text(font, Component.literal("Status: " + snapshot.activity()), x, y, activityColor);
-        graphics.text(font, Component.literal("Fuel: " + snapshot.fuelItemId() + " ×" + snapshot.fuelCount()
-                + " (" + snapshot.fuelTicks() + " ticks)"), x, y + 14, 0xFFE0E0E0);
+        drawInfoIcon(graphics, operationStatusIcon(snapshot), x, y - 4, activityColor, mouseX, mouseY,
+                List.of(
+                        Component.translatable("message.deadrecall.copper_wrench.current_activity"),
+                        Component.translatable("message.deadrecall.copper_wrench.activity_" + snapshot.activity())
+                ));
+        ItemStack fuelIcon = snapshot.fuelCount() > 0
+                ? iconStack(snapshot.fuelItemId())
+                : new ItemStack(Items.COAL);
+        drawInfoIcon(graphics, fuelIcon, x + INFO_ICON_STRIDE, y - 4,
+                snapshot.fuelCount() > 0 || snapshot.fuelTicks() > 0 ? 0xFFFFB238 : 0xFF777777,
+                mouseX, mouseY, List.of(Component.translatable("message.deadrecall.copper_wrench.ui_fuel",
+                        snapshot.fuelItemId(), snapshot.fuelCount(), snapshot.fuelTicks())));
         if (ui.tab() == CopperGolemMenuUiState.Tab.LLM) {
-            graphics.text(font, Component.literal("LLM: " + (snapshot.llmApiUrl().isBlank() ? "not configured" : snapshot.llmApiUrl())), x, y + 34, 0xFFE0E0E0);
-            graphics.text(font, Component.literal("Active bindings: " + snapshot.llmActiveCount()), x, y + 48, 0xFFE0E0E0);
+            Component apiState = snapshot.llmApiUrl().isBlank()
+                    ? Component.translatable("message.deadrecall.copper_wrench.llm_not_configured")
+                    : Component.literal(snapshot.llmApiUrl());
+            drawInfoIcon(graphics, new ItemStack(Items.WRITABLE_BOOK), x + INFO_ICON_STRIDE * 2, y - 4,
+                    snapshot.llmApiUrl().isBlank() ? 0xFF777777 : 0xFF64D26D, mouseX, mouseY,
+                    List.of(
+                            Component.translatable("message.deadrecall.copper_wrench.llm_state", apiState),
+                            Component.translatable("message.deadrecall.copper_wrench.llm_active_count",
+                                    snapshot.llmActiveCount())
+                    ));
             if ("gathering".equals(snapshot.mode())) {
-                graphics.text(font, Component.literal("Gathering cache: " + snapshot.gatheringLlmCachedBlockIds()
-                        + " blocks, " + snapshot.gatheringLlmCachedTags() + " tags"), x, y + 62, 0xFFE0E0E0);
+                drawInfoIcon(graphics, new ItemStack(Items.BOOK), x + INFO_ICON_STRIDE * 3, y - 4,
+                        0xFF6A8FC7, mouseX, mouseY,
+                        List.of(Component.translatable("message.deadrecall.copper_wrench.gathering_cache_summary",
+                                snapshot.gatheringLlmCachedBlockIds(), snapshot.gatheringLlmCachedTags())));
             }
             return;
         }
         if ("sorting".equals(snapshot.mode())) {
-            drawBindingTab(graphics, bounds, snapshot);
+            drawBindingTab(graphics, bounds, snapshot, mouseX, mouseY);
             return;
         }
-        drawGatheringTab(graphics, bounds, snapshot);
+        drawGatheringTab(graphics, bounds, snapshot, mouseX, mouseY);
     }
 
     private void drawBindingTab(GuiGraphicsExtractor graphics, CopperGolemMenuPanelLayout.Bounds bounds,
-                                dev.totem.automata.network.CopperWrenchBindingsPayload snapshot) {
+                                dev.totem.automata.network.CopperWrenchBindingsPayload snapshot,
+                                int mouseX, int mouseY) {
         int x = bounds.x() + 12;
-        int y = bounds.y() + 54;
-        int listY = y + 42;
-        int listWidth = settingsWidth(bounds);
-        graphics.text(font, Component.literal("Source: " + bindingLocation(snapshot.sourceContainer())), x, y, 0xFFE0E0E0);
-        graphics.text(font, Component.literal("Destinations: " + snapshot.bindings().size() + "  •  scroll to browse"), x, y + 14, 0xFFE0E0E0);
-        int rows = visibleBindingRows(bounds);
-        for (int row = 0; row < rows; row++) {
-            int index = ui.scroll() + row;
+        int y = bounds.y() + BINDING_ICON_Y;
+        var source = snapshot.sourceContainer();
+        drawInfoIcon(graphics,
+                source == null ? new ItemStack(Items.CHEST) : iconStack(source.itemId()),
+                x, y, source == null ? 0xFF777777 : 0xFFB97836,
+                mouseX, mouseY, sourceTooltip(source));
+
+        int visible = visibleBindingIcons(bounds);
+        for (int cell = 0; cell < visible; cell++) {
+            int index = ui.scroll() + cell;
             if (index >= snapshot.bindings().size()) break;
             var binding = snapshot.bindings().get(index);
-            int cardY = listY + row * 28;
             boolean selected = index == ui.selected();
             int border = selected ? 0xFFE2C15A : binding.available() ? 0xFF4C8A53 : binding.loaded() ? 0xFF9A4D4D : 0xFF777777;
-            graphics.fill(x, cardY, x + listWidth, cardY + 25, selected ? 0xC03A3322 : 0xB0222222);
-            graphics.outline(x, cardY, listWidth, 25, border);
-            String title = (index + 1) + ". " + binding.blockId() + " @ " + binding.x() + ", " + binding.y() + ", " + binding.z();
-            graphics.text(font, Component.literal(trimToWidth(title, listWidth - 8)), x + 4, cardY + 4, 0xFFFFFFFF);
-            String details = (binding.llmEnabled() ? "LLM on" : "LLM off") + "  •  cache "
-                    + (binding.llmCachedItemIds() + binding.llmCachedTags());
-            graphics.text(font, Component.literal(details), x + 4, cardY + 14, binding.available() ? 0xFFB8E8B8 : 0xFFE0C080);
+            drawInfoIcon(graphics, iconStack(binding.itemId()),
+                    x + 28 + cell * INFO_ICON_STRIDE, y, border,
+                    mouseX, mouseY, bindingTooltip(binding, index));
         }
-        if (snapshot.bindings().size() > rows) {
-            graphics.text(font, Component.literal((ui.scroll() + 1) + "–"
-                    + Math.min(snapshot.bindings().size(), ui.scroll() + rows) + " / " + snapshot.bindings().size()),
-                    x + listWidth - 52, y + 14, 0xFFB8B8B8);
-        }
-        selectedBinding(snapshot).ifPresent(binding -> {
-            int cacheY = bindingControlsY(bounds) - 18;
-            String cache = "Allow " + (binding.llmAllowedItemIds().size() + binding.llmAllowedTags().size())
-                    + "  •  Deny " + (binding.llmDeniedItemIds().size() + binding.llmDeniedTags().size());
-            graphics.text(font, Component.literal(cache), x, cacheY, 0xFFB8B8B8);
-        });
     }
 
     private void drawGatheringTab(GuiGraphicsExtractor graphics, CopperGolemMenuPanelLayout.Bounds bounds,
-                                  dev.totem.automata.network.CopperWrenchBindingsPayload snapshot) {
+                                  dev.totem.automata.network.CopperWrenchBindingsPayload snapshot,
+                                  int mouseX, int mouseY) {
         int x = bounds.x() + 12;
-        int y = bounds.y() + 54;
-        int width = settingsWidth(bounds);
+        int y = bounds.y() + 50;
         List<GatheringTarget> accepted = gatheringAcceptedTargets(snapshot);
         List<GatheringTarget> denied = gatheringDeniedTargets(snapshot);
-        int groupGap = 8;
-        int groupWidth = (width - groupGap) / 2;
-        int groupY = bounds.y() + 132;
-        graphics.text(font, Component.literal("Tool: " + snapshot.gatheringToolItemId() + " ×" + snapshot.gatheringToolCount()), x, y + 34, 0xFFE0E0E0);
-        graphics.text(font, Component.literal("Storage: " + snapshot.gatheringStorageItemId() + " ×" + snapshot.gatheringStorageCount()), x, y + 48, 0xFFE0E0E0);
-        graphics.text(font, Component.literal("Targets: " + (accepted.size() + denied.size()) + "  •  right-click to remove"), x, y + 62, 0xFFB8B8B8);
-        drawGatheringTargetGroup(graphics, "Accepted", accepted, x, groupY, groupWidth, 0xFF4C8A53);
-        drawGatheringTargetGroup(graphics, "Denied", denied, x + groupWidth + groupGap, groupY, groupWidth, 0xFF9A4D4D);
+        drawInfoIcon(graphics,
+                snapshot.gatheringToolCount() > 0 ? iconStack(snapshot.gatheringToolItemId()) : new ItemStack(Items.IRON_PICKAXE),
+                x + INFO_ICON_STRIDE * 2, y, snapshot.gatheringToolCount() > 0 ? 0xFF6A8FC7 : 0xFF777777,
+                mouseX, mouseY, List.of(Component.translatable("message.deadrecall.copper_wrench.gathering_tool_summary",
+                        snapshot.gatheringToolItemId(), snapshot.gatheringToolCount())));
+        drawInfoIcon(graphics,
+                snapshot.gatheringStorageCount() > 0 ? iconStack(snapshot.gatheringStorageItemId()) : new ItemStack(Items.CHEST),
+                x + INFO_ICON_STRIDE * 3, y, snapshot.gatheringStorageCount() > 0 ? 0xFFB97836 : 0xFF777777,
+                mouseX, mouseY, List.of(Component.translatable("message.deadrecall.copper_wrench.gathering_storage_summary",
+                        snapshot.gatheringStorageItemId(), snapshot.gatheringStorageCount())));
+        var source = snapshot.sourceContainer();
+        drawInfoIcon(graphics,
+                source == null ? new ItemStack(Items.CHEST) : iconStack(source.itemId()),
+                x + INFO_ICON_STRIDE * 4, y, source == null ? 0xFF777777 : 0xFFB97836,
+                mouseX, mouseY, sourceTooltip(source));
+
+        drawGatheringTargetIcons(graphics, accepted, x, bounds.y() + GATHERING_ACCEPTED_ICON_Y,
+                0xFF4C8A53, Component.translatable("message.deadrecall.copper_wrench.accepted_targets"),
+                mouseX, mouseY, bounds);
+        drawGatheringTargetIcons(graphics, denied, x, bounds.y() + GATHERING_DENIED_ICON_Y,
+                0xFF9A4D4D, Component.translatable("message.deadrecall.copper_wrench.denied_targets"),
+                mouseX, mouseY, bounds);
     }
 
-    private void drawGatheringTargetGroup(GuiGraphicsExtractor graphics, String label, List<GatheringTarget> targets,
-                                          int x, int y, int width, int color) {
-        graphics.fill(x, y, x + width, y + 18, 0xB0222222);
-        graphics.outline(x, y, width, 18, color);
-        graphics.text(font, Component.literal(label + " (" + targets.size() + ")"), x + 4, y + 5, color);
-        int visible = visibleGatheringTargetRows(CopperGolemMenuPanelLayout.bounds(this.width, this.height));
-        for (int row = 0; row < visible; row++) {
-            int index = gatheringTargetScroll + row;
+    private void drawGatheringTargetIcons(GuiGraphicsExtractor graphics, List<GatheringTarget> targets,
+                                          int x, int y, int color, Component group,
+                                          int mouseX, int mouseY, CopperGolemMenuPanelLayout.Bounds bounds) {
+        int visible = visibleGatheringTargetIcons(bounds);
+        for (int cell = 0; cell < visible; cell++) {
+            int index = gatheringTargetScroll + cell;
             if (index >= targets.size()) break;
             GatheringTarget target = targets.get(index);
-            int rowY = y + 20 + row * 18;
-            graphics.fill(x, rowY, x + width, rowY + 16, 0x80101010);
-            graphics.outline(x, rowY, width, 16, color);
-            String prefix = target.targetSet() == CopperGolemGatheringTargetPayload.TargetSet.MANUAL ? "● " : target.tag() ? "# " : "• ";
-            graphics.text(font, Component.literal(trimToWidth(prefix + target.value(), width - 8)), x + 4, rowY + 4, 0xFFE0E0E0);
+            drawInfoIcon(graphics,
+                    target.tag() ? new ItemStack(Items.NAME_TAG) : iconStack(target.value()),
+                    x + cell * INFO_ICON_STRIDE, y, color, mouseX, mouseY,
+                    gatheringTargetTooltip(target, group));
         }
+    }
+
+    private void drawInfoIcon(GuiGraphicsExtractor graphics, ItemStack stack, int x, int y, int borderColor,
+                              int mouseX, int mouseY, List<Component> tooltip) {
+        graphics.fill(x, y, x + INFO_ICON_SIZE, y + INFO_ICON_SIZE, 0xB0000000);
+        graphics.outline(x, y, INFO_ICON_SIZE, INFO_ICON_SIZE, borderColor);
+        graphics.item(stack, x + 2, y + 2);
+        if (isInside(mouseX, mouseY, x, y, INFO_ICON_SIZE, INFO_ICON_SIZE)) {
+            graphics.setComponentTooltipForNextFrame(font, tooltip, mouseX, mouseY);
+        }
+    }
+
+    private List<Component> sourceTooltip(
+            dev.totem.automata.network.CopperWrenchBindingsPayload.BindingEntry source) {
+        if (source == null) {
+            return List.of(Component.translatable("message.deadrecall.copper_wrench.ui_source",
+                    Component.translatable("message.deadrecall.copper_wrench.source_unbound")));
+        }
+        return List.of(
+                Component.translatable("message.deadrecall.copper_wrench.ui_source",
+                        blockDisplayName(source.blockId())),
+                Component.literal(source.blockId()),
+                Component.translatable("message.deadrecall.copper_wrench.ui_container_location",
+                        source.dimension(), source.x(), source.y(), source.z()),
+                bindingStatusTooltip(source)
+        );
+    }
+
+    private List<Component> bindingTooltip(
+            dev.totem.automata.network.CopperWrenchBindingsPayload.BindingEntry binding, int index) {
+        Component llm = Component.translatable(binding.llmEnabled()
+                ? "message.deadrecall.copper_wrench.llm_on"
+                : "message.deadrecall.copper_wrench.llm_off");
+        return List.of(
+                Component.translatable("message.deadrecall.copper_wrench.target_container_number", index + 1)
+                        .append(": ").append(blockDisplayName(binding.blockId())),
+                Component.literal(binding.blockId()),
+                Component.translatable("message.deadrecall.copper_wrench.ui_container_location",
+                        binding.dimension(), binding.x(), binding.y(), binding.z()),
+                bindingStatusTooltip(binding),
+                Component.translatable("message.deadrecall.copper_wrench.llm_state", llm),
+                Component.translatable("message.deadrecall.copper_wrench.cached_items_and_tags",
+                        binding.llmCachedItemIds(), binding.llmCachedTags())
+        );
+    }
+
+    private Component bindingStatusTooltip(
+            dev.totem.automata.network.CopperWrenchBindingsPayload.BindingEntry binding) {
+        String statusKey = !binding.loaded()
+                ? "message.deadrecall.copper_wrench.binding_status_unloaded"
+                : binding.available()
+                ? "message.deadrecall.copper_wrench.binding_status_available"
+                : "message.deadrecall.copper_wrench.binding_status_unavailable";
+        return Component.translatable("message.deadrecall.copper_wrench.binding_status",
+                Component.translatable(statusKey));
+    }
+
+    private List<Component> gatheringTargetTooltip(GatheringTarget target, Component group) {
+        Component type = Component.translatable(target.tag()
+                ? "message.deadrecall.copper_wrench.entry_type_tag"
+                : "message.deadrecall.copper_wrench.entry_type_block");
+        List<Component> tooltip = new ArrayList<>();
+        tooltip.add(Component.translatable("message.deadrecall.copper_wrench.target_tooltip_type", group, type));
+        if (!target.tag()) tooltip.add(blockDisplayName(target.value()));
+        tooltip.add(Component.literal(target.value()));
+        tooltip.add(Component.translatable("message.deadrecall.copper_wrench.remove_icon_hint"));
+        return tooltip;
+    }
+
+    private static boolean isInside(double mouseX, double mouseY, int x, int y, int width, int height) {
+        return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
+    }
+
+    private ItemStack operationStatusIcon(dev.totem.automata.network.CopperWrenchBindingsPayload snapshot) {
+        if (!snapshot.running()) return new ItemStack(Items.BARRIER);
+        return switch (snapshot.activity()) {
+            case "blocked_no_fuel" -> new ItemStack(Items.COAL);
+            case "blocked_no_tool", "blocked_tool_broken", "working" -> new ItemStack(Items.IRON_PICKAXE);
+            case "blocked_no_home", "blocked_home_unavailable", "blocked_home_full", "depositing" -> new ItemStack(Items.CHEST);
+            case "blocked_sorting" -> new ItemStack(Items.HOPPER);
+            case "moving_to_target" -> new ItemStack(Items.MINECART);
+            case "returning_home", "searching" -> new ItemStack(Items.COMPASS);
+            case "idle" -> new ItemStack(Items.CLOCK);
+            default -> new ItemStack(Items.EMERALD);
+        };
     }
 
     private Component operationText() {
@@ -318,13 +446,13 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                 .map(snapshot -> Component.translatable(snapshot.running()
                         ? "message.deadrecall.copper_wrench.action_stop"
                         : "message.deadrecall.copper_wrench.action_start"))
-                .orElse(Component.literal("Operation"));
+                .orElse(Component.translatable("message.deadrecall.copper_wrench.ui_operation"));
     }
 
     private Component modeText() {
         return lifecycle.session().controller().snapshot()
                 .map(snapshot -> Component.translatable("message.deadrecall.copper_wrench.mode_" + snapshot.mode()))
-                .orElse(Component.literal("Mode"));
+                .orElse(Component.translatable("message.deadrecall.copper_wrench.ui_mode"));
     }
 
     private Component tabText(CopperGolemMenuUiState.Tab tab) {
@@ -378,14 +506,22 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                 bindingEditorIndex = ui.selected();
                 bindingEditorRevision = snapshot.revision();
             }
-            bindingLlmToggleButton.setMessage(Component.literal(binding.llmEnabled() ? "Binding LLM: on" : "Binding LLM: off"));
+            bindingLlmToggleButton.setMessage(Component.translatable("message.deadrecall.copper_wrench.llm_state",
+                    Component.translatable(binding.llmEnabled()
+                            ? "message.deadrecall.copper_wrench.enabled"
+                            : "message.deadrecall.copper_wrench.disabled")));
         }, () -> bindingEditorIndex = -1);
         updateCacheButtons();
     }
 
     private void updateCacheButtons() {
-        cacheTypeButton.setMessage(Component.literal(cacheValueIsTag ? "Tag" : "Item"));
-        cacheDestinationButton.setMessage(Component.literal(cacheValueAllowed ? "Allow" : "Deny"));
+        cacheTypeButton.setMessage(Component.translatable(cacheValueIsTag
+                ? "message.deadrecall.copper_wrench.entry_type_tag"
+                : "message.deadrecall.copper_wrench.entry_type_item"));
+        cacheDestinationButton.setMessage(Component.translatable(cacheValueAllowed
+                ? "message.deadrecall.copper_wrench.cache_side_accepted"
+                : "message.deadrecall.copper_wrench.cache_side_denied"));
+        moveCacheButton.setMessage(Component.translatable("message.deadrecall.copper_wrench.cache_move_button"));
     }
 
     private void updateEditorVisibility() {
@@ -419,10 +555,13 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
 
     private int bindingIndexAt(double mouseX, double mouseY, int bindingCount) {
         var bounds = CopperGolemMenuPanelLayout.bounds(width, height);
-        int row = (int) ((mouseY - (bounds.y() + 96)) / 28);
-        if (mouseX < bounds.x() + 12 || mouseX >= bounds.x() + 12 + settingsWidth(bounds)
-                || row < 0 || row >= visibleBindingRows(bounds)) return -1;
-        int index = ui.scroll() + row;
+        int startX = bounds.x() + 40;
+        int y = bounds.y() + BINDING_ICON_Y;
+        if (mouseY < y || mouseY >= y + INFO_ICON_SIZE || mouseX < startX) return -1;
+        int cell = (int) ((mouseX - startX) / INFO_ICON_STRIDE);
+        if (cell < 0 || cell >= visibleBindingIcons(bounds)
+                || mouseX >= startX + cell * INFO_ICON_STRIDE + INFO_ICON_SIZE) return -1;
+        int index = ui.scroll() + cell;
         return index < bindingCount ? index : -1;
     }
 
@@ -431,15 +570,28 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
     }
 
     private static int bindingControlsY(CopperGolemMenuPanelLayout.Bounds bounds) {
-        return bounds.y() + bounds.height() - 96;
+        return CopperGolemMenuPanelLayout.bindingControlsY(bounds);
     }
 
-    private static int visibleBindingRows(CopperGolemMenuPanelLayout.Bounds bounds) {
-        return Math.max(1, Math.min(3, (bindingControlsY(bounds) - (bounds.y() + 96) - 4) / 28));
+    private static int bindingListY(CopperGolemMenuPanelLayout.Bounds bounds) {
+        return CopperGolemMenuPanelLayout.bindingListY(bounds);
     }
 
-    private String bindingLocation(dev.totem.automata.network.CopperWrenchBindingsPayload.BindingEntry binding) {
-        return binding == null ? "not configured" : binding.dimension() + " @ " + binding.x() + ", " + binding.y() + ", " + binding.z();
+    private static int visibleBindingIcons(CopperGolemMenuPanelLayout.Bounds bounds) {
+        return Math.max(1, (settingsWidth(bounds) - 28) / INFO_ICON_STRIDE);
+    }
+
+    private ItemStack iconStack(String itemId) {
+        Identifier identifier = Identifier.tryParse(itemId);
+        Item item = identifier == null ? Items.BARRIER : BuiltInRegistries.ITEM.getOptional(identifier).orElse(Items.BARRIER);
+        return new ItemStack(item == Items.AIR ? Items.BARRIER : item);
+    }
+
+    private Component blockDisplayName(String blockId) {
+        Identifier identifier = Identifier.tryParse(blockId);
+        return identifier == null ? Component.literal(blockId)
+                : BuiltInRegistries.BLOCK.getOptional(identifier).map(block -> block.getName())
+                .orElse(Component.literal(blockId));
     }
 
     private String trimToWidth(String value, int width) {
@@ -478,23 +630,29 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
     private java.util.Optional<GatheringTarget> gatheringTargetHitAt(
             dev.totem.automata.network.CopperWrenchBindingsPayload snapshot, double mouseX, double mouseY) {
         var bounds = CopperGolemMenuPanelLayout.bounds(width, height);
-        int width = settingsWidth(bounds);
-        int groupWidth = (width - 8) / 2;
-        int groupY = bounds.y() + 132;
-        int row = (int) ((mouseY - (groupY + 20)) / 18);
-        if (row < 0 || row >= visibleGatheringTargetRows(bounds)) return java.util.Optional.empty();
+        int startX = bounds.x() + 12;
+        if (mouseX < startX) return java.util.Optional.empty();
+        int cell = (int) ((mouseX - startX) / INFO_ICON_STRIDE);
+        if (cell < 0 || cell >= visibleGatheringTargetIcons(bounds)
+                || mouseX >= startX + cell * INFO_ICON_STRIDE + INFO_ICON_SIZE) {
+            return java.util.Optional.empty();
+        }
         List<GatheringTarget> targets;
-        if (mouseX >= bounds.x() + 12 && mouseX < bounds.x() + 12 + groupWidth) {
+        int acceptedY = bounds.y() + GATHERING_ACCEPTED_ICON_Y;
+        int deniedY = bounds.y() + GATHERING_DENIED_ICON_Y;
+        if (mouseY >= acceptedY && mouseY < acceptedY + INFO_ICON_SIZE) {
             targets = gatheringAcceptedTargets(snapshot);
-        } else if (mouseX >= bounds.x() + 20 + groupWidth && mouseX < bounds.x() + 20 + groupWidth * 2) {
+        } else if (mouseY >= deniedY && mouseY < deniedY + INFO_ICON_SIZE) {
             targets = gatheringDeniedTargets(snapshot);
-        } else return java.util.Optional.empty();
-        int index = gatheringTargetScroll + row;
+        } else {
+            return java.util.Optional.empty();
+        }
+        int index = gatheringTargetScroll + cell;
         return index < targets.size() ? java.util.Optional.of(targets.get(index)) : java.util.Optional.empty();
     }
 
-    private static int visibleGatheringTargetRows(CopperGolemMenuPanelLayout.Bounds bounds) {
-        return Math.max(1, (bounds.height() - 132 - 18 - 30) / 18);
+    private static int visibleGatheringTargetIcons(CopperGolemMenuPanelLayout.Bounds bounds) {
+        return Math.max(1, settingsWidth(bounds) / INFO_ICON_STRIDE);
     }
 
     private record GatheringTarget(String value, boolean tag, CopperGolemGatheringTargetPayload.TargetSet targetSet) { }
@@ -517,6 +675,14 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         for (int column = 0; column < 9 && index < menu.slots.size(); column++) {
             setSlotPosition(menu.slots.get(index++), inventoryX + column * 18, hotbarY);
         }
+    }
+
+    private void positionInventoryLabel(CopperGolemMenuPanelLayout.Bounds bounds) {
+        int inventoryX = Math.max(180, bounds.width() - 174);
+        int hotbarY = Math.max(136, bounds.height() - 100);
+        int inventoryY = hotbarY - 58;
+        inventoryLabelX = inventoryX;
+        inventoryLabelY = inventoryY - 12;
     }
 
     private static void setSlotPosition(Slot slot, int x, int y) {

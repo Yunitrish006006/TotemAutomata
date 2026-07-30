@@ -9,6 +9,7 @@ import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 /** Live-state operations required by the extracted sorting controller. */
 public interface SortingOperations {
@@ -19,7 +20,11 @@ public interface SortingOperations {
     boolean canAccept(CopperGolem golem, ServerLevel level, CopperGolemBinding binding, Container container, ItemStack carried);
     void rememberTriedDestination(CopperGolem golem, CopperGolemBinding binding);
     boolean hasFuel(CopperGolem golem, ServerLevel level);
+    OptionalInt sortableSourceSlot(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos);
     boolean hasAnySortableItem(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos);
+    default boolean awaitingSortingDecision(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos) {
+        return false;
+    }
     void markBlocked(CopperGolem golem, ServerLevel level, BlockPos sourcePos, Container source);
     int maxTransportStackSize();
     void rememberSource(CopperGolem golem, ServerLevel level, BlockPos sourcePos, int slot);
