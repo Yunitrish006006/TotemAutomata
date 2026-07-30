@@ -10,7 +10,7 @@
       "translate": "advancements.deadrecall.first_copper_golem_binding.description"
     },
     "icon": {
-      "id": "deadrecall:copper_wrench"
+      "id": "totem:automata/copper_wrench"
     },
     "title": {
       "translate": "advancements.deadrecall.first_copper_golem_binding.title"

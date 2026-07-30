@@ -5,6 +5,7 @@
   "advancements.deadrecall.first_copper_golem_binding.title": "第一份工作合約",
   "container.deadrecall.copper_wrench.bindings": "銅傀儡綁定容器",
   "item.deadrecall.copper_wrench": "銅扳手",
+  "item.totem.automata.copper_wrench": "銅扳手",
   "item.deadrecall.copper_wrench.tooltip.bind": "手持銅扳手直接右鍵銅傀儡可綁定並開啟 GUI",
   "item.deadrecall.copper_wrench.tooltip.bound": "已綁定銅傀儡",
   "item.deadrecall.copper_wrench.tooltip.slots": "燃料、工具與倉庫使用原版背包欄位操作。",

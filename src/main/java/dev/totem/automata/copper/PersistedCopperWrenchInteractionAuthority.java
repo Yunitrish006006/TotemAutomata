@@ -35,6 +35,7 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
     @Override public InteractionResult attackBlock(Player player, Level level, InteractionHand hand, BlockPos pos) {
         ItemStack wrench = player.getItemInHand(hand);
         if (player.isSpectator() || !CopperWrenchSelection.isCopperWrench(wrench)) return InteractionResult.PASS;
+        wrench = migrateHeldWrench(player, level, hand, wrench);
         Target target = target(level, pos); if (CopperWrenchSelection.selectedGolem(wrench) == null) {
             if (target.container && !level.isClientSide()) CopperWrenchFeedback.send(player, CopperWrenchInteractionPlanner.Intent.SELECT_GOLEM_FIRST, false, "");
             return target.container ? InteractionResult.SUCCESS : InteractionResult.PASS;
@@ -52,6 +53,7 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
     @Override public InteractionResult useBlock(Player player, Level level, InteractionHand hand, BlockPos pos) {
         ItemStack wrench = player.getItemInHand(hand);
         if (!CopperWrenchSelection.isCopperWrench(wrench)) return InteractionResult.PASS;
+        wrench = migrateHeldWrench(player, level, hand, wrench);
         if (debounce.consumeEntityToBlockSuppression(player.getUUID(), hand, level.isClientSide(), level.getGameTime())) return InteractionResult.SUCCESS;
         if (CopperWrenchSelection.selectedGolem(wrench) == null) return InteractionResult.PASS;
         if (level.isClientSide()) return InteractionResult.SUCCESS;
@@ -65,6 +67,7 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
         if (!(entity instanceof CopperGolem golem)) return InteractionResult.PASS;
         if (wrench.is(Items.COPPER_INGOT)) return repair(player, level, wrench, golem);
         if (!CopperWrenchSelection.isCopperWrench(wrench)) return InteractionResult.PASS;
+        wrench = migrateHeldWrench(player, level, hand, wrench);
         // A Wrench right-click both selects the Golem for target configuration
         // and opens its menu. Shift is not required.
         debounce.recordEntityUse(player.getUUID(), hand, level.isClientSide(), level.getGameTime());
@@ -82,6 +85,18 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
         if (!player.getAbilities().instabuild) ingot.shrink(1);
         if (level instanceof ServerLevel server) server.sendParticles(ParticleTypes.WAX_ON, golem.getX(), golem.getY() + golem.getBbHeight() * .65D, golem.getZ(), 8, .25D, .35D, .25D, .02D);
         return InteractionResult.SUCCESS;
+    }
+
+    private static ItemStack migrateHeldWrench(
+            Player player,
+            Level level,
+            InteractionHand hand,
+            ItemStack wrench
+    ) {
+        if (level.isClientSide()) return wrench;
+        ItemStack migrated = CopperWrenchSelection.migrateLegacy(wrench);
+        if (migrated != wrench) player.setItemInHand(hand, migrated);
+        return migrated;
     }
 
     private CopperGolem resolve(Player player, ItemStack wrench) {

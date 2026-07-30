@@ -5,6 +5,7 @@
   "advancements.deadrecall.first_copper_golem_binding.title": "First Work Order",
   "advancements.deadrecall.first_copper_golem_binding.description": "Bind a sorting container to a copper golem for the first time.",
   "item.deadrecall.copper_wrench": "Copper Wrench",
+  "item.totem.automata.copper_wrench": "Copper Wrench",
   "item.deadrecall.copper_wrench.tooltip.summary": "Configures copper golems and their work routes.",
   "item.deadrecall.copper_wrench.tooltip.unbound": "Not bound to a copper golem",
   "item.deadrecall.copper_wrench.tooltip.bound": "Bound to a copper golem",

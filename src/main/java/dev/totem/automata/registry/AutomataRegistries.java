@@ -18,9 +18,8 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Automata-owned registrations that preserve the established {@code deadrecall}
- * namespace.  Nothing calls these methods during the additive phase: the
- * cutover bootstrap invokes them in DeadRecall's legacy registry order.
+ * Automata-owned registrations exposing a canonical item while preserving the
+ * established {@code deadrecall} identifier for old saves.
  */
 public final class AutomataRegistries {
     private static final Identifier DEADRECALL_MAIN_TAB =
@@ -30,6 +29,10 @@ public final class AutomataRegistries {
 
     public static final Item COPPER_WRENCH = registerItem(
             CopperWrenchSelection.ITEM_ID,
+            properties -> new CopperWrenchItem(properties.stacksTo(1))
+    );
+    public static final Item LEGACY_COPPER_WRENCH = registerItem(
+            CopperWrenchSelection.LEGACY_ITEM_ID,
             properties -> new CopperWrenchItem(properties.stacksTo(1))
     );
 
@@ -85,6 +88,8 @@ public final class AutomataRegistries {
 
     private static Item registerItem(Identifier id, java.util.function.Function<Item.Properties, Item> factory) {
         ResourceKey<Item> itemKey = ResourceKey.create(Registries.ITEM, id);
-        return Registry.register(BuiltInRegistries.ITEM, id, factory.apply(new Item.Properties().setId(itemKey)));
+        return BuiltInRegistries.ITEM.getOptional(itemKey).orElseGet(() ->
+                Registry.register(BuiltInRegistries.ITEM, id,
+                        factory.apply(new Item.Properties().setId(itemKey))));
     }
 }

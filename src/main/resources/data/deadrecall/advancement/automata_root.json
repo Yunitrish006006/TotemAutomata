@@ -12,7 +12,7 @@
       "translate": "advancements.deadrecall.automata_root.description"
     },
     "icon": {
-      "id": "deadrecall:copper_wrench"
+      "id": "totem:automata/copper_wrench"
     },
     "show_toast": false,
     "title": {
