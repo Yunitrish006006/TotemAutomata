@@ -4,26 +4,26 @@ TotemAutomata 讓原版銅魁儡成為可設定的分類與採集助手。玩家
 替每隻銅魁儡設定來源銅箱、目的地、工作區、燃料、工具、手動規則與
 選配的 OpenAI-compatible LLM 判斷。
 
-目前版本為 **0.1.7**，精確搭配 TotemCore **0.2.0**。
+目前版本為 **0.1.8**，精確搭配 TotemCore **0.3.0**。
 
 ## 安裝
 
 Client 與 Server 都放入：
 
 1. Fabric API `0.154.2+26.2`
-2. TotemCore `0.2.0`
-3. TotemAutomata `0.1.7`
+2. TotemCore `0.3.0`
+3. TotemAutomata `0.1.8`
 
 | 項目 | 需求 |
 | --- | --- |
 | Minecraft | 26.2 |
 | Fabric Loader | 0.19.3+ |
 | Java | 25+ |
-| 必要 Totem 模組 | `totem-core =0.2.0` |
+| 必要 Totem 模組 | `totem-core =0.3.0` |
 | 選配 | TotemRemnant（可攜式容器安全 policy） |
 
 Automata 不要求 DeadRecall、TotemRemnant 或 Cognition。使用 DeadRecall
-2.4.5 整合 JAR 時不要再放入獨立 TotemAutomata。
+2.4.6 整合 JAR 時不要再放入獨立 TotemAutomata。
 
 ## 合成銅扳手
 
