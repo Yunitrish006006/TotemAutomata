@@ -1,5 +1,6 @@
 package dev.totem.automata.copper;
 
+import dev.totem.core.api.v1.migration.LegacyItemMigrationRegistry;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
@@ -94,7 +95,7 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
             ItemStack wrench
     ) {
         if (level.isClientSide()) return wrench;
-        ItemStack migrated = CopperWrenchSelection.migrateLegacy(wrench);
+        ItemStack migrated = LegacyItemMigrationRegistry.migrate(wrench);
         if (migrated != wrench) player.setItemInHand(hand, migrated);
         return migrated;
     }
