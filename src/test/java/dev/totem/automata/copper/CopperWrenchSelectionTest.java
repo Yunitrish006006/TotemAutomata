@@ -14,8 +14,7 @@ class CopperWrenchSelectionTest {
         assertNull(CopperWrenchSelection.selectedGolem(stack));
     }
 
-    @Test void exposesCanonicalAndRetainsLegacyIdentifier() {
+    @Test void exposesCanonicalIdentifier() {
         assertEquals("totem:automata/copper_wrench", CopperWrenchSelection.ITEM_ID.toString());
-        assertEquals("deadrecall:copper_wrench", CopperWrenchSelection.LEGACY_ITEM_ID.toString());
     }
 }

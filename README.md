@@ -4,26 +4,26 @@ TotemAutomata 讓原版銅魁儡成為可設定的分類與採集助手。玩家
 替每隻銅魁儡設定來源銅箱、目的地、工作區、燃料、工具、手動規則與
 選配的 OpenAI-compatible LLM 判斷。
 
-目前版本為 **0.1.7**，精確搭配 TotemCore **0.2.0**。
+目前版本為 **0.1.9**，精確搭配 TotemCore **0.4.0**。
 
 ## 安裝
 
 Client 與 Server 都放入：
 
 1. Fabric API `0.154.2+26.2`
-2. TotemCore `0.2.0`
-3. TotemAutomata `0.1.7`
+2. TotemCore `0.4.0`
+3. TotemAutomata `0.1.9`
 
 | 項目 | 需求 |
 | --- | --- |
 | Minecraft | 26.2 |
 | Fabric Loader | 0.19.3+ |
 | Java | 25+ |
-| 必要 Totem 模組 | `totem-core =0.2.0` |
+| 必要 Totem 模組 | `totem-core =0.4.0` |
 | 選配 | TotemRemnant（可攜式容器安全 policy） |
 
 Automata 不要求 DeadRecall、TotemRemnant 或 Cognition。使用 DeadRecall
-2.4.5 整合 JAR 時不要再放入獨立 TotemAutomata。
+2.4.7 整合 JAR 時不要再放入獨立 TotemAutomata。
 
 ## 合成銅扳手
 
@@ -39,11 +39,10 @@ S _ _
 
 ## 物品 ID 相容遷移
 
-新合成的銅扳手 ID 是 `totem:automata/copper_wrench`。舊世界中的
-`deadrecall:copper_wrench` 仍可正常辨識；玩家第一次用舊扳手操作銅魁儡
-或方塊時，Server 會保留自訂名稱、選取的銅魁儡 UUID 與其他 Data
-Components，將手中物品換成 canonical ID。系統不掃描離線玩家或未載入
-容器。
+新合成的銅扳手 ID 是 `totem:automata/copper_wrench`。Automata standalone
+只註冊 canonical ID；安裝 DeadRecall 2.4.7 整合包時，外層相容主機會解碼
+`deadrecall:copper_wrench`，並在第一次操作時保留自訂名稱、選取的銅魁儡
+UUID 與其他 Data Components，將手中物品換成 canonical ID。
 
 ## 快速開始
 
@@ -140,7 +139,8 @@ Client 視覺測試：
 ./gradlew runClientGameTest
 ```
 
-候選版已通過 20/20 required Fabric GameTests、三 JVM legacy-world
-migration，以及 headless Client GUI 截圖 gate。截圖在
+0.1.9 已通過 16/16 required Fabric GameTests、單元測試，以及 headless
+Client GUI 截圖 gate；舊銅扳手物品 ID 改由 DeadRecall 整合啟動測試
+驗證。截圖在
 [`test-artifacts/screenshots/`](test-artifacts/screenshots/)；所有權與
 cutover 契約見 [EXTRACTION.md](EXTRACTION.md)。
