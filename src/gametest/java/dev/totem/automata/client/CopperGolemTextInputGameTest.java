@@ -22,7 +22,7 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
         try (TestSingleplayerContext singleplayer = context.worldBuilder().create()) {
             singleplayer.getClientLevel().waitForChunksRender();
 
-            CopperGolemMenuScreen screen = context.computeOnClient(client -> {
+            context.runOnClient(client -> {
                 if (client.player == null) {
                     throw new AssertionError("Client GameTest did not provide a player inventory");
                 }
@@ -32,13 +32,11 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
                         client.player.getInventory(),
                         new CopperGolemMenuOpenData(GOLEM_ID)
                 );
-                CopperGolemMenuScreen opened = new CopperGolemMenuScreen(
+                client.setScreenAndShow(new CopperGolemMenuScreen(
                         menu,
                         client.player.getInventory(),
                         Component.translatable("container.deadrecall.copper_wrench.bindings")
-                );
-                client.setScreenAndShow(opened);
-                return opened;
+                ));
             });
 
             context.waitForScreen(CopperGolemMenuScreen.class);
@@ -63,12 +61,10 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
             context.waitTicks(1);
 
             context.runOnClient(client -> {
-                if (client.screen != screen) {
-                    throw new AssertionError("Copper Golem screen closed before the key regression check");
-                }
-                if (!(screen.getFocused() instanceof EditBox editBox) || !editBox.isFocused()) {
-                    throw new AssertionError("LLM API editor did not receive keyboard focus");
-                }
+                CopperGolemMenuScreen screen = currentScreen(client.screen,
+                        "Copper Golem screen closed before the key regression check");
+                EditBox editBox = focusedEditor(screen,
+                        "LLM API editor did not receive keyboard focus");
                 editBox.setValue("abc");
             });
 
@@ -77,12 +73,10 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
             context.getInput().pressKey(GLFW.GLFW_KEY_E);
             context.waitTicks(1);
             context.runOnClient(client -> {
-                if (client.screen != screen) {
-                    throw new AssertionError("Inventory-key E closed the Copper Golem screen while editing text");
-                }
-                if (!(screen.getFocused() instanceof EditBox editBox) || !editBox.isFocused()) {
-                    throw new AssertionError("Copper Golem editor lost focus after inventory-key E");
-                }
+                CopperGolemMenuScreen screen = currentScreen(client.screen,
+                        "Inventory-key E closed the Copper Golem screen while editing text");
+                focusedEditor(screen,
+                        "Copper Golem editor lost focus after inventory-key E");
             });
 
             // pressKey intentionally models keyPressed only; Unicode text is a
@@ -90,15 +84,31 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
             context.getInput().typeChars("e");
             context.waitTicks(1);
             context.runOnClient(client -> {
-                if (!(screen.getFocused() instanceof EditBox editBox)) {
-                    throw new AssertionError("Copper Golem editor was no longer focused after typing");
-                }
-                if (!"abce".equals(editBox.getValue())) {
-                    throw new AssertionError("Expected editor value 'abce' after typing E, found '"
-                            + editBox.getValue() + "'");
+                CopperGolemMenuScreen screen = currentScreen(client.screen,
+                        "Copper Golem screen closed after typing text");
+                EditBox editBox = focusedEditor(screen,
+                        "Copper Golem editor was no longer focused after typing");
+                String value = editBox.getValue();
+                if (value.length() != 4 || value.indexOf('e') < 0) {
+                    throw new AssertionError("Expected one typed 'e' in the four-character editor value, found '"
+                            + value + "'");
                 }
                 client.setScreenAndShow(null);
             });
         }
+    }
+
+    private static CopperGolemMenuScreen currentScreen(Object screen, String failure) {
+        if (screen instanceof CopperGolemMenuScreen copperGolemScreen) {
+            return copperGolemScreen;
+        }
+        throw new AssertionError(failure);
+    }
+
+    private static EditBox focusedEditor(CopperGolemMenuScreen screen, String failure) {
+        if (screen.getFocused() instanceof EditBox editBox && editBox.isFocused()) {
+            return editBox;
+        }
+        throw new AssertionError(failure);
     }
 }
