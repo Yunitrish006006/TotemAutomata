@@ -131,18 +131,17 @@ API Key 放進公開截圖、issue 或 log。
 
 ## 開發與驗證
 
-```bash
-./gradlew build
-```
-
-Client 視覺測試：
+Automata repo 不自帶 Gradle wrapper；在 Totem workspace 中可使用 TotemCore
+的 wrapper 執行：
 
 ```bash
-./gradlew runClientGameTest
+../TotemCore/gradlew -p . build
+../TotemCore/gradlew -p . runGameTest
+../TotemCore/gradlew -p . runClientGameTest
 ```
 
-0.1.10 已通過 18/18 required Fabric GameTests、單元測試，以及 headless
-Client GUI 截圖 gate；舊銅扳手物品 ID 改由 DeadRecall 整合啟動測試
-驗證。截圖在
-[`test-artifacts/screenshots/`](test-artifacts/screenshots/)；所有權與
+0.1.12 的 CI 會同時驗證 TotemCore 0.6.0、TotemExcavation 0.1.2 整合、
+不安裝 TotemExcavation 的 standalone 啟動、Server GameTests 與 headless
+Client GameTests。舊銅扳手物品 ID 則由 DeadRecall 整合啟動測試驗證。
+截圖在 [`test-artifacts/screenshots/`](test-artifacts/screenshots/)；所有權與
 cutover 契約見 [EXTRACTION.md](EXTRACTION.md)。
