@@ -152,8 +152,21 @@ tasks.register("normalizeFabricApiTweakersForNamedDevRuntime") {
     }
 }
 
-tasks.matching { task -> task.name in ["runClientGameTest"] }.configureEach {
+// Minecraft 26.x dev runs use the named namespace while Fabric API publishes
+// some class tweakers/access wideners in official. Normalize before every
+// local runtime entrypoint, including the standalone restart probe.
+tasks.matching { task -> task.name in [
+        "runClient",
+        "runServer",
+        "runDatagen",
+        "runGameTest",
+        "runClientGameTest",
+        "runAutomataRestartProbe"
+] }.configureEach {
     dependsOn("normalizeFabricApiTweakersForNamedDevRuntime")
+}
+
+tasks.named('runClientGameTest').configure {
     doLast {
         copy {
             from(file("${buildDir}/run/clientGameTest/screenshots"))
