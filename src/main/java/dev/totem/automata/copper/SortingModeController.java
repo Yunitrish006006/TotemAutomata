@@ -41,6 +41,13 @@ public final class SortingModeController {
     }
     public static ItemStack pickUp(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos, SortingOperations ops) {
         if (!ops.hasFuel(golem, level)) return ItemStack.EMPTY;
+        // Permission must be checked before sortableSourceSlot: that operation
+        // reads source stacks and may start an LLM classification. A locked
+        // container therefore remains opaque when Locksmith denies extraction.
+        if (!ops.mayExtract(golem, source)) {
+            ops.markAccessBlocked(golem, level, sourcePos);
+            return ItemStack.EMPTY;
+        }
         OptionalInt sortableSlot = ops.sortableSourceSlot(golem, level, source, sourcePos);
         if (sortableSlot.isEmpty()) {
             if (!source.isEmpty() && !ops.awaitingSortingDecision(golem, level, source, sourcePos)) {
@@ -51,11 +58,6 @@ public final class SortingModeController {
         int slot = sortableSlot.getAsInt();
         ItemStack stack = source.getItem(slot);
         if (stack.isEmpty()) return ItemStack.EMPTY;
-        if (!LocksmithAutomationBridge.mayExtract(
-                source, GatheringOperator.operatorId(golem).orElse(null))) {
-            ops.markBlocked(golem, level, sourcePos, source);
-            return ItemStack.EMPTY;
-        }
         ItemStack picked = source.removeItem(slot, Math.min(stack.getCount(), ops.maxTransportStackSize()));
         if (!picked.isEmpty()) { ops.rememberSource(golem, level, sourcePos, slot); ops.consumeFuel(golem, level); }
         return picked;
