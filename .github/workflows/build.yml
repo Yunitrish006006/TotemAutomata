@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
@@ -65,7 +65,7 @@ jobs:
           test -n "$excavation_version"
           test -f ".lockstep/TotemExcavation/build/libs/totem-excavation-${excavation_version}.jar"
 
-      - name: Build TotemAutomata
+      - name: Compile TotemAutomata and GameTests
         shell: bash
         run: |
           set -euo pipefail
@@ -75,7 +75,7 @@ jobs:
           excavation_jar="${GITHUB_WORKSPACE}/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation_version}.jar"
           ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" \
             -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
-            build --no-daemon --stacktrace
+            assemble compileGametestJava --no-daemon --stacktrace
 
       - name: Verify standalone runtime without TotemExcavation
         shell: bash
