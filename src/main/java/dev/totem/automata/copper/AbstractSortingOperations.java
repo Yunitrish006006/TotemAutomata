@@ -18,7 +18,9 @@ import java.util.OptionalInt;
 public abstract class AbstractSortingOperations implements SortingOperations {
     private static final String SOURCE_SLOT = "deadrecall_source_slot";
     private static final String TRIED_DESTINATIONS = "deadrecall_tried_destinations";
-    private static final String BLOCKED = "deadrecall_sorting_blocked", BLOCKED_SOURCE_DIM = "deadrecall_blocked_source_container_dim",
+    private static final String BLOCKED = "deadrecall_sorting_blocked",
+            BLOCKED_ACCESS = "totem_automata_sorting_access_blocked",
+            BLOCKED_SOURCE_DIM = "deadrecall_blocked_source_container_dim",
             BLOCKED_SOURCE_X = "deadrecall_blocked_source_container_x", BLOCKED_SOURCE_Y = "deadrecall_blocked_source_container_y",
             BLOCKED_SOURCE_Z = "deadrecall_blocked_source_container_z", BLOCKED_SOURCE_HASH = "deadrecall_blocked_source_hash",
             BLOCKED_BINDINGS_HASH = "deadrecall_blocked_bindings_hash", BLOCKED_TARGETS_HASH = "deadrecall_blocked_targets_hash";
@@ -71,13 +73,30 @@ public abstract class AbstractSortingOperations implements SortingOperations {
         CompoundTag tag = tag(golem); if (CopperGolemFuelService.consumeForTransport(tag, level)) write(golem, tag);
     }
     @Override public void markBlocked(CopperGolem golem, ServerLevel level, BlockPos sourcePos, Container source) {
-        CompoundTag tag = tag(golem); tag.putBoolean(BLOCKED, true);
+        CompoundTag tag = tag(golem); tag.putBoolean(BLOCKED, true); tag.remove(BLOCKED_ACCESS);
         CopperGolemData.writeBinding(tag, new CopperGolemBinding(level.dimension(), sourcePos.immutable()), BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z);
         tag.putInt(BLOCKED_SOURCE_HASH, hash(source)); tag.putInt(BLOCKED_BINDINGS_HASH, hashBindings(bindings(golem))); tag.putInt(BLOCKED_TARGETS_HASH, hashTargets(golem, level));
         tag.remove(TRIED_DESTINATIONS); write(golem, tag); clearRememberedSource(golem);
     }
+    @Override public void markAccessBlocked(CopperGolem golem, ServerLevel level, BlockPos sourcePos) {
+        CompoundTag tag = tag(golem);
+        tag.putBoolean(BLOCKED, true);
+        tag.putBoolean(BLOCKED_ACCESS, true);
+        CopperGolemData.writeBinding(tag, new CopperGolemBinding(level.dimension(), sourcePos.immutable()),
+                BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z);
+        tag.remove(BLOCKED_SOURCE_HASH);
+        tag.remove(BLOCKED_BINDINGS_HASH);
+        tag.remove(BLOCKED_TARGETS_HASH);
+        tag.remove(TRIED_DESTINATIONS);
+        write(golem, tag);
+        clearRememberedSource(golem);
+    }
     @Override public boolean shouldClearBlocked(CopperGolem golem, ServerLevel level) {
         CompoundTag tag = tag(golem);
+        // Permission-denied sources deliberately store no content hashes. Clear
+        // the transient blocked state on the retry cadence so the next pickup
+        // attempt re-checks Locksmith without inspecting the container first.
+        if (tag.getBooleanOr(BLOCKED_ACCESS, false)) return true;
         Optional<CopperGolemBinding> source = CopperGolemData.readBinding(tag, BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z);
         if (source.isEmpty() || !source.get().dimension().equals(level.dimension())) return true;
         var target = target(level, source.get().containerPos()); if (target == null) return true;
@@ -87,7 +106,7 @@ public abstract class AbstractSortingOperations implements SortingOperations {
     }
     @Override public void clearBlocked(CopperGolem golem) {
         CompoundTag tag = tag(golem); boolean changed = false;
-        for (String key : List.of(BLOCKED, BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z, BLOCKED_SOURCE_HASH, BLOCKED_BINDINGS_HASH, BLOCKED_TARGETS_HASH)) {
+        for (String key : List.of(BLOCKED, BLOCKED_ACCESS, BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z, BLOCKED_SOURCE_HASH, BLOCKED_BINDINGS_HASH, BLOCKED_TARGETS_HASH)) {
             if (tag.contains(key)) { tag.remove(key); changed = true; }
         }
         if (changed) { write(golem, tag); clearRememberedSource(golem); }
