@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "dev.totem.automata.client",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "CopperGolemMenuScreenTestAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
