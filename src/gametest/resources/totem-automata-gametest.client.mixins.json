@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "dev.totem.automata.client",
+  "package": "dev.totem.automata.gametest.mixin.client",
   "compatibilityLevel": "JAVA_25",
   "client": [
     "CopperGolemMenuScreenTestAccessor"
