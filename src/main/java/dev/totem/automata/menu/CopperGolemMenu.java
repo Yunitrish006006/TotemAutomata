@@ -1,5 +1,6 @@
 package dev.totem.automata.menu;
 
+import dev.totem.automata.copper.GatheringToolPolicy;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.Container;
@@ -37,6 +38,10 @@ public final class CopperGolemMenu extends AbstractContainerMenu {
         addPlayerSlots(inventory);
     }
     public UUID golemId() { return golemId; }
+    /** Uses the shared policy when this client-side menu has no server authority. */
+    public boolean canPlaceGatheringTool(ItemStack stack) {
+        return authority != null ? authority.isGatheringTool(stack) : GatheringToolPolicy.accepts(stack);
+    }
     public void setGatheringSlotsVisible(boolean visible) { gatheringVisible = visible; }
     @Override public boolean stillValid(Player player) { return golem == null || authority.canUse(player, golem); }
     @Override public ItemStack quickMoveStack(Player player, int index) {
@@ -57,6 +62,6 @@ public final class CopperGolemMenu extends AbstractContainerMenu {
     private boolean editable() { return golem == null || authority.canEditGatheringSlots(golem); }
     private boolean visible() { return golem == null ? gatheringVisible : authority.isGatheringMode(golem); }
     private final class FuelSlot extends Slot { FuelSlot(Container c,int s,int x,int y){super(c,s,x,y);} @Override public boolean mayPlace(ItemStack stack){ return level != null ? authority.isFuel(level,stack) : !stack.isEmpty() && inventory.player.level().fuelValues().isFuel(stack); } }
-    private final class ToolSlot extends Slot { ToolSlot(Container c,int s,int x,int y){super(c,s,x,y);} @Override public boolean mayPlace(ItemStack stack){return editable()&&authority.isGatheringTool(stack);} @Override public boolean mayPickup(Player p){return editable();} @Override public boolean isActive(){return visible();} @Override public int getMaxStackSize(){return 1;} @Override public int getMaxStackSize(ItemStack stack){return 1;} }
+    private final class ToolSlot extends Slot { ToolSlot(Container c,int s,int x,int y){super(c,s,x,y);} @Override public boolean mayPlace(ItemStack stack){return editable() && canPlaceGatheringTool(stack);} @Override public boolean mayPickup(Player p){return editable();} @Override public boolean isActive(){return visible();} @Override public int getMaxStackSize(){return 1;} @Override public int getMaxStackSize(ItemStack stack){return 1;} }
     private final class StorageSlot extends Slot { StorageSlot(Container c,int s,int x,int y){super(c,s,x,y);} @Override public boolean mayPlace(ItemStack stack){return false;} @Override public boolean mayPickup(Player p){return editable();} @Override public boolean isActive(){return visible();} @Override public int getMaxStackSize(){return authority == null ? 16 : authority.transportStorageMaxStackSize();} @Override public int getMaxStackSize(ItemStack stack){return getMaxStackSize();} }
 }

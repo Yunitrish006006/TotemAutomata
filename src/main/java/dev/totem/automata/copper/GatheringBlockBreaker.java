@@ -18,8 +18,8 @@ public final class GatheringBlockBreaker {
     private static final String STORAGE = "deadrecall_gathering_storage_stack", TOOL = "deadrecall_gathering_tool_stack";
     private GatheringBlockBreaker() { }
     public static Result breakTarget(CopperGolem golem, ServerLevel level, ServerPlayer operator, BlockPos pos) {
-        CompoundTag current = CopperGolemData.readEntityTag(golem); BlockState state = level.getBlockState(pos); ItemStack tool = CopperGolemData.readItemStack(current, TOOL);
-        var drops = GatheringDrops.resolve(golem, level, pos, state, tool); ItemStack storage = CopperGolemData.readItemStack(current, STORAGE);
+        CompoundTag current = CopperGolemData.readEntityTag(golem); BlockState state = level.getBlockState(pos); ItemStack tool = CopperGolemData.readItemStack(current, TOOL, level.registryAccess());
+        var drops = GatheringDrops.resolve(golem, level, pos, state, tool); ItemStack storage = CopperGolemData.readItemStack(current, STORAGE, level.registryAccess());
         if (drops.isEmpty() || !GatheringStorage.canStore(storage, drops.get()) || !GatheringBreakPermission.allowed(operator, level, pos, state, tool)) return Result.REJECTED;
         BlockEntity blockEntity = level.getBlockEntity(pos);
         if (!GatheringBreakEvents.before(level, operator, pos, state, blockEntity)) return Result.REJECTED;

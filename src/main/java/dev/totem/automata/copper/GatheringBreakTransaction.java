@@ -14,9 +14,9 @@ public final class GatheringBreakTransaction {
     public static Optional<Result> prepare(CompoundTag current, ServerLevel level, ItemStack storage, ItemStack tool, List<ItemStack> drops) {
         CompoundTag tag = current.copy();
         if (!CopperGolemFuelService.consumeForTransport(tag, level)) return Optional.empty();
-        CopperGolemData.writeItemStack(tag, STORAGE, GatheringStorage.addDrops(storage, drops));
+        CopperGolemData.writeItemStack(tag, STORAGE, GatheringStorage.addDrops(storage, drops), level.registryAccess());
         GatheringToolDamage.Result damage = GatheringToolDamage.apply(level, tool);
-        CopperGolemData.writeItemStack(tag, TOOL, damage.stack().isEmpty() ? ItemStack.EMPTY : damage.stack().copyWithCount(1));
+        CopperGolemData.writeItemStack(tag, TOOL, damage.stack().isEmpty() ? ItemStack.EMPTY : damage.stack().copyWithCount(1), level.registryAccess());
         GatheringRuntimeState.clearTarget(tag);
         return Optional.of(new Result(tag, damage.broken()));
     }

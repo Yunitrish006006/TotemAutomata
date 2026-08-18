@@ -1,8 +1,11 @@
 {
   "parent": "deadrecall:root",
   "criteria": {
-    "ready": {
-      "trigger": "minecraft:tick"
+    "crafted_copper_chest": {
+      "conditions": {
+        "recipe_id": "minecraft:copper_chest"
+      },
+      "trigger": "minecraft:recipe_crafted"
     }
   },
   "display": {
@@ -12,16 +15,16 @@
       "translate": "advancements.deadrecall.automata_root.description"
     },
     "icon": {
-      "id": "totem:automata/copper_wrench"
+      "id": "minecraft:copper_chest"
     },
-    "show_toast": false,
+    "show_toast": true,
     "title": {
       "translate": "advancements.deadrecall.automata_root.title"
     }
   },
   "requirements": [
     [
-      "ready"
+      "crafted_copper_chest"
     ]
   ]
 }

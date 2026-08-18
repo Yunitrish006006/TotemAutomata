@@ -46,7 +46,7 @@ public final class CopperGolemActivityResolver {
                     : CopperGolemActivity.MOVING_TO_TARGET;
         }
 
-        ItemStack storage = CopperGolemData.readItemStack(tag, GATHERING_STORAGE);
+        ItemStack storage = CopperGolemData.readItemStack(tag, GATHERING_STORAGE, level.registryAccess());
         CopperGolemActivity stored = CopperGolemData.activity(tag);
         if (!storage.isEmpty()) {
             if (stored == CopperGolemActivity.BLOCKED_HOME_UNAVAILABLE
@@ -59,7 +59,7 @@ public final class CopperGolemActivityResolver {
                 return CopperGolemActivity.RETURNING_HOME;
             }
         }
-        if (CopperGolemData.readItemStack(tag, GATHERING_TOOL).isEmpty()) {
+        if (CopperGolemData.readItemStack(tag, GATHERING_TOOL, level.registryAccess()).isEmpty()) {
             return stored == CopperGolemActivity.BLOCKED_TOOL_BROKEN
                     ? stored
                     : CopperGolemActivity.BLOCKED_NO_TOOL;

@@ -1,5 +1,6 @@
 package dev.totem.automata.copper;
 
+import dev.totem.automata.excavation.TotemExcavationHammerAdapter;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.Block;
@@ -15,7 +16,11 @@ import java.util.Optional;
 public final class GatheringDrops {
     private GatheringDrops() { }
     public static Optional<List<ItemStack>> resolve(CopperGolem golem, ServerLevel level, BlockPos pos, BlockState state, ItemStack tool) {
-        if (tool.isEmpty() || state.requiresCorrectToolForDrops() && !tool.isCorrectToolForDrops(state)) return Optional.empty();
+        if (tool.isEmpty()
+                || TotemExcavationHammerAdapter.isSupported(tool) && !tool.isCorrectToolForDrops(state)
+                || state.requiresCorrectToolForDrops() && !tool.isCorrectToolForDrops(state)) {
+            return Optional.empty();
+        }
         BlockEntity blockEntity = level.getBlockEntity(pos);
         return GatheringStorage.normalizeDrops(Block.getDrops(state, level, pos, blockEntity, golem, tool));
     }

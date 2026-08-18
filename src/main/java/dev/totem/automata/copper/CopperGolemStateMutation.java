@@ -55,8 +55,8 @@ public final class CopperGolemStateMutation {
             return !hasSortingHandItem && !tag.contains(SOURCE_SLOT);
         }
 
-        return CopperGolemData.readItemStack(tag, GATHERING_TOOL).isEmpty()
-                && CopperGolemData.readItemStack(tag, GATHERING_STORAGE).isEmpty()
+        return !tag.contains(GATHERING_TOOL)
+                && !tag.contains(GATHERING_STORAGE)
                 && GatheringRuntimeState.target(tag).isEmpty();
     }
 

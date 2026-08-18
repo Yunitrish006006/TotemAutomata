@@ -9,7 +9,12 @@ group = project.maven_group
 base { archivesName = project.archives_base_name }
 
 def totemCoreJar = file(providers.gradleProperty('totemCoreJar')
-        .getOrElse('../TotemCore/build/libs/totem-core-0.4.0.jar'))
+        .getOrElse('../TotemCore/build/libs/totem-core-0.6.0.jar'))
+def totemExcavationJar = file(providers.gradleProperty('totemExcavationJar')
+        .getOrElse('../TotemExcavation/build/libs/totem-excavation-0.1.2.jar'))
+def includeTotemExcavationRuntime = providers.gradleProperty('includeTotemExcavationRuntime')
+        .map { it.toBoolean() }
+        .getOrElse(true)
 def automataRestartProbePhase = providers.gradleProperty('totemAutomataRestartProbePhase')
         .orElse(providers.environmentVariable('TOTEM_AUTOMATA_RESTART_PROBE_PHASE'))
         .orNull
@@ -70,6 +75,13 @@ dependencies {
 
     // The local development artifact mirrors the eventual versioned Core dependency.
     modImplementation files(totemCoreJar)
+    // Totem Excavation is available to compile the integration GameTests, but
+    // remains optional at runtime. The false setting drives the standalone
+    // startup probe without placing its JAR on Fabric's runtime classpath.
+    modCompileOnly files(totemExcavationJar)
+    if (includeTotemExcavationRuntime) {
+        modRuntimeOnly files(totemExcavationJar)
+    }
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -146,7 +158,13 @@ tasks.matching { task -> task.name in ["runClientGameTest"] }.configureEach {
         copy {
             from(file("${buildDir}/run/clientGameTest/screenshots"))
             include("*_automata-menu-*-before.png", "*_automata-menu-*-after.png",
-                    "*_automata-menu-*-gathering-icons.png", "*_automata-menu-*-hover-tooltip.png")
+                    "*_automata-menu-*-manual-filter.png", "*_automata-menu-*-gathering-icons.png",
+                    "*_automata-menu-*-hover-tooltip.png",
+                    "*_automata-golem-backpack-prototype.png", "*_automata-golem-backpack-sorting.png",
+                    "*_automata-golem-backpack-sorting-binding-count-*.png", "*_automata-golem-backpack-sorting-cache.png",
+                    "*_automata-golem-backpack-icon-tooltip.png",
+                    "*_automata-golem-backpack-targets.png",
+                    "*_automata-golem-backpack-llm.png", "*_automata-golem-backpack-llm-disabled.png")
             rename { name -> name.replaceFirst(/^\d+_/, "") }
             into(file("test-artifacts/screenshots/safe-multi-repo-modularization"))
         }

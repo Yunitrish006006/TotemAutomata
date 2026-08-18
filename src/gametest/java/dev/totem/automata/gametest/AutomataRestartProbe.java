@@ -4,7 +4,9 @@ import dev.totem.automata.copper.CopperGolemActivity;
 import dev.totem.automata.copper.CopperGolemBinding;
 import dev.totem.automata.copper.CopperGolemData;
 import dev.totem.automata.copper.CopperGolemMode;
+import dev.totem.automata.copper.GatheringToolPolicy;
 import dev.totem.automata.copper.SortingBindingService;
+import dev.totem.automata.excavation.TotemExcavationHammerAdapter;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -63,8 +65,18 @@ public final class AutomataRestartProbe implements ModInitializer {
         switch (phase) {
             case "seed" -> seed(server.overworld(), markerDirectory);
             case "verify" -> verify(server.overworld(), markerDirectory);
+            case "standalone" -> verifyStandaloneRuntime();
             default -> throw new IllegalArgumentException("Unknown Automata restart probe phase: " + phase);
         }
+    }
+
+    private static void verifyStandaloneRuntime() {
+        require(!TotemExcavationHammerAdapter.isAvailable(),
+                "Standalone probe unexpectedly found Totem Excavation on the runtime classpath");
+        require(GatheringToolPolicy.accepts(new ItemStack(Items.IRON_PICKAXE)),
+                "Standalone probe rejected an existing valid gathering tool");
+        require(!GatheringToolPolicy.accepts(new ItemStack(Items.STICK)),
+                "Standalone probe accepted an invalid gathering tool");
     }
 
     private static void seed(ServerLevel level, Path markerDirectory) {
@@ -85,9 +97,9 @@ public final class AutomataRestartProbe implements ModInitializer {
         tag.putString(CopperGolemData.TAG_MODE, CopperGolemMode.GATHERING.id());
         tag.putBoolean(CopperGolemData.TAG_TRANSPORT_ENABLED, false);
         tag.putString(CopperGolemData.TAG_ACTIVITY, CopperGolemActivity.SEARCHING.id());
-        CopperGolemData.writeItemStack(tag, CopperGolemData.TAG_FUEL_STACK, new ItemStack(Items.COAL, 3));
-        CopperGolemData.writeItemStack(tag, "deadrecall_gathering_tool_stack", namedStack(Items.IRON_PICKAXE, 11, "Automata restart tool"));
-        CopperGolemData.writeItemStack(tag, "deadrecall_gathering_storage_stack", namedStack(Items.COBBLESTONE, 9, "Automata restart storage"));
+        CopperGolemData.writeItemStack(tag, CopperGolemData.TAG_FUEL_STACK, new ItemStack(Items.COAL, 3), level.registryAccess());
+        CopperGolemData.writeItemStack(tag, "deadrecall_gathering_tool_stack", namedStack(Items.IRON_PICKAXE, 11, "Automata restart tool"), level.registryAccess());
+        CopperGolemData.writeItemStack(tag, "deadrecall_gathering_storage_stack", namedStack(Items.COBBLESTONE, 9, "Automata restart storage"), level.registryAccess());
         CopperGolemData.writeBindings(tag, List.of(new CopperGolemBinding(level.dimension(), DESTINATION_POS)));
         SortingBindingService.writeSourceContainer(tag, new CopperGolemBinding(level.dimension(), SOURCE_POS));
         CopperGolemData.writeEntityTag(golem, tag);
@@ -114,15 +126,15 @@ public final class AutomataRestartProbe implements ModInitializer {
         require(SortingBindingService.getSourceContainer(tag)
                         .filter(binding -> binding.dimension().equals(level.dimension()) && binding.containerPos().equals(SOURCE_POS))
                         .isPresent(), "Source binding did not persist");
-        ItemStack tool = CopperGolemData.readItemStack(tag, "deadrecall_gathering_tool_stack");
+        ItemStack tool = CopperGolemData.readItemStack(tag, "deadrecall_gathering_tool_stack", level.registryAccess());
         require(tool.is(Items.IRON_PICKAXE) && tool.getDamageValue() == 11
                         && Component.literal("Automata restart tool").equals(tool.get(DataComponents.CUSTOM_NAME)),
                 "Tool components did not persist");
-        ItemStack storage = CopperGolemData.readItemStack(tag, "deadrecall_gathering_storage_stack");
+        ItemStack storage = CopperGolemData.readItemStack(tag, "deadrecall_gathering_storage_stack", level.registryAccess());
         require(storage.is(Items.COBBLESTONE) && storage.getCount() == 9
                         && Component.literal("Automata restart storage").equals(storage.get(DataComponents.CUSTOM_NAME)),
                 "Storage components did not persist");
-        ItemStack fuel = CopperGolemData.readItemStack(tag, CopperGolemData.TAG_FUEL_STACK);
+        ItemStack fuel = CopperGolemData.readItemStack(tag, CopperGolemData.TAG_FUEL_STACK, level.registryAccess());
         require(fuel.is(Items.COAL) && fuel.getCount() == 3, "Fuel did not persist");
     }
 

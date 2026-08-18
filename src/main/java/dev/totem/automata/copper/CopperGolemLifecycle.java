@@ -52,9 +52,9 @@ public final class CopperGolemLifecycle {
         clearGatheringDisplayedItem(golem);
 
         CompoundTag tag = CopperGolemData.readEntityTag(golem);
-        ItemStack fuel = CopperGolemFuelService.readFuelStack(tag);
-        ItemStack tool = CopperGolemData.readItemStack(tag, GATHERING_TOOL);
-        ItemStack storage = CopperGolemData.readItemStack(tag, GATHERING_STORAGE);
+        ItemStack fuel = CopperGolemFuelService.readFuelStack(tag, level);
+        ItemStack tool = CopperGolemData.readItemStack(tag, GATHERING_TOOL, level.registryAccess());
+        ItemStack storage = CopperGolemData.readItemStack(tag, GATHERING_STORAGE, level.registryAccess());
         if (storage.getCount() > GatheringStorage.MAX_STACK_SIZE) {
             storage = storage.copyWithCount(GatheringStorage.MAX_STACK_SIZE);
         }
@@ -62,13 +62,13 @@ public final class CopperGolemLifecycle {
             return;
         }
 
-        CopperGolemFuelService.writeFuelStack(tag, ItemStack.EMPTY);
+        CopperGolemFuelService.writeFuelStack(tag, ItemStack.EMPTY, level);
         tag.remove(CopperGolemData.TAG_FUEL_TICKS);
         CopperGolemStateMutation.clearSortingBlocked(tag);
         CopperGolemData.bumpRevision(tag);
-        CopperGolemData.writeItemStack(tag, GATHERING_TOOL, ItemStack.EMPTY);
+        CopperGolemData.writeItemStack(tag, GATHERING_TOOL, ItemStack.EMPTY, level.registryAccess());
         GatheringRuntimeState.resetSearch(tag, true);
-        CopperGolemData.writeItemStack(tag, GATHERING_STORAGE, ItemStack.EMPTY);
+        CopperGolemData.writeItemStack(tag, GATHERING_STORAGE, ItemStack.EMPTY, level.registryAccess());
         GatheringRuntimeState.resetSearch(tag, false);
         CopperGolemData.writeEntityTag(golem, tag);
 

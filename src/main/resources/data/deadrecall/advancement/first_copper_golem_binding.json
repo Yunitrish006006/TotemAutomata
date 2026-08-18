@@ -1,5 +1,5 @@
 {
-  "parent": "deadrecall:automata_root",
+  "parent": "deadrecall:automata_manual",
   "criteria": {
     "first_binding": {
       "trigger": "deadrecall:first_copper_golem_binding"

@@ -59,9 +59,9 @@ public final class PersistedCopperGolemSnapshotSender implements BiConsumer<net.
         MinecraftServer server = level.getServer();
         GolemLlmState.Config llm = GolemLlmState.read(tag);
         GatheringLlmState.Config gatheringLlm = GatheringLlmState.read(tag);
-        ItemStack fuel = CopperGolemFuelService.readFuelStack(tag);
-        ItemStack tool = CopperGolemData.readItemStack(tag, GATHERING_TOOL);
-        ItemStack storage = CopperGolemData.readItemStack(tag, GATHERING_STORAGE);
+        ItemStack fuel = CopperGolemFuelService.readFuelStack(tag, level);
+        ItemStack tool = CopperGolemData.readItemStack(tag, GATHERING_TOOL, level.registryAccess());
+        ItemStack storage = CopperGolemData.readItemStack(tag, GATHERING_STORAGE, level.registryAccess());
         List<CopperWrenchBindingsPayload.BindingEntry> bindings = SortingBindingService.getBindings(tag).stream()
                 .map(binding -> bindingEntry(server, tag, binding))
                 .toList();
