@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "name": "Totem Automata GameTests",
   "environment": "*",
+  "mixins": [
+    "totem-automata-gametest.client.mixins.json"
+  ],
   "entrypoints": {
     "main": [
       "dev.totem.automata.gametest.AutomataRestartProbe"
