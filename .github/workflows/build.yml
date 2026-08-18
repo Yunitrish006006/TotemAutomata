@@ -69,13 +69,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x gradlew
           core_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
           excavation_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
           core_jar="${GITHUB_WORKSPACE}/.lockstep/TotemCore/build/libs/totem-core-${core_version}.jar"
           excavation_jar="${GITHUB_WORKSPACE}/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation_version}.jar"
-          ./gradlew -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
+          ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" \
+            -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
             build --no-daemon --stacktrace
+
+      - name: Verify standalone runtime without TotemExcavation
+        shell: bash
+        run: |
+          set -euo pipefail
+          core_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
+          excavation_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
+          core_jar="${GITHUB_WORKSPACE}/.lockstep/TotemCore/build/libs/totem-core-${core_version}.jar"
+          excavation_jar="${GITHUB_WORKSPACE}/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation_version}.jar"
+          marker_dir="${RUNNER_TEMP}/automata-standalone"
+          rm -rf "$marker_dir"
+          ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" \
+            -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
+            -PincludeTotemExcavationRuntime=false \
+            -PtotemAutomataRestartProbePhase=standalone \
+            -PtotemAutomataRestartProbeMarkerDir="$marker_dir" \
+            runAutomataRestartProbe --no-daemon --stacktrace
+          test -f "$marker_dir/standalone.ok"
+          test ! -f "$marker_dir/standalone.failure"
 
       - name: Run server GameTests
         shell: bash
@@ -85,7 +104,8 @@ jobs:
           excavation_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
           core_jar="${GITHUB_WORKSPACE}/.lockstep/TotemCore/build/libs/totem-core-${core_version}.jar"
           excavation_jar="${GITHUB_WORKSPACE}/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation_version}.jar"
-          ./gradlew -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
+          ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" \
+            -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
             runGameTest --no-daemon --stacktrace
 
       - name: Run client GameTests
@@ -96,5 +116,6 @@ jobs:
           excavation_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
           core_jar="${GITHUB_WORKSPACE}/.lockstep/TotemCore/build/libs/totem-core-${core_version}.jar"
           excavation_jar="${GITHUB_WORKSPACE}/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation_version}.jar"
-          xvfb-run -a ./gradlew -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
+          xvfb-run -a ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" \
+            -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
             runClientGameTest --no-daemon --stacktrace
