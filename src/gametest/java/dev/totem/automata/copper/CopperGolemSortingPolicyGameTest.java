@@ -76,7 +76,7 @@ public final class CopperGolemSortingPolicyGameTest {
 
         setup.source().setItem(0, new ItemStack(Items.DIRT));
         setup.source().setItem(1, new ItemStack(Items.DIAMOND));
-        giveOneCoal(setup.golem());
+        giveOneCoal(setup.golem(), helper.getLevel());
 
         ItemStack picked = SortingModeController.pickUp(
                 setup.golem(), helper.getLevel(), setup.source(), helper.absolutePos(SOURCE_POS), setup.operations());
@@ -104,7 +104,7 @@ public final class CopperGolemSortingPolicyGameTest {
 
         CompoundTag tag = CopperGolemData.readEntityTag(setup.golem());
         CopperGolemStateMutation.moveBindingLlmCache(tag, setup.targetBinding(), "minecraft:diamond", false, false);
-        CopperGolemFuelService.writeFuelStack(tag, new ItemStack(Items.COAL));
+        CopperGolemFuelService.writeFuelStack(tag, new ItemStack(Items.COAL), helper.getLevel());
         CopperGolemData.writeEntityTag(setup.golem(), tag);
 
         ItemStack picked = SortingModeController.pickUp(
@@ -114,7 +114,7 @@ public final class CopperGolemSortingPolicyGameTest {
             helper.fail("Sorting removed an item even though no destination accepted it");
             return;
         }
-        if (!CopperGolemFuelService.readFuelStack(result).is(Items.COAL)
+        if (!CopperGolemFuelService.readFuelStack(result, helper.getLevel()).is(Items.COAL)
                 || result.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) != 0) {
             helper.fail("Sorting consumed fuel even though it did not pick up an item");
             return;
@@ -132,7 +132,7 @@ public final class CopperGolemSortingPolicyGameTest {
         CompoundTag tag = CopperGolemData.readEntityTag(setup.golem());
         GolemLlmState.write(tag, new GolemLlmState.Config("http://127.0.0.1:1", "", "test-model"));
         SortingLlmState.configure(tag, setup.targetBinding(), true, "Only valuable gems");
-        CopperGolemFuelService.writeFuelStack(tag, new ItemStack(Items.COAL));
+        CopperGolemFuelService.writeFuelStack(tag, new ItemStack(Items.COAL), helper.getLevel());
         CopperGolemData.writeEntityTag(setup.golem(), tag);
         SortingOperations operations = new ClassifyingSortingOperations(new DefaultItemMetadata(), (server, golemId,
                 binding, prompt, itemId, itemTags, decision) -> { });
@@ -145,7 +145,7 @@ public final class CopperGolemSortingPolicyGameTest {
             helper.fail("Sorting picked an item before its LLM decision was available");
             return;
         }
-        if (!CopperGolemFuelService.readFuelStack(result).is(Items.COAL)
+        if (!CopperGolemFuelService.readFuelStack(result, helper.getLevel()).is(Items.COAL)
                 || result.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) != 0) {
             helper.fail("Sorting consumed fuel while waiting for its LLM decision");
             return;
@@ -196,7 +196,7 @@ public final class CopperGolemSortingPolicyGameTest {
             helper.fail("Live sorting mixin picked an item with no matching destination while no LLM was configured");
             return;
         }
-        if (!CopperGolemFuelService.readFuelStack(result).is(Items.COAL)
+        if (!CopperGolemFuelService.readFuelStack(result, helper.getLevel()).is(Items.COAL)
                 || result.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) != 0) {
             helper.fail("Live sorting mixin consumed fuel for an unmatched item");
             return;
@@ -241,7 +241,7 @@ public final class CopperGolemSortingPolicyGameTest {
         SortingBindingService.writeSourceContainer(tag,
                 new CopperGolemBinding(helper.getLevel().dimension(), helper.absolutePos(SOURCE_POS)));
         CopperGolemData.writeBindings(tag, List.of(targetBinding));
-        CopperGolemFuelService.writeFuelStack(tag, new ItemStack(Items.COAL));
+        CopperGolemFuelService.writeFuelStack(tag, new ItemStack(Items.COAL), helper.getLevel());
         CopperGolemData.writeEntityTag(golem, tag);
     }
 
@@ -264,9 +264,9 @@ public final class CopperGolemSortingPolicyGameTest {
         }
     }
 
-    private static void giveOneCoal(CopperGolem golem) {
+    private static void giveOneCoal(CopperGolem golem, net.minecraft.server.level.ServerLevel level) {
         CompoundTag tag = CopperGolemData.readEntityTag(golem);
-        CopperGolemFuelService.writeFuelStack(tag, new ItemStack(Items.COAL));
+        CopperGolemFuelService.writeFuelStack(tag, new ItemStack(Items.COAL), level);
         CopperGolemData.writeEntityTag(golem, tag);
     }
 

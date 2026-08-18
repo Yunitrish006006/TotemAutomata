@@ -17,8 +17,14 @@ import java.util.OptionalInt;
 /** Data/fuel/source implementation shared by the future live sorting authority. */
 public abstract class AbstractSortingOperations implements SortingOperations {
     private static final String SOURCE_SLOT = "deadrecall_source_slot";
+    private static final String REMEMBERED_SOURCE_DIM = "totem_automata_transport_source_dim";
+    private static final String REMEMBERED_SOURCE_X = "totem_automata_transport_source_x";
+    private static final String REMEMBERED_SOURCE_Y = "totem_automata_transport_source_y";
+    private static final String REMEMBERED_SOURCE_Z = "totem_automata_transport_source_z";
     private static final String TRIED_DESTINATIONS = "deadrecall_tried_destinations";
-    private static final String BLOCKED = "deadrecall_sorting_blocked", BLOCKED_SOURCE_DIM = "deadrecall_blocked_source_container_dim",
+    private static final String BLOCKED = "deadrecall_sorting_blocked",
+            BLOCKED_ACCESS = "totem_automata_sorting_access_blocked",
+            BLOCKED_SOURCE_DIM = "deadrecall_blocked_source_container_dim",
             BLOCKED_SOURCE_X = "deadrecall_blocked_source_container_x", BLOCKED_SOURCE_Y = "deadrecall_blocked_source_container_y",
             BLOCKED_SOURCE_Z = "deadrecall_blocked_source_container_z", BLOCKED_SOURCE_HASH = "deadrecall_blocked_source_hash",
             BLOCKED_BINDINGS_HASH = "deadrecall_blocked_bindings_hash", BLOCKED_TARGETS_HASH = "deadrecall_blocked_targets_hash";
@@ -50,7 +56,24 @@ public abstract class AbstractSortingOperations implements SortingOperations {
     @Override public Optional<Source> rememberedSource(CopperGolem golem) {
         CompoundTag tag = tag(golem);
         if (!tag.contains(SOURCE_SLOT)) return Optional.empty();
-        return SortingBindingService.readSourceContainer(tag).map(binding -> new Source(binding.dimension(), binding.containerPos(), tag.getIntOr(SOURCE_SLOT, 0)));
+        Optional<CopperGolemBinding> remembered = CopperGolemData.readBinding(
+                tag,
+                REMEMBERED_SOURCE_DIM,
+                REMEMBERED_SOURCE_X,
+                REMEMBERED_SOURCE_Y,
+                REMEMBERED_SOURCE_Z
+        );
+        // 0.1.12 recovery compatibility: older in-flight transfers stored only
+        // the slot and reused the configured source binding. Read that once as
+        // a fallback, but never clear or overwrite the configured source now.
+        if (remembered.isEmpty()) {
+            remembered = SortingBindingService.readSourceContainer(tag);
+        }
+        return remembered.map(binding -> new Source(
+                binding.dimension(),
+                binding.containerPos(),
+                tag.getIntOr(SOURCE_SLOT, 0)
+        ));
     }
     @Override public net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers.TransportItemTarget target(ServerLevel level, BlockPos pos) {
         return net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers.TransportItemTarget.tryCreatePossibleTarget(pos, level);
@@ -64,20 +87,44 @@ public abstract class AbstractSortingOperations implements SortingOperations {
     @Override public int maxTransportStackSize() { return 16; }
     @Override public void rememberSource(CopperGolem golem, ServerLevel level, BlockPos sourcePos, int slot) {
         CompoundTag tag = tag(golem);
-        SortingBindingService.writeSourceContainer(tag, new CopperGolemBinding(level.dimension(), sourcePos.immutable()));
+        CopperGolemData.writeBinding(
+                tag,
+                new CopperGolemBinding(level.dimension(), sourcePos.immutable()),
+                REMEMBERED_SOURCE_DIM,
+                REMEMBERED_SOURCE_X,
+                REMEMBERED_SOURCE_Y,
+                REMEMBERED_SOURCE_Z
+        );
         tag.putInt(SOURCE_SLOT, slot); tag.remove(TRIED_DESTINATIONS); write(golem, tag);
     }
     @Override public void consumeFuel(CopperGolem golem, ServerLevel level) {
         CompoundTag tag = tag(golem); if (CopperGolemFuelService.consumeForTransport(tag, level)) write(golem, tag);
     }
     @Override public void markBlocked(CopperGolem golem, ServerLevel level, BlockPos sourcePos, Container source) {
-        CompoundTag tag = tag(golem); tag.putBoolean(BLOCKED, true);
+        CompoundTag tag = tag(golem); tag.putBoolean(BLOCKED, true); tag.remove(BLOCKED_ACCESS);
         CopperGolemData.writeBinding(tag, new CopperGolemBinding(level.dimension(), sourcePos.immutable()), BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z);
         tag.putInt(BLOCKED_SOURCE_HASH, hash(source)); tag.putInt(BLOCKED_BINDINGS_HASH, hashBindings(bindings(golem))); tag.putInt(BLOCKED_TARGETS_HASH, hashTargets(golem, level));
         tag.remove(TRIED_DESTINATIONS); write(golem, tag); clearRememberedSource(golem);
     }
+    @Override public void markAccessBlocked(CopperGolem golem, ServerLevel level, BlockPos sourcePos) {
+        CompoundTag tag = tag(golem);
+        tag.putBoolean(BLOCKED, true);
+        tag.putBoolean(BLOCKED_ACCESS, true);
+        CopperGolemData.writeBinding(tag, new CopperGolemBinding(level.dimension(), sourcePos.immutable()),
+                BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z);
+        tag.remove(BLOCKED_SOURCE_HASH);
+        tag.remove(BLOCKED_BINDINGS_HASH);
+        tag.remove(BLOCKED_TARGETS_HASH);
+        tag.remove(TRIED_DESTINATIONS);
+        write(golem, tag);
+        clearRememberedSource(golem);
+    }
     @Override public boolean shouldClearBlocked(CopperGolem golem, ServerLevel level) {
         CompoundTag tag = tag(golem);
+        // Permission-denied sources deliberately store no content hashes. Clear
+        // the transient blocked state on the retry cadence so the next pickup
+        // attempt re-checks Locksmith without inspecting the container first.
+        if (tag.getBooleanOr(BLOCKED_ACCESS, false)) return true;
         Optional<CopperGolemBinding> source = CopperGolemData.readBinding(tag, BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z);
         if (source.isEmpty() || !source.get().dimension().equals(level.dimension())) return true;
         var target = target(level, source.get().containerPos()); if (target == null) return true;
@@ -87,7 +134,7 @@ public abstract class AbstractSortingOperations implements SortingOperations {
     }
     @Override public void clearBlocked(CopperGolem golem) {
         CompoundTag tag = tag(golem); boolean changed = false;
-        for (String key : List.of(BLOCKED, BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z, BLOCKED_SOURCE_HASH, BLOCKED_BINDINGS_HASH, BLOCKED_TARGETS_HASH)) {
+        for (String key : List.of(BLOCKED, BLOCKED_ACCESS, BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z, BLOCKED_SOURCE_HASH, BLOCKED_BINDINGS_HASH, BLOCKED_TARGETS_HASH)) {
             if (tag.contains(key)) { tag.remove(key); changed = true; }
         }
         if (changed) { write(golem, tag); clearRememberedSource(golem); }
@@ -101,7 +148,18 @@ public abstract class AbstractSortingOperations implements SortingOperations {
         return remaining;
     }
     @Override public void clearRememberedSource(CopperGolem golem) {
-        CompoundTag tag = tag(golem); SortingBindingService.clearSourceContainer(tag); tag.remove(SOURCE_SLOT); tag.remove(TRIED_DESTINATIONS); write(golem, tag);
+        CompoundTag tag = tag(golem);
+        for (String key : List.of(
+                REMEMBERED_SOURCE_DIM,
+                REMEMBERED_SOURCE_X,
+                REMEMBERED_SOURCE_Y,
+                REMEMBERED_SOURCE_Z,
+                SOURCE_SLOT,
+                TRIED_DESTINATIONS
+        )) {
+            tag.remove(key);
+        }
+        write(golem, tag);
     }
 
     private static CompoundTag tag(CopperGolem golem) { return CopperGolemData.readEntityTag(golem); }

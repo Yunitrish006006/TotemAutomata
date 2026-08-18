@@ -1,6 +1,7 @@
 package dev.totem.automata;
 
 import dev.totem.automata.bootstrap.AutomataServerCutoverComposition;
+import dev.totem.automata.manual.AutomataManual;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,7 +12,8 @@ public final class TotemAutomata implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        AutomataManual.register();
         AutomataServerCutoverComposition.activate();
-        LOGGER.info("TotemAutomata 0.1.1 cutover authority activated without Cognition dependency");
+        LOGGER.info("TotemAutomata cutover authority activated without Cognition dependency");
     }
 }

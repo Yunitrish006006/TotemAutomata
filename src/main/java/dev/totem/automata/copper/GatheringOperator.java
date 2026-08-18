@@ -14,5 +14,6 @@ public final class GatheringOperator {
     private static final String KEY = "deadrecall_last_operator_player";
     private GatheringOperator() { }
     public static void remember(CopperGolem golem, ServerPlayer player) { CompoundTag tag=CopperGolemData.readEntityTag(golem);tag.store(KEY, UUIDUtil.CODEC, player.getUUID());CopperGolemData.writeEntityTag(golem,tag); }
+    public static Optional<UUID> operatorId(CopperGolem golem) { return CopperGolemData.readEntityTag(golem).read(KEY, UUIDUtil.CODEC); }
     public static Optional<ServerPlayer> resolve(CopperGolem golem, ServerLevel level) { UUID id=CopperGolemData.readEntityTag(golem).read(KEY, UUIDUtil.CODEC).orElse(null); if(id==null)return Optional.empty(); ServerPlayer p=level.getServer().getPlayerList().getPlayer(id);return p!=null&&p.level()==level?Optional.of(p):Optional.empty(); }
 }

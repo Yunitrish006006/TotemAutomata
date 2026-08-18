@@ -27,11 +27,11 @@ public final class PersistedGatheringBehavior implements CopperGolemBehavior {
         var bounds = GatheringConfiguration.scanBounds(tag, level.dimension());
         if (bounds.isEmpty()) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_AREA); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); CopperGolemLifecycle.clearGatheringDisplayedItem(golem); return; }
         if (!world.hasHome(golem, level)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_HOME); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); CopperGolemLifecycle.clearGatheringDisplayedItem(golem); return; }
-        ItemStack storage = CopperGolemData.readItemStack(tag, STORAGE);
+        ItemStack storage = CopperGolemData.readItemStack(tag, STORAGE, level.registryAccess());
         GatheringTickPlan.Action action = GatheringTickPlan.decide(true, true, GatheringStorage.full(storage), CopperGolemData.activity(tag));
         if (!storage.isEmpty() && action == GatheringTickPlan.Action.DEPOSIT) { CopperGolemLifecycle.showGatheringDisplayedItem(golem, storage); world.deposit(golem, level, storage); return; }
         if (!world.hasFuel(golem, level)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_FUEL); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); CopperGolemLifecycle.clearGatheringDisplayedItem(golem); return; }
-        ItemStack tool = CopperGolemData.readItemStack(tag, TOOL);
+        ItemStack tool = CopperGolemData.readItemStack(tag, TOOL, level.registryAccess());
         if (tool.isEmpty()) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_TOOL); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); CopperGolemLifecycle.clearGatheringDisplayedItem(golem); return; }
         if (!world.hasTargetRules(golem, tag)) { GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_NO_VALID_TARGET); CopperGolemData.writeEntityTag(golem, tag); world.stop(golem); CopperGolemLifecycle.clearGatheringDisplayedItem(golem); return; }
         PersistedGatheringScanner.tick(tag, bounds.get(), level.getGameTime(), pos -> world.isValidTarget(golem, level, tag, pos));

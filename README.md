@@ -4,26 +4,26 @@ TotemAutomata 讓原版銅魁儡成為可設定的分類與採集助手。玩家
 替每隻銅魁儡設定來源銅箱、目的地、工作區、燃料、工具、手動規則與
 選配的 OpenAI-compatible LLM 判斷。
 
-目前版本為 **0.1.9**，精確搭配 TotemCore **0.4.0**。
+目前版本為 **0.1.12**，精確搭配 TotemCore **0.6.0**。
 
 ## 安裝
 
 Client 與 Server 都放入：
 
 1. Fabric API `0.154.2+26.2`
-2. TotemCore `0.4.0`
-3. TotemAutomata `0.1.9`
+2. TotemCore `0.6.0`
+3. TotemAutomata `0.1.12`
 
 | 項目 | 需求 |
 | --- | --- |
 | Minecraft | 26.2 |
 | Fabric Loader | 0.19.3+ |
 | Java | 25+ |
-| 必要 Totem 模組 | `totem-core =0.4.0` |
-| 選配 | TotemRemnant（可攜式容器安全 policy） |
+| 必要 Totem 模組 | `totem-core =0.6.0` |
+| 選配 | TotemRemnant（可攜式容器安全 policy）；TotemExcavation `0.1.2+`（錘子採集）；TotemLocksmith（鎖網路權限） |
 
 Automata 不要求 DeadRecall、TotemRemnant 或 Cognition。使用 DeadRecall
-2.4.7 整合 JAR 時不要再放入獨立 TotemAutomata。
+2.4.11 整合 JAR 時不要再放入獨立 TotemAutomata。
 
 ## 合成銅扳手
 
@@ -40,7 +40,7 @@ S _ _
 ## 物品 ID 相容遷移
 
 新合成的銅扳手 ID 是 `totem:automata/copper_wrench`。Automata standalone
-只註冊 canonical ID；安裝 DeadRecall 2.4.7 整合包時，外層相容主機會解碼
+只註冊 canonical ID；安裝 DeadRecall 2.4.11 整合包時，外層相容主機會解碼
 `deadrecall:copper_wrench`，並在第一次操作時保留自訂名稱、選取的銅魁儡
 UUID 與其他 Data Components，將手中物品換成 canonical ID。
 
@@ -101,6 +101,8 @@ UUID 與其他 Data Components，將手中物品換成 canonical ID。
 - 排除容器、流體、不可破壞方塊與銅魁儡自己的 Home。
 - 採集倉庫最多 16 個物品；滿載或沒有可合併目標時返回 Home。
 - 只有成功破壞方塊後才消耗燃料與工具耐久。
+- 安裝 TotemExcavation 後，可把其錘子放入工具槽；銅魁儡仍一次只採集一個
+  已授權目標，不會使用或清除玩家錘子的範圍選取。
 
 切換模式前必須先停止；從採集切回分類前還要取出工具並清空採集倉庫。
 
@@ -129,18 +131,17 @@ API Key 放進公開截圖、issue 或 log。
 
 ## 開發與驗證
 
-```bash
-./gradlew build
-```
-
-Client 視覺測試：
+Automata repo 不自帶 Gradle wrapper；在 Totem workspace 中可使用 TotemCore
+的 wrapper 執行：
 
 ```bash
-./gradlew runClientGameTest
+../TotemCore/gradlew -p . build
+../TotemCore/gradlew -p . runGameTest
+../TotemCore/gradlew -p . runClientGameTest
 ```
 
-0.1.9 已通過 16/16 required Fabric GameTests、單元測試，以及 headless
-Client GUI 截圖 gate；舊銅扳手物品 ID 改由 DeadRecall 整合啟動測試
-驗證。截圖在
-[`test-artifacts/screenshots/`](test-artifacts/screenshots/)；所有權與
+0.1.12 的 CI 會同時驗證 TotemCore 0.6.0、TotemExcavation 0.1.2 整合、
+不安裝 TotemExcavation 的 standalone 啟動、Server GameTests 與 headless
+Client GameTests。舊銅扳手物品 ID 則由 DeadRecall 整合啟動測試驗證。
+截圖在 [`test-artifacts/screenshots/`](test-artifacts/screenshots/)；所有權與
 cutover 契約見 [EXTRACTION.md](EXTRACTION.md)。

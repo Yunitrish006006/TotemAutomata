@@ -1,5 +1,6 @@
 package dev.totem.automata.copper;
 
+import dev.totem.automata.containersafety.LocksmithAutomationBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Container;
@@ -20,12 +21,28 @@ public interface SortingOperations {
     boolean canAccept(CopperGolem golem, ServerLevel level, CopperGolemBinding binding, Container container, ItemStack carried);
     void rememberTriedDestination(CopperGolem golem, CopperGolemBinding binding);
     boolean hasFuel(CopperGolem golem, ServerLevel level);
+
+    /**
+     * Access policy must run before source inventory inspection or LLM
+     * classification. Tests may override this seam to prove that ordering.
+     */
+    default boolean mayExtract(CopperGolem golem, Container source) {
+        return LocksmithAutomationBridge.mayExtract(
+                source,
+                GatheringOperator.operatorId(golem).orElse(null)
+        );
+    }
+
     OptionalInt sortableSourceSlot(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos);
     boolean hasAnySortableItem(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos);
     default boolean awaitingSortingDecision(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos) {
         return false;
     }
     void markBlocked(CopperGolem golem, ServerLevel level, BlockPos sourcePos, Container source);
+
+    /** Marks a permission-denied source without reading or hashing its contents. */
+    void markAccessBlocked(CopperGolem golem, ServerLevel level, BlockPos sourcePos);
+
     int maxTransportStackSize();
     void rememberSource(CopperGolem golem, ServerLevel level, BlockPos sourcePos, int slot);
     void consumeFuel(CopperGolem golem, ServerLevel level);

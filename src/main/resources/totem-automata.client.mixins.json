@@ -3,6 +3,7 @@
   "package": "dev.totem.automata.mixin.client",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "CopperGolemTextInputMixin",
     "MenuScreensAccessor",
     "SlotAccessor"
   ],

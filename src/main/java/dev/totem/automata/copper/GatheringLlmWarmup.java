@@ -27,7 +27,7 @@ public final class GatheringLlmWarmup {
         }
         var bounds = GatheringConfiguration.scanBounds(tag, level.dimension());
         var home = GatheringHomeResolver.resolve(tag, level);
-        ItemStack tool = CopperGolemData.readItemStack(tag, "deadrecall_gathering_tool_stack");
+        ItemStack tool = CopperGolemData.readItemStack(tag, "deadrecall_gathering_tool_stack", level.registryAccess());
         if (bounds.isEmpty() || home.isEmpty() || tool.isEmpty()) {
             return;
         }

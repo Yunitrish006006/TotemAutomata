@@ -1,12 +1,16 @@
 package dev.totem.automata.copper;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.nbt.Tag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.entity.Entity;
@@ -111,15 +115,19 @@ public final class CopperGolemData {
         tag.putInt(zKey, binding.containerPos().getZ());
     }
 
-    public static ItemStack readItemStack(CompoundTag tag, String key) {
-        return tag.read(key, ItemStack.OPTIONAL_CODEC).orElse(ItemStack.EMPTY).copy();
+    /** Reads an item with the registry context required by enchantment Components. */
+    public static ItemStack readItemStack(CompoundTag tag, String key, RegistryAccess registryAccess) {
+        return tag.read(key, ItemStack.OPTIONAL_CODEC, itemStackOps(registryAccess))
+                .orElse(ItemStack.EMPTY)
+                .copy();
     }
 
-    public static void writeItemStack(CompoundTag tag, String key, ItemStack stack) {
+    /** Persists every ItemStack Component, including registry-backed enchantments. */
+    public static void writeItemStack(CompoundTag tag, String key, ItemStack stack, RegistryAccess registryAccess) {
         if (stack.isEmpty()) {
             tag.remove(key);
         } else {
-            tag.store(key, ItemStack.OPTIONAL_CODEC, stack.copy());
+            tag.store(key, ItemStack.OPTIONAL_CODEC, itemStackOps(registryAccess), stack.copy());
         }
     }
 
@@ -152,5 +160,9 @@ public final class CopperGolemData {
             }
         });
         return bindings;
+    }
+
+    private static RegistryOps<Tag> itemStackOps(RegistryAccess registryAccess) {
+        return RegistryOps.create(NbtOps.INSTANCE, registryAccess);
     }
 }

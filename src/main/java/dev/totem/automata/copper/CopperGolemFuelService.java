@@ -12,25 +12,25 @@ public final class CopperGolemFuelService {
     private CopperGolemFuelService() {
     }
 
-    public static ItemStack readFuelStack(CompoundTag tag) {
-        return CopperGolemData.readItemStack(tag, CopperGolemData.TAG_FUEL_STACK);
+    public static ItemStack readFuelStack(CompoundTag tag, ServerLevel level) {
+        return CopperGolemData.readItemStack(tag, CopperGolemData.TAG_FUEL_STACK, level.registryAccess());
     }
 
-    public static void writeFuelStack(CompoundTag tag, ItemStack fuelStack) {
-        CopperGolemData.writeItemStack(tag, CopperGolemData.TAG_FUEL_STACK, fuelStack);
+    public static void writeFuelStack(CompoundTag tag, ItemStack fuelStack, ServerLevel level) {
+        CopperGolemData.writeItemStack(tag, CopperGolemData.TAG_FUEL_STACK, fuelStack, level.registryAccess());
     }
 
     public static boolean hasFuelAvailable(CompoundTag tag, ServerLevel level) {
-        return tag.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) > 0 || isFuel(level, readFuelStack(tag));
+        return tag.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) > 0 || isFuel(level, readFuelStack(tag, level));
     }
 
     public static boolean consumeForTransport(CompoundTag tag, ServerLevel level) {
         int fuelTicks = tag.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0);
         if (fuelTicks <= 0) {
-            ItemStack fuelStack = readFuelStack(tag);
+            ItemStack fuelStack = readFuelStack(tag, level);
             if (!isFuel(level, fuelStack)) return false;
             fuelTicks = Math.max(1, level.fuelValues().burnDuration(fuelStack));
-            writeFuelStack(tag, consumeOneFuelItem(fuelStack));
+            writeFuelStack(tag, consumeOneFuelItem(fuelStack), level);
         }
         fuelTicks = Math.max(0, fuelTicks - FUEL_TICKS_PER_TRANSPORT);
         if (fuelTicks > 0) tag.putInt(CopperGolemData.TAG_FUEL_TICKS, fuelTicks);

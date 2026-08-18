@@ -11,13 +11,13 @@ public final class CopperGolemFuelGameTest {
     @GameTest(maxTicks = 20)
     public void fuelConsumptionPersistsRemainingBurnTicks(GameTestHelper helper) {
         CompoundTag tag = new CompoundTag();
-        CopperGolemFuelService.writeFuelStack(tag, new ItemStack(Items.COAL));
+        CopperGolemFuelService.writeFuelStack(tag, new ItemStack(Items.COAL), helper.getLevel());
         if (!CopperGolemFuelService.consumeForTransport(tag, helper.getLevel())) {
             helper.fail("Copper Golem rejected a valid coal fuel stack");
             return;
         }
         int remainingTicks = tag.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0);
-        if (remainingTicks <= 0 || !CopperGolemFuelService.readFuelStack(tag).isEmpty()) {
+        if (remainingTicks <= 0 || !CopperGolemFuelService.readFuelStack(tag, helper.getLevel()).isEmpty()) {
             helper.fail("Copper Golem fuel consumption did not preserve burn ticks and consume coal exactly once");
             return;
         }

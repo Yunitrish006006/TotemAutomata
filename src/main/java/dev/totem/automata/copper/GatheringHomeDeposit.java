@@ -1,5 +1,6 @@
 package dev.totem.automata.copper;
 
+import dev.totem.automata.containersafety.LocksmithAutomationBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -19,9 +20,15 @@ public final class GatheringHomeDeposit {
             setActivity(golem, CopperGolemActivity.RETURNING_HOME); golem.getNavigation().moveTo(homePos.getX()+.5D, homePos.getY(), homePos.getZ()+.5D, .75D); return Result.MOVING;
         }
         setActivity(golem, CopperGolemActivity.DEPOSITING);
+        if (!LocksmithAutomationBridge.mayInsert(
+                home, GatheringOperator.operatorId(golem).orElse(null))) {
+            setActivity(golem, CopperGolemActivity.BLOCKED_HOME_FULL);
+            golem.getNavigation().stop();
+            return Result.BLOCKED_FULL;
+        }
         if (!GatheringDeposit.canInsertAll(home, List.of(storage))) { setActivity(golem, CopperGolemActivity.BLOCKED_HOME_FULL); golem.getNavigation().stop(); return Result.BLOCKED_FULL; }
         if (!GatheringDeposit.insertAll(home, List.of(storage))) { setActivity(golem, CopperGolemActivity.BLOCKED_HOME_FULL); return Result.BLOCKED_FULL; }
-        home.setChanged(); CompoundTag tag = CopperGolemData.readEntityTag(golem); CopperGolemData.writeItemStack(tag, STORAGE, ItemStack.EMPTY); GatheringRuntimeState.setActivity(tag, CopperGolemActivity.SEARCHING); CopperGolemData.writeEntityTag(golem, tag); return Result.DEPOSITED;
+        home.setChanged(); CompoundTag tag = CopperGolemData.readEntityTag(golem); CopperGolemData.writeItemStack(tag, STORAGE, ItemStack.EMPTY, level.registryAccess()); GatheringRuntimeState.setActivity(tag, CopperGolemActivity.SEARCHING); CopperGolemData.writeEntityTag(golem, tag); return Result.DEPOSITED;
     }
     private static void setActivity(CopperGolem golem, CopperGolemActivity activity) { CompoundTag tag = CopperGolemData.readEntityTag(golem); GatheringRuntimeState.setActivity(tag, activity); CopperGolemData.writeEntityTag(golem, tag); }
     public enum Result { MOVING, DEPOSITED, BLOCKED_FULL }

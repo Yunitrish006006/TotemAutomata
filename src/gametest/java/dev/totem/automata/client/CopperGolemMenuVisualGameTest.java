@@ -8,6 +8,8 @@ import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,14 +31,37 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
             context.takeScreenshot("automata-menu-en-us-before");
 
             context.runOnClient(client -> screen.acceptSnapshotForVisualTest(snapshot()));
+            context.runOnClient(client -> client.player.getInventory().setItem(0, new ItemStack(Items.IRON_INGOT)));
             context.waitTicks(2);
             context.runOnClient(client -> screen.selectBindingForVisualTest(0));
             context.waitTicks(2);
             context.takeScreenshot("automata-menu-en-us-after");
+            context.getInput().setCursorPos(560, 176);
+            context.getInput().pressMouse(0);
+            context.waitTicks(2);
+            context.getInput().setCursorPos(800, 400);
+            context.waitTicks(1);
+            context.takeScreenshot("automata-menu-en-us-manual-filter");
+            context.getInput().setCursorPos(276, 420);
+            context.getInput().holdMouse(0);
+            context.waitTicks(1);
+            context.getInput().setCursorPos(276, 176);
+            context.getInput().releaseMouse(0);
+            context.waitTicks(2);
+            context.takeScreenshot("automata-menu-en-us-manual-filter-dragged");
+            context.getInput().setCursorPos(276, 140);
+            context.getInput().pressMouse(0);
+            context.waitTicks(2);
+            context.takeScreenshot("automata-menu-en-us-manual-filter-text-entry");
+            context.getInput().setCursorPos(300, 195);
+            context.getInput().pressMouse(0);
+            context.waitTicks(1);
             context.getInput().setCursorPos(112, 188);
             context.waitTicks(2);
             context.takeScreenshot("automata-menu-en-us-hover-tooltip");
             context.runOnClient(client -> screen.acceptSnapshotForVisualTest(gatheringSnapshot()));
+            context.waitTicks(2);
+            context.getInput().setCursorPos(800, 400);
             context.waitTicks(2);
             context.takeScreenshot("automata-menu-en-us-gathering-icons");
             context.runOnClient(client -> client.setScreenAndShow(null));
@@ -51,6 +76,67 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
             context.runOnClient(client -> traditionalChineseScreen.selectBindingForVisualTest(0));
             context.waitTicks(2);
             context.takeScreenshot("automata-menu-zh-tw-after");
+            context.getInput().setCursorPos(560, 176);
+            context.getInput().pressMouse(0);
+            context.waitTicks(2);
+            context.getInput().setCursorPos(800, 400);
+            context.waitTicks(1);
+            context.takeScreenshot("automata-menu-zh-tw-manual-filter");
+            context.getInput().setCursorPos(276, 420);
+            context.getInput().holdMouse(0);
+            context.waitTicks(1);
+            context.getInput().setCursorPos(276, 176);
+            context.getInput().releaseMouse(0);
+            context.waitTicks(2);
+            context.takeScreenshot("automata-menu-zh-tw-manual-filter-dragged");
+            context.getInput().setCursorPos(276, 140);
+            context.getInput().pressMouse(0);
+            context.waitTicks(2);
+            context.takeScreenshot("automata-menu-zh-tw-manual-filter-text-entry");
+            context.runOnClient(client -> client.setScreenAndShow(null));
+
+            VanillaCopperGolemBackpackPrototypeScreen prototypeScreen = context.computeOnClient(client -> {
+                VanillaCopperGolemBackpackPrototypeScreen prototype = new VanillaCopperGolemBackpackPrototypeScreen();
+                client.setScreenAndShow(prototype);
+                return prototype;
+            });
+            context.waitForScreen(VanillaCopperGolemBackpackPrototypeScreen.class);
+            context.waitTicks(2);
+            context.takeScreenshot("automata-golem-backpack-prototype");
+            context.getInput().setCursorPos(524, 42);
+            context.getInput().pressMouse(0);
+            context.waitTicks(2);
+            context.getInput().setCursorPos(800, 400);
+            context.waitTicks(1);
+            context.takeScreenshot("automata-golem-backpack-sorting");
+            for (int targetCount = 1; targetCount <= 5; targetCount++) {
+                int boundTargetCount = targetCount;
+                context.runOnClient(client -> prototypeScreen.setSortingTargetCountForVisualTest(boundTargetCount));
+                context.waitTicks(1);
+                context.takeScreenshot("automata-golem-backpack-sorting-binding-count-" + targetCount);
+            }
+            context.getInput().setCursorPos(560, 112);
+            context.getInput().pressMouse(0);
+            context.waitTicks(2);
+            context.takeScreenshot("automata-golem-backpack-sorting-cache");
+            context.getInput().setCursorPos(524, 42);
+            context.getInput().pressMouse(0);
+            context.waitTicks(2);
+            context.getInput().setCursorPos(574, 44);
+            context.waitTicks(2);
+            context.takeScreenshot("automata-golem-backpack-icon-tooltip");
+            context.getInput().setCursorPos(374, 104);
+            context.getInput().pressMouse(0);
+            context.waitTicks(2);
+            context.takeScreenshot("automata-golem-backpack-targets");
+            context.getInput().setCursorPos(574, 44);
+            context.getInput().pressMouse(0);
+            context.waitTicks(2);
+            context.takeScreenshot("automata-golem-backpack-llm");
+            context.getInput().setCursorPos(554, 98);
+            context.getInput().pressMouse(0);
+            context.waitTicks(2);
+            context.takeScreenshot("automata-golem-backpack-llm-disabled");
             context.runOnClient(client -> client.setScreenAndShow(null));
         }
     }
@@ -65,12 +151,27 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
                     0,
                     client.player.getInventory(),
                     new CopperGolemMenuOpenData(GOLEM_ID));
+            assertClientToolSlotPolicy(menu);
             CopperGolemMenuScreen screen = new CopperGolemMenuScreen(
                     menu, client.player.getInventory(),
                     Component.translatable("container.deadrecall.copper_wrench.bindings"));
             client.setScreenAndShow(screen);
             return screen;
         });
+    }
+
+    /**
+     * The client menu is reconstructed from opening data and therefore has no
+     * server authority instance. Checking its gathering-tool policy prevents
+     * an item drag from dereferencing that authority.
+     */
+    private static void assertClientToolSlotPolicy(CopperGolemMenu menu) {
+        if (!menu.canPlaceGatheringTool(new ItemStack(Items.IRON_PICKAXE))) {
+            throw new IllegalStateException("Client Copper Golem tool slot rejected an iron pickaxe");
+        }
+        if (menu.canPlaceGatheringTool(new ItemStack(Items.STICK))) {
+            throw new IllegalStateException("Client Copper Golem tool slot accepted a stick");
+        }
     }
 
     private static void selectLanguage(ClientGameTestContext context, String languageCode, String expectedSourceLabel) {
@@ -112,7 +213,7 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
         return new CopperWrenchBindingsPayload(
                 GOLEM_ID, 8, true, "gathering", "working",
                 "minecraft:coal", 4, 800,
-                "minecraft:iron_pickaxe", 1, 12, 250,
+                "totem:excavation/diamond_hammer", 1, 12, 1561,
                 "minecraft:copper_ore", 6,
                 "", "", "", 0,
                 source, null, List.of("minecraft:copper_ore"), true, "", 1, 1,
