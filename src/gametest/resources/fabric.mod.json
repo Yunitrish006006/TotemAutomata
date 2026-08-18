@@ -12,6 +12,7 @@
       "dev.totem.automata.gametest.AutomataRestartProbe"
     ],
     "fabric-gametest": [
+      "dev.totem.automata.copper.CopperGolemAuthorityPressureGameTest",
       "dev.totem.automata.copper.CopperGolemDataGameTest",
       "dev.totem.automata.copper.CopperGolemDirectInteractionGameTest",
       "dev.totem.automata.copper.CopperGolemFuelGameTest",
