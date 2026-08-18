@@ -48,7 +48,8 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
             // regression under test is key routing once an EditBox is focused,
             // not mouse hit-box layout.
             context.runOnClient(client -> {
-                CopperGolemMenuScreenTestAccessor accessor = (CopperGolemMenuScreenTestAccessor) screen;
+                CopperGolemMenuScreenTestAccessor accessor =
+                        (CopperGolemMenuScreenTestAccessor) (Object) screen;
                 accessor.totemAutomata$getUi().tab(CopperGolemMenuUiState.Tab.LLM);
                 accessor.totemAutomata$updateEditorVisibility();
                 EditBox editBox = accessor.totemAutomata$getApiUrlField();
