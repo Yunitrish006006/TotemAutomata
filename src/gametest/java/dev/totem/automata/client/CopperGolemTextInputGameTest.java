@@ -44,29 +44,18 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
             context.waitForScreen(CopperGolemMenuScreen.class);
             context.waitTicks(2);
 
-            int[] positions = context.computeOnClient(client -> {
-                var bounds = CopperGolemMenuPanelLayout.bounds(
-                        client.getWindow().getGuiScaledWidth(),
-                        client.getWindow().getGuiScaledHeight()
-                );
-                return new int[]{
-                        bounds.x() + 160, bounds.y() + 12,
-                        bounds.x() + 40, bounds.y() + 59
-                };
-            });
-
-            // Open the LLM tab, then focus the API URL EditBox.
-            context.getInput().setCursorPos(positions[0], positions[1]);
-            context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
-            context.getInput().setCursorPos(positions[2], positions[3]);
-            context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
-            context.waitTicks(1);
-
-            context.waitForScreen(CopperGolemMenuScreen.class);
+            // Use a test-only accessor instead of screen coordinates. The
+            // regression under test is key routing once an EditBox is focused,
+            // not mouse hit-box layout.
             context.runOnClient(client -> {
-                EditBox editBox = focusedEditor(screen,
-                        "LLM API editor did not receive keyboard focus");
+                CopperGolemMenuScreenTestAccessor accessor = (CopperGolemMenuScreenTestAccessor) screen;
+                accessor.totemAutomata$getUi().tab(CopperGolemMenuUiState.Tab.LLM);
+                accessor.totemAutomata$updateEditorVisibility();
+                EditBox editBox = accessor.totemAutomata$getApiUrlField();
                 editBox.setValue("abc");
+                screen.setFocused(editBox);
+                editBox.setFocused(true);
+                focusedEditor(screen, "LLM API editor did not receive keyboard focus");
             });
 
             // E is the default inventory key. Before the fix, this closes the
@@ -76,8 +65,8 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
             context.runOnClient(client -> focusedEditor(screen,
                     "Copper Golem editor lost focus after inventory-key E"));
 
-            // pressKey intentionally models keyPressed only; Unicode text is a
-            // separate client input event, matching the real GUI event split.
+            // pressKey intentionally models the key mapping; Unicode text is a
+            // separate input event, matching Minecraft's real GUI event split.
             context.getInput().typeChars("e");
             context.waitForScreen(CopperGolemMenuScreen.class);
             context.runOnClient(client -> {
