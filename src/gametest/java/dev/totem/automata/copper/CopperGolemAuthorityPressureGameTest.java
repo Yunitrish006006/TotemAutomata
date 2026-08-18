@@ -21,8 +21,10 @@ import net.minecraft.world.item.ItemStack;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** Regression coverage recovered from the pre-extraction DeadRecall authority pressure suite. */
@@ -102,10 +104,11 @@ public final class CopperGolemAuthorityPressureGameTest {
     @GameTest(maxTicks = 80)
     public void manyTrackedGolemsPruneDiscardedEntries(GameTestHelper helper) {
         CopperGolemController controller = new CopperGolemController();
+        Set<UUID> fixtureIds = new HashSet<>();
         CopperGolemBehavior behavior = new CopperGolemBehavior() {
             @Override
             public boolean shouldTrack(CopperGolem golem) {
-                return golem.isAlive() && !golem.isRemoved();
+                return fixtureIds.contains(golem.getUUID()) && golem.isAlive() && !golem.isRemoved();
             }
 
             @Override
@@ -122,6 +125,7 @@ public final class CopperGolemAuthorityPressureGameTest {
             int x = 2 + (index % 8) * 2;
             int z = 2 + (index / 8) * 2;
             CopperGolem golem = spawnCopperGolem(helper, new BlockPos(x, 2, z));
+            fixtureIds.add(golem.getUUID());
             controller.track(golem);
             golems.add(golem);
         }
