@@ -17,6 +17,10 @@ import java.util.OptionalInt;
 /** Data/fuel/source implementation shared by the future live sorting authority. */
 public abstract class AbstractSortingOperations implements SortingOperations {
     private static final String SOURCE_SLOT = "deadrecall_source_slot";
+    private static final String REMEMBERED_SOURCE_DIM = "totem_automata_transport_source_dim";
+    private static final String REMEMBERED_SOURCE_X = "totem_automata_transport_source_x";
+    private static final String REMEMBERED_SOURCE_Y = "totem_automata_transport_source_y";
+    private static final String REMEMBERED_SOURCE_Z = "totem_automata_transport_source_z";
     private static final String TRIED_DESTINATIONS = "deadrecall_tried_destinations";
     private static final String BLOCKED = "deadrecall_sorting_blocked",
             BLOCKED_ACCESS = "totem_automata_sorting_access_blocked",
@@ -52,7 +56,24 @@ public abstract class AbstractSortingOperations implements SortingOperations {
     @Override public Optional<Source> rememberedSource(CopperGolem golem) {
         CompoundTag tag = tag(golem);
         if (!tag.contains(SOURCE_SLOT)) return Optional.empty();
-        return SortingBindingService.readSourceContainer(tag).map(binding -> new Source(binding.dimension(), binding.containerPos(), tag.getIntOr(SOURCE_SLOT, 0)));
+        Optional<CopperGolemBinding> remembered = CopperGolemData.readBinding(
+                tag,
+                REMEMBERED_SOURCE_DIM,
+                REMEMBERED_SOURCE_X,
+                REMEMBERED_SOURCE_Y,
+                REMEMBERED_SOURCE_Z
+        );
+        // 0.1.12 recovery compatibility: older in-flight transfers stored only
+        // the slot and reused the configured source binding. Read that once as
+        // a fallback, but never clear or overwrite the configured source now.
+        if (remembered.isEmpty()) {
+            remembered = SortingBindingService.readSourceContainer(tag);
+        }
+        return remembered.map(binding -> new Source(
+                binding.dimension(),
+                binding.containerPos(),
+                tag.getIntOr(SOURCE_SLOT, 0)
+        ));
     }
     @Override public net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers.TransportItemTarget target(ServerLevel level, BlockPos pos) {
         return net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers.TransportItemTarget.tryCreatePossibleTarget(pos, level);
@@ -66,7 +87,14 @@ public abstract class AbstractSortingOperations implements SortingOperations {
     @Override public int maxTransportStackSize() { return 16; }
     @Override public void rememberSource(CopperGolem golem, ServerLevel level, BlockPos sourcePos, int slot) {
         CompoundTag tag = tag(golem);
-        SortingBindingService.writeSourceContainer(tag, new CopperGolemBinding(level.dimension(), sourcePos.immutable()));
+        CopperGolemData.writeBinding(
+                tag,
+                new CopperGolemBinding(level.dimension(), sourcePos.immutable()),
+                REMEMBERED_SOURCE_DIM,
+                REMEMBERED_SOURCE_X,
+                REMEMBERED_SOURCE_Y,
+                REMEMBERED_SOURCE_Z
+        );
         tag.putInt(SOURCE_SLOT, slot); tag.remove(TRIED_DESTINATIONS); write(golem, tag);
     }
     @Override public void consumeFuel(CopperGolem golem, ServerLevel level) {
@@ -120,7 +148,18 @@ public abstract class AbstractSortingOperations implements SortingOperations {
         return remaining;
     }
     @Override public void clearRememberedSource(CopperGolem golem) {
-        CompoundTag tag = tag(golem); SortingBindingService.clearSourceContainer(tag); tag.remove(SOURCE_SLOT); tag.remove(TRIED_DESTINATIONS); write(golem, tag);
+        CompoundTag tag = tag(golem);
+        for (String key : List.of(
+                REMEMBERED_SOURCE_DIM,
+                REMEMBERED_SOURCE_X,
+                REMEMBERED_SOURCE_Y,
+                REMEMBERED_SOURCE_Z,
+                SOURCE_SLOT,
+                TRIED_DESTINATIONS
+        )) {
+            tag.remove(key);
+        }
+        write(golem, tag);
     }
 
     private static CompoundTag tag(CopperGolem golem) { return CopperGolemData.readEntityTag(golem); }
