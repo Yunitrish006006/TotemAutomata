@@ -22,7 +22,7 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
         try (TestSingleplayerContext singleplayer = context.worldBuilder().create()) {
             singleplayer.getClientLevel().waitForChunksRender();
 
-            context.runOnClient(client -> {
+            CopperGolemMenuScreen screen = context.computeOnClient(client -> {
                 if (client.player == null) {
                     throw new AssertionError("Client GameTest did not provide a player inventory");
                 }
@@ -32,11 +32,13 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
                         client.player.getInventory(),
                         new CopperGolemMenuOpenData(GOLEM_ID)
                 );
-                client.setScreenAndShow(new CopperGolemMenuScreen(
+                CopperGolemMenuScreen opened = new CopperGolemMenuScreen(
                         menu,
                         client.player.getInventory(),
                         Component.translatable("container.deadrecall.copper_wrench.bindings")
-                ));
+                );
+                client.setScreenAndShow(opened);
+                return opened;
             });
 
             context.waitForScreen(CopperGolemMenuScreen.class);
@@ -60,9 +62,8 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
             context.getInput().pressMouse(GLFW.GLFW_MOUSE_BUTTON_LEFT);
             context.waitTicks(1);
 
+            context.waitForScreen(CopperGolemMenuScreen.class);
             context.runOnClient(client -> {
-                CopperGolemMenuScreen screen = currentScreen(client.screen,
-                        "Copper Golem screen closed before the key regression check");
                 EditBox editBox = focusedEditor(screen,
                         "LLM API editor did not receive keyboard focus");
                 editBox.setValue("abc");
@@ -71,21 +72,15 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
             // E is the default inventory key. Before the fix, this closes the
             // AbstractContainerScreen instead of remaining inside the editor.
             context.getInput().pressKey(GLFW.GLFW_KEY_E);
-            context.waitTicks(1);
-            context.runOnClient(client -> {
-                CopperGolemMenuScreen screen = currentScreen(client.screen,
-                        "Inventory-key E closed the Copper Golem screen while editing text");
-                focusedEditor(screen,
-                        "Copper Golem editor lost focus after inventory-key E");
-            });
+            context.waitForScreen(CopperGolemMenuScreen.class);
+            context.runOnClient(client -> focusedEditor(screen,
+                    "Copper Golem editor lost focus after inventory-key E"));
 
             // pressKey intentionally models keyPressed only; Unicode text is a
             // separate client input event, matching the real GUI event split.
             context.getInput().typeChars("e");
-            context.waitTicks(1);
+            context.waitForScreen(CopperGolemMenuScreen.class);
             context.runOnClient(client -> {
-                CopperGolemMenuScreen screen = currentScreen(client.screen,
-                        "Copper Golem screen closed after typing text");
                 EditBox editBox = focusedEditor(screen,
                         "Copper Golem editor was no longer focused after typing");
                 String value = editBox.getValue();
@@ -95,14 +90,8 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
                 }
                 client.setScreenAndShow(null);
             });
+            context.waitForScreen(null);
         }
-    }
-
-    private static CopperGolemMenuScreen currentScreen(Object screen, String failure) {
-        if (screen instanceof CopperGolemMenuScreen copperGolemScreen) {
-            return copperGolemScreen;
-        }
-        throw new AssertionError(failure);
     }
 
     private static EditBox focusedEditor(CopperGolemMenuScreen screen, String failure) {
