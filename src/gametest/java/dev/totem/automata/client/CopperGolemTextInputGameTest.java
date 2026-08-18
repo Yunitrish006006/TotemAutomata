@@ -1,5 +1,6 @@
 package dev.totem.automata.client;
 
+import dev.totem.automata.gametest.mixin.client.CopperGolemMenuScreenTestAccessor;
 import dev.totem.automata.menu.CopperGolemMenu;
 import dev.totem.automata.menu.CopperGolemMenuOpenData;
 import dev.totem.automata.menu.CopperGolemMenuRegistration;
