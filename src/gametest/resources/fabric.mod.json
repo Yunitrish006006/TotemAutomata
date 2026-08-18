@@ -17,7 +17,8 @@
       "dev.totem.automata.copper.CopperGolemSortingPolicyGameTest"
     ],
     "fabric-client-gametest": [
-      "dev.totem.automata.client.CopperGolemMenuVisualGameTest"
+      "dev.totem.automata.client.CopperGolemMenuVisualGameTest",
+      "dev.totem.automata.client.CopperGolemTextInputGameTest"
     ]
   },
   "depends": {
