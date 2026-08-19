@@ -24,8 +24,11 @@ public final class GatheringDeposit {
         }
         return true;
     }
-    public static boolean shouldReturnHome(ItemStack storage, CopperGolemActivity activity) {
-        return GatheringStorage.full(storage) || activity == CopperGolemActivity.RETURNING_HOME || activity == CopperGolemActivity.DEPOSITING || activity == CopperGolemActivity.BLOCKED_NO_VALID_TARGET;
+    public static boolean shouldReturnHome(List<ItemStack> storage, CopperGolemActivity activity) {
+        return GatheringStorage.full(storage)
+                || activity == CopperGolemActivity.RETURNING_HOME
+                || activity == CopperGolemActivity.DEPOSITING
+                || activity == CopperGolemActivity.BLOCKED_NO_VALID_TARGET;
     }
     private static void simulate(Container container, List<ItemStack> slots, ItemStack remaining) {
         for (int slot = 0; slot < slots.size() && !remaining.isEmpty(); slot++) {
