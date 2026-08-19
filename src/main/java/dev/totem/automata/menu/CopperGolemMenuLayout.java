@@ -12,8 +12,10 @@ public final class CopperGolemMenuLayout {
 
     public static final int FUEL_SLOT_X = 150, FUEL_SLOT_Y = 26;
     public static final int GATHERING_TOOL_SLOT_X = 96, GATHERING_TOOL_SLOT_Y = 26;
-    public static final int GATHERING_STORAGE_GRID_X = 96, GATHERING_STORAGE_GRID_Y = 50;
-    public static final int GATHERING_STORAGE_COLUMNS = 4;
+    /** First slot stays at the existing client position; the remaining fifteen form a 5x3 carried-item rack. */
+    public static final int GATHERING_STORAGE_FIRST_X = 119, GATHERING_STORAGE_FIRST_Y = 42;
+    public static final int GATHERING_STORAGE_GRID_X = 83, GATHERING_STORAGE_GRID_Y = 62;
+    public static final int GATHERING_STORAGE_COLUMNS = 5;
     public static final int PLAYER_INVENTORY_X = 342, PLAYER_INVENTORY_Y = 146, PLAYER_HOTBAR_Y = 204;
 
     public static int gatheringStorageSlotIndex(int storageIndex) {
@@ -21,11 +23,15 @@ public final class CopperGolemMenuLayout {
     }
 
     public static int gatheringStorageX(int storageIndex) {
-        return GATHERING_STORAGE_GRID_X + (storageIndex % GATHERING_STORAGE_COLUMNS) * 18;
+        if (storageIndex == 0) return GATHERING_STORAGE_FIRST_X;
+        int gridIndex = storageIndex - 1;
+        return GATHERING_STORAGE_GRID_X + (gridIndex % GATHERING_STORAGE_COLUMNS) * 18;
     }
 
     public static int gatheringStorageY(int storageIndex) {
-        return GATHERING_STORAGE_GRID_Y + (storageIndex / GATHERING_STORAGE_COLUMNS) * 18;
+        if (storageIndex == 0) return GATHERING_STORAGE_FIRST_Y;
+        int gridIndex = storageIndex - 1;
+        return GATHERING_STORAGE_GRID_Y + (gridIndex / GATHERING_STORAGE_COLUMNS) * 18;
     }
 
     private CopperGolemMenuLayout() { }
