@@ -47,6 +47,9 @@ public final class GatheringStorage {
         for (int slot = 0; slot < MAX_STACK_SIZE; slot++) tag.remove(SLOT_PREFIX + slot);
         List<ItemStack> normalized = new ArrayList<>();
         for (ItemStack stack : stacks) if (!stack.isEmpty()) merge(normalized, stack);
+        if (!normalized.isEmpty()) {
+            CopperGolemData.writeItemStack(tag, LEGACY_KEY, normalized.getFirst(), registryAccess);
+        }
         int slot = 0;
         for (ItemStack stack : normalized) {
             if (slot >= MAX_STACK_SIZE) break;
