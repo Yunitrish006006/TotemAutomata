@@ -6,9 +6,10 @@ uses the selection stored on the Golem's own tool stack as a read-only area
 template after an ordinary authorised trigger break. The Golem still owns its
 own gathering area, storage, fuel and permission context.
 
-`GatheringStorage` currently has a one-stack/component storage model with a
-hard-coded capacity of sixteen. Area excavation must not pre-plan or commit
-more drops than the still available capacity.
+`GatheringStorage` uses a shared carried-item capacity of sixteen. The storage
+may contain several item/component kinds at once, but the sum of all carried
+item counts must stay within that limit. Area excavation must not pre-plan or
+commit more drops than the remaining shared capacity.
 
 ## Goals / Non-Goals
 
@@ -20,8 +21,8 @@ more drops than the still available capacity.
 - Preserve hammer tier range, efficiency ordering and completion fraction for
   candidate selection, then cap the resulting batch by the remaining carried
   item capacity.
-- Expose the maximum carried item count as one bounded server setting with a
-  default of `16`, so future balancing changes have one source of truth.
+- Keep one shared carried-item limit (currently `16`) while allowing multiple
+  item/component kinds to occupy that capacity.
 - Resolve drops before admitting each extra target and use those exact drops
   in the existing per-target break transaction.
 - Leave the stored selection unchanged and never start, resume or mutate a
@@ -33,8 +34,8 @@ more drops than the still available capacity.
   excavation session behavior.
 - Letting a hammer selection mine outside the Copper Golem's configured area,
   target policy, loaded chunks or permission boundary.
-- Adding a multi-stack Golem inventory, force-loading chunks, or guaranteeing
-  an all-or-nothing transaction across several blocks.
+- Turning carried storage into an unrestricted normal inventory, force-loading
+  chunks, or guaranteeing an all-or-nothing transaction across several blocks.
 
 ## Decisions
 
@@ -52,20 +53,31 @@ after that successful break does Automata schedule the selected-area extras.
 This matches the hammer's manual-break trigger while retaining normal Golem
 permission, fuel and durability semantics.
 
+### Shared-capacity mixed storage
+
+The gathering backpack can hold several distinct `ItemStack` kinds, but the
+sum of their counts cannot exceed the shared carried-item limit. It is not a
+16-slot chest: sixteen one-count items already fill it, regardless of how many
+stack kinds they form.
+
+Legacy worlds that stored one `deadrecall_gathering_storage_stack` are read as
+a one-entry mixed inventory and can subsequently accept additional kinds
+without losing the old item. The menu exposes the carried kinds as read-only
+storage slots while the Golem is running; players may remove them only through
+normal stopped/editable menu rules.
+
 ### Capacity-aware target planning
 
-`GatheringStorage.maxCarriedItemCount()` will read a bounded server startup
-setting named `totem.automata.max-carried-items` (default `16`, valid range
-`1..64`). Every storage helper derives its limit from this value.
+For an area job, remaining capacity is the configured maximum minus the sum of
+all currently carried item counts. After eligibility sorting and the hammer
+tier's completion fraction, Automata resolves each candidate's exact drops and
+admits it only when the cumulative count still fits. Different drop types do
+not invalidate a batch merely because they differ; only capacity, target,
+permission, tool and current-state checks reject them.
 
-For an area job, remaining capacity is the configured maximum minus the
-current carried stack count. After eligibility sorting and the hammer tier's
-completion fraction, Automata resolves each candidate's drops and admits it
-only when the simulated storage still accepts the exact item/component type
-and the cumulative count does not exceed the remaining capacity. Thus an
-empty Golem carrying a 16-item limit can plan at most sixteen matching drops;
-a Golem already carrying five can plan at most eleven. Different drop types
-continue to be rejected by the existing one-stack storage contract.
+Thus an empty Golem with a 16-item limit can plan up to sixteen total drops
+across cobblestone, coal, raw iron, raw copper or other eligible kinds. A Golem
+already carrying five total items can plan at most eleven more.
 
 ### Exact drops and per-target transactions
 
@@ -90,6 +102,7 @@ without resolving Excavation classes.
 | --- | --- |
 | Large valid selections can stall a server tick. | Incremental scan/planning plus bounded target work per tick; never force-load chunks. |
 | Loot can vary by tool/enchantments. | Plan with the exact resolved drops and store those values for the break transaction. |
+| Mixed storage is mistaken for a normal 16-slot backpack. | Capacity is calculated by total item count; menu storage remains output-only while operating. |
 | Selection overlaps forbidden Golem targets. | Intersect with the existing Golem area, safety, policy and owner-permission checks for every candidate. |
 | A later capacity or block-state change invalidates a plan. | Revalidate each target immediately before committing it; stop the affected job without fuel/durability loss. |
 | Optional classes break standalone startup. | Isolate the bridge and retain the no-Excavation Dedicated Server probe. |
@@ -97,8 +110,10 @@ without resolving Excavation classes.
 ## Migration Plan
 
 1. Existing single-target gathering and existing stored hammers continue to
-   work without data migration.
-2. Servers retain the former effective capacity through the default setting of
-   `16`; operators can later alter one startup setting for balance changes.
-3. In-flight area jobs are ephemeral and safely disappear on a restart; the
-   stored hammer, selection, fuel and carried storage remain persisted.
+   work without tool-data migration.
+2. Legacy one-stack carried storage is accepted as the first mixed-storage
+   entry and is rewritten in the new slot representation without item loss.
+3. The effective carried-item capacity remains sixteen, so existing balance is
+   unchanged while mixed drops become possible.
+4. In-flight future area jobs are ephemeral and safely disappear on a restart;
+   the stored hammer, selection, fuel and carried storage remain persisted.
