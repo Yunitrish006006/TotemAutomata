@@ -9,12 +9,12 @@ import java.util.Optional;
 
 /** Atomic persisted state prepared immediately before a successful gathering break. */
 public final class GatheringBreakTransaction {
-    private static final String STORAGE = "deadrecall_gathering_storage_stack", TOOL = "deadrecall_gathering_tool_stack";
+    private static final String TOOL = "deadrecall_gathering_tool_stack";
     private GatheringBreakTransaction() { }
-    public static Optional<Result> prepare(CompoundTag current, ServerLevel level, ItemStack storage, ItemStack tool, List<ItemStack> drops) {
+    public static Optional<Result> prepare(CompoundTag current, ServerLevel level, List<ItemStack> storage, ItemStack tool, List<ItemStack> drops) {
         CompoundTag tag = current.copy();
         if (!CopperGolemFuelService.consumeForTransport(tag, level)) return Optional.empty();
-        CopperGolemData.writeItemStack(tag, STORAGE, GatheringStorage.addDrops(storage, drops), level.registryAccess());
+        GatheringStorage.write(tag, GatheringStorage.addDrops(storage, drops), level.registryAccess());
         GatheringToolDamage.Result damage = GatheringToolDamage.apply(level, tool);
         CopperGolemData.writeItemStack(tag, TOOL, damage.stack().isEmpty() ? ItemStack.EMPTY : damage.stack().copyWithCount(1), level.registryAccess());
         GatheringRuntimeState.clearTarget(tag);

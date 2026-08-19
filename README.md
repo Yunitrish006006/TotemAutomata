@@ -4,26 +4,26 @@ TotemAutomata 讓原版銅魁儡成為可設定的分類與採集助手。玩家
 替每隻銅魁儡設定來源銅箱、目的地、工作區、燃料、工具、手動規則與
 選配的 OpenAI-compatible LLM 判斷。
 
-目前版本為 **0.1.12**，精確搭配 TotemCore **0.6.0**。
+此分支準備發布 **0.1.14**，精確搭配 TotemCore **0.6.1**。
 
 ## 安裝
 
 Client 與 Server 都放入：
 
 1. Fabric API `0.154.2+26.2`
-2. TotemCore `0.6.0`
-3. TotemAutomata `0.1.12`
+2. TotemCore `0.6.1`
+3. TotemAutomata `0.1.14`
 
 | 項目 | 需求 |
 | --- | --- |
 | Minecraft | 26.2 |
 | Fabric Loader | 0.19.3+ |
 | Java | 25+ |
-| 必要 Totem 模組 | `totem-core =0.6.0` |
-| 選配 | TotemRemnant（可攜式容器安全 policy）；TotemExcavation `0.1.2+`（錘子採集）；TotemLocksmith（鎖網路權限） |
+| 必要 Totem 模組 | `totem-core =0.6.1` |
+| 選配 | TotemRemnant（可攜式容器安全 policy）；TotemExcavation `0.1.3+`（錘子採集）；TotemLocksmith（鎖網路權限） |
 
-Automata 不要求 DeadRecall、TotemRemnant 或 Cognition。使用 DeadRecall
-2.4.11 整合 JAR 時不要再放入獨立 TotemAutomata。
+Automata 不要求 DeadRecall、TotemRemnant 或 Cognition。使用含有相同
+TotemAutomata 版本的 DeadRecall 整合 JAR 時不要再重複放入獨立模組。
 
 ## 合成銅扳手
 
@@ -37,17 +37,9 @@ S _ _
 
 `C` 是銅錠，`S` 是木棒。
 
-## 物品 ID 相容遷移
-
-新合成的銅扳手 ID 是 `totem:automata/copper_wrench`。Automata standalone
-只註冊 canonical ID；安裝 DeadRecall 2.4.11 整合包時，外層相容主機會解碼
-`deadrecall:copper_wrench`，並在第一次操作時保留自訂名稱、選取的銅魁儡
-UUID 與其他 Data Components，將手中物品換成 canonical ID。
-
 ## 快速開始
 
-1. 手持銅扳手直接右鍵銅魁儡；不需要蹲下。這會選取該銅魁儡並開啟
-   管理 GUI。
+1. 手持銅扳手直接右鍵銅魁儡；不需要蹲下。這會選取該銅魁儡並開啟管理 GUI。
 2. 右鍵銅箱，設定唯一的來源／Home。
 3. 在 GUI 放入合法燃料，選擇「分類」或「採集」。
 4. 設定目的地或工作區後，按「運作」。
@@ -99,12 +91,15 @@ UUID 與其他 Data Components，將手中物品換成 canonical ID。
 - 只掃描已載入區塊，不會強制載入 chunk。
 - 每 tick 最多檢查 512 個候選方塊。
 - 排除容器、流體、不可破壞方塊與銅魁儡自己的 Home。
-- 採集倉庫最多 16 個物品；滿載或沒有可合併目標時返回 Home。
+- **採集背包是共享總容量 16 個物品，可同時攜帶多種 Item/Data Components。** 例如石頭、煤炭、Raw Iron 與 Raw Copper 可以共存在同一次採集中，只要總數不超過 16。
+- GUI 會把不同攜帶種類分開顯示；運作中只能查看，停止後才能取出，不能把它當一般可自由放入物品的行動箱子。
+- 滿載時返回 Home，並先模擬 Home 是否能完整接收所有攜帶種類；不能完整放入時不會只卸下一部分。
+- 舊世界的單一 `deadrecall_gathering_storage_stack` 會自動讀入新的多種類 storage，不丟失既有物品。
 - 只有成功破壞方塊後才消耗燃料與工具耐久。
-- 安裝 TotemExcavation 後，可把其錘子放入工具槽；銅魁儡仍一次只採集一個
-  已授權目標，不會使用或清除玩家錘子的範圍選取。
+- 安裝 TotemExcavation 後，可把其錘子放入工具槽。不同 Hammer 掉落種類現在可以共用同一個 16-item 背包，不會因第二種掉落不同而被拒絕。
+- 目前正式 runtime 的 Copper Golem Hammer 仍採一次一個已授權目標；完整依 Hammer `area_selection` 自動跑區域的 area-job 仍屬後續 OpenSpec 工作。
 
-切換模式前必須先停止；從採集切回分類前還要取出工具並清空採集倉庫。
+切換模式前必須先停止；從採集切回分類前還要取出工具並清空採集背包。
 
 ## 選配 LLM
 
@@ -118,30 +113,9 @@ GUI 可為每隻銅魁儡設定 OpenAI-compatible Chat Completions：
 API 未設定、逾時或格式錯誤時會安全失敗，不阻塞 Server tick。不要把
 API Key 放進公開截圖、issue 或 log。
 
-## 疑難排解
-
-| 狀態 | 優先檢查 |
-| --- | --- |
-| 缺少燃料 | 停止後在燃料槽放入合法燃料 |
-| 找不到分類位置 | 來源、目的地、快取／Prompt 與容器容量 |
-| 尚未設定作業區 | Corner A、Corner B 是否在同一維度 |
-| 缺少工具／工具損壞 | 停止後更換適用工具 |
-| 倉庫已滿 | Home 是否已載入且能接收物品 |
-| 資料已更新 | 重新開啟 GUI，以 Server 最新 snapshot 操作 |
-
 ## 開發與驗證
 
-Automata repo 不自帶 Gradle wrapper；在 Totem workspace 中可使用 TotemCore
-的 wrapper 執行：
-
-```bash
-../TotemCore/gradlew -p . build
-../TotemCore/gradlew -p . runGameTest
-../TotemCore/gradlew -p . runClientGameTest
-```
-
-0.1.12 的 CI 會同時驗證 TotemCore 0.6.0、TotemExcavation 0.1.2 整合、
-不安裝 TotemExcavation 的 standalone 啟動、Server GameTests 與 headless
-Client GameTests。舊銅扳手物品 ID 則由 DeadRecall 整合啟動測試驗證。
-截圖在 [`test-artifacts/screenshots/`](test-artifacts/screenshots/)；所有權與
-cutover 契約見 [EXTRACTION.md](EXTRACTION.md)。
+CI 會驗證 TotemCore 0.6.1、TotemExcavation 0.1.3 整合、不安裝
+TotemExcavation 的 standalone 啟動、Server GameTests 與 headless Client
+GameTests。0.1.14 另外加入 mixed-storage unit/GameTests、舊 storage 遷移、
+混合 Home deposit 與 Hammer 不同掉落種類 regression coverage。

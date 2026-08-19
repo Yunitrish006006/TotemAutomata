@@ -6,6 +6,8 @@ import net.minecraft.world.entity.animal.golem.CopperGolem;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
+import java.util.List;
+
 /** Server-authoritative slot and access operations required by the Copper Golem menu. */
 public interface CopperGolemMenuAuthority {
     boolean canUse(Player player, CopperGolem golem);
@@ -13,12 +15,12 @@ public interface CopperGolemMenuAuthority {
     boolean canEditGatheringSlots(CopperGolem golem);
     boolean isGatheringMode(CopperGolem golem);
     boolean isGatheringTool(ItemStack stack);
-    int transportStorageMaxStackSize();
+    int transportStorageMaxItemCount();
     ItemStack fuel(CopperGolem golem);
     ItemStack gatheringTool(CopperGolem golem);
-    ItemStack gatheringStorage(CopperGolem golem);
+    List<ItemStack> gatheringStorage(CopperGolem golem);
     void setFuel(CopperGolem golem, ItemStack stack);
     void setGatheringTool(CopperGolem golem, ItemStack stack);
-    void setGatheringStorage(CopperGolem golem, ItemStack stack);
+    void setGatheringStorage(CopperGolem golem, List<ItemStack> stacks);
     void refresh(ServerPlayer viewer, CopperGolem golem);
 }
