@@ -1,9 +1,11 @@
 package dev.totem.automata.copper;
 
 import dev.totem.core.api.v1.migration.LegacyItemMigrationRegistry;
+import dev.totem.automata.containersafety.LocksmithPlayerAccessBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.core.particles.ParticleTypes;
@@ -29,9 +31,36 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
     private static final float REPAIR_AMOUNT = 4.0F;
     private final MenuOpener menuOpener;
     private final BindingCriterion bindingCriterion;
+    private final ContainerBindingAccess bindingAccess;
+    private final BindingVisualizer bindingVisualizer;
     private final CopperWrenchInteractionDebounce debounce = new CopperWrenchInteractionDebounce();
-    public PersistedCopperWrenchInteractionAuthority(MenuOpener menuOpener) { this(menuOpener, player -> { }); }
-    public PersistedCopperWrenchInteractionAuthority(MenuOpener menuOpener, BindingCriterion bindingCriterion) { this.menuOpener = menuOpener; this.bindingCriterion = bindingCriterion; }
+    public PersistedCopperWrenchInteractionAuthority(MenuOpener menuOpener) {
+        this(menuOpener, player -> { });
+    }
+    public PersistedCopperWrenchInteractionAuthority(
+            MenuOpener menuOpener,
+            BindingCriterion bindingCriterion
+    ) {
+        this(menuOpener, bindingCriterion, new ContainerBindingAccess() {
+            @Override public boolean mayExtract(ServerPlayer player, ServerLevel level, BlockPos position) {
+                return LocksmithPlayerAccessBridge.mayExtract(player, level, position);
+            }
+            @Override public boolean mayInsert(ServerPlayer player, ServerLevel level, BlockPos position) {
+                return LocksmithPlayerAccessBridge.mayInsert(player, level, position);
+            }
+        }, CopperWrenchPathVisualization::show);
+    }
+    PersistedCopperWrenchInteractionAuthority(
+            MenuOpener menuOpener,
+            BindingCriterion bindingCriterion,
+            ContainerBindingAccess bindingAccess,
+            BindingVisualizer bindingVisualizer
+    ) {
+        this.menuOpener = menuOpener;
+        this.bindingCriterion = bindingCriterion;
+        this.bindingAccess = bindingAccess;
+        this.bindingVisualizer = bindingVisualizer;
+    }
 
     @Override public InteractionResult attackBlock(Player player, Level level, InteractionHand hand, BlockPos pos) {
         ItemStack wrench = player.getItemInHand(hand);
@@ -43,7 +72,6 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
         }
         if (level.isClientSide()) return InteractionResult.SUCCESS;
         CopperGolem golem = resolve(player, wrench); if (golem == null) return InteractionResult.SUCCESS;
-        if (player instanceof ServerPlayer server) GatheringOperator.remember(golem, server);
         CopperWrenchInteractionPlanner.Intent intent = CopperWrenchInteractionPlanner.leftClick(true, mode(golem), target.plannerTarget());
         if (intent == CopperWrenchInteractionPlanner.Intent.TOGGLE_GATHERING_TARGET
                 && debounce.isGatheringTargetDuplicate(player.getUUID(), golem.getUUID(), level.dimension(), pos,
@@ -59,7 +87,6 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
         if (CopperWrenchSelection.selectedGolem(wrench) == null) return InteractionResult.PASS;
         if (level.isClientSide()) return InteractionResult.SUCCESS;
         CopperGolem golem = resolve(player, wrench); if (golem == null) return InteractionResult.SUCCESS;
-        if (player instanceof ServerPlayer server) GatheringOperator.remember(golem, server);
         return execute(player, golem, level, pos, CopperWrenchInteractionPlanner.useBlock(true, mode(golem), player.isShiftKeyDown(), target(level, pos).plannerTarget()));
     }
 
@@ -109,6 +136,16 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
     private static CopperWrenchInteractionPlanner.Mode mode(CopperGolem golem) { return CopperGolemData.mode(CopperGolemData.readEntityTag(golem)) == CopperGolemMode.GATHERING ? CopperWrenchInteractionPlanner.Mode.GATHERING : CopperWrenchInteractionPlanner.Mode.SORTING; }
     private static Target target(Level level, BlockPos pos) { return new Target(level.getBlockEntity(pos) instanceof Container, level.getBlockState(pos).is(BlockTags.COPPER_CHESTS)); }
     private InteractionResult execute(Player player, CopperGolem golem, Level level, BlockPos pos, CopperWrenchInteractionPlanner.Intent intent) {
+        if (player instanceof ServerPlayer serverPlayer
+                && level instanceof ServerLevel serverLevel
+                && !mayBindProtectedContainer(serverPlayer, serverLevel, pos, golem, intent)) {
+            player.sendSystemMessage(Component.translatable(
+                    "message.deadrecall.copper_wrench.locksmith_permission_denied"));
+            return InteractionResult.SUCCESS;
+        }
+        if (player instanceof ServerPlayer serverPlayer) {
+            GatheringOperator.remember(golem, serverPlayer);
+        }
         CompoundTag tag = CopperGolemData.readEntityTag(golem); CopperGolemData.migrate(tag);
         CopperGolemBinding binding = new CopperGolemBinding(level.dimension(), pos.immutable()); boolean changed = switch (intent) {
             case REMOVE_SOURCE -> CopperWrenchStateMutator.removeSource(tag, binding);
@@ -122,11 +159,27 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
         };
         if (changed || intent != CopperWrenchInteractionPlanner.Intent.PASS) CopperGolemData.writeEntityTag(golem, tag);
         if (changed && level instanceof ServerLevel server && (intent == CopperWrenchInteractionPlanner.Intent.SET_SOURCE || intent == CopperWrenchInteractionPlanner.Intent.ADD_BINDING)) {
-            CopperWrenchPathVisualization.show(server, golem, pos);
+            bindingVisualizer.show(server, golem, pos);
         }
         if (changed && player instanceof ServerPlayer server && (intent == CopperWrenchInteractionPlanner.Intent.SET_SOURCE || intent == CopperWrenchInteractionPlanner.Intent.ADD_BINDING)) bindingCriterion.trigger(server);
         CopperWrenchFeedback.send(player, intent, changed, BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).toString());
         return intent == CopperWrenchInteractionPlanner.Intent.PASS ? InteractionResult.PASS : InteractionResult.SUCCESS;
+    }
+
+    private boolean mayBindProtectedContainer(
+            ServerPlayer player,
+            ServerLevel level,
+            BlockPos position,
+            CopperGolem golem,
+            CopperWrenchInteractionPlanner.Intent intent
+    ) {
+        return switch (intent) {
+            case SET_SOURCE -> mode(golem) == CopperWrenchInteractionPlanner.Mode.GATHERING
+                    ? bindingAccess.mayInsert(player, level, position)
+                    : bindingAccess.mayExtract(player, level, position);
+            case ADD_BINDING -> bindingAccess.mayInsert(player, level, position);
+            default -> true;
+        };
     }
 
     private record Target(boolean container, boolean copperSource) {
@@ -134,4 +187,11 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
     }
     @FunctionalInterface public interface MenuOpener { void open(ServerPlayer player, CopperGolem golem); }
     @FunctionalInterface public interface BindingCriterion { void trigger(ServerPlayer player); }
+    interface ContainerBindingAccess {
+        boolean mayExtract(ServerPlayer player, ServerLevel level, BlockPos position);
+        boolean mayInsert(ServerPlayer player, ServerLevel level, BlockPos position);
+    }
+    @FunctionalInterface interface BindingVisualizer {
+        void show(ServerLevel level, CopperGolem golem, BlockPos position);
+    }
 }

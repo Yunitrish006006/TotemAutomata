@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CopperGolemMenuClientControllerTest {
     private static CopperWrenchBindingsPayload snapshot() {
         var binding = new CopperWrenchBindingsPayload.BindingEntry("minecraft:overworld", 1, 2, 3, "minecraft:chest", "minecraft:chest", true, true, false, "", 0, 0, List.of(), List.of(), List.of(), List.of());
-        return new CopperWrenchBindingsPayload(UUID.randomUUID(), 7, false, "sorting", "stopped", "minecraft:coal", 1, 1600, "minecraft:air", 0, 0, 0, "minecraft:air", 0, "", "", "", 0, null, null, List.of(), false, "", 0, 0, List.of(), List.of(), List.of(), List.of(), List.of(binding));
+        return new CopperWrenchBindingsPayload(UUID.randomUUID(), 7, false, "sorting", "stopped", "minecraft:coal", 1, 1600, false, "minecraft:air", 0, 0, 0, "minecraft:air", 0, "", "", "", 0, null, null, List.of(), false, "", 0, 0, List.of(), List.of(), List.of(), List.of(), List.of(binding));
     }
 
     @Test void appliesOptimisticBindingEditAndReturnsLegacyCommandValues() {

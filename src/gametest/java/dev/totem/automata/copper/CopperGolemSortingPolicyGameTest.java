@@ -19,6 +19,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /** Exercises sorting behavior that must remain available without an LLM classifier. */
 public final class CopperGolemSortingPolicyGameTest {
@@ -123,6 +124,94 @@ public final class CopperGolemSortingPolicyGameTest {
     }
 
     @GameTest(maxTicks = 20)
+    public void deniedRouteIsCheckedBeforeDestinationInspectionOrFuelDebit(GameTestHelper helper) {
+        TestSetup setup = setup(helper);
+        if (setup == null) return;
+        RouteGateOperations operations = new RouteGateOperations(false);
+        giveOneCoal(setup.golem(), helper.getLevel());
+
+        ItemStack picked = SortingModeController.pickUp(
+                setup.golem(), helper.getLevel(), setup.source(),
+                helper.absolutePos(SOURCE_POS), operations);
+        CompoundTag result = CopperGolemData.readEntityTag(setup.golem());
+        if (!picked.isEmpty() || !setup.source().getItem(0).is(Items.DIAMOND)) {
+            helper.fail("A denied Locksmith route removed its source item");
+            return;
+        }
+        if (operations.destinationInspections != 0) {
+            helper.fail("A denied Locksmith route inspected destination contents");
+            return;
+        }
+        if (!CopperGolemFuelService.readFuelStack(result, helper.getLevel()).is(Items.COAL)
+                || result.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) != 0) {
+            helper.fail("A denied Locksmith route consumed fuel");
+            return;
+        }
+        helper.succeed();
+    }
+
+    @GameTest(maxTicks = 20)
+    public void permissionChangeAfterPickupLeavesDestinationUntouchedAndReturnsItem(GameTestHelper helper) {
+        TestSetup setup = setup(helper);
+        if (setup == null) return;
+        RouteGateOperations operations = new RouteGateOperations(true);
+        giveOneCoal(setup.golem(), helper.getLevel());
+
+        ItemStack picked = SortingModeController.pickUp(
+                setup.golem(), helper.getLevel(), setup.source(),
+                helper.absolutePos(SOURCE_POS), operations);
+        if (!picked.is(Items.DIAMOND)) {
+            helper.fail("Authorised route did not pick its source item");
+            return;
+        }
+        setup.golem().setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, picked);
+        operations.routeAllowed = false;
+        Optional<ItemStack> remaining = SortingModeController.deposit(
+                setup.golem(), helper.getLevel(), helper.absolutePos(TARGET_POS),
+                setup.target(), operations);
+        if (remaining.isEmpty() || !remaining.get().is(Items.DIAMOND)
+                || setup.target().getItem(0).getCount() != 1) {
+            helper.fail("A route denied after pickup still changed the destination");
+            return;
+        }
+        setup.golem().setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, remaining.get());
+        if (!SortingModeController.returnCarried(
+                        setup.golem(), helper.getLevel(), operations)
+                || !setup.source().getItem(0).is(Items.DIAMOND)
+                || !setup.golem().getMainHandItem().isEmpty()) {
+            helper.fail("A mid-flight permission change did not safely return the carried item");
+            return;
+        }
+        helper.succeed();
+    }
+
+    @GameTest(maxTicks = 20)
+    public void sameLockReverseRouteCanReturnRemainderWhenBoundaryInsertIsDenied(GameTestHelper helper) {
+        TestSetup setup = setup(helper);
+        if (setup == null) return;
+        InternalRouteOperations operations = new InternalRouteOperations();
+        giveOneCoal(setup.golem(), helper.getLevel());
+
+        ItemStack picked = SortingModeController.pickUp(
+                setup.golem(), helper.getLevel(), setup.source(),
+                helper.absolutePos(SOURCE_POS), operations);
+        setup.golem().setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, picked);
+        if (SortingModeController.nextDestination(
+                setup.golem(), helper.getLevel(), picked, operations).isEmpty()) {
+            helper.fail("Authorised internal route did not resolve its destination");
+            return;
+        }
+        if (!SortingModeController.returnCarried(
+                        setup.golem(), helper.getLevel(), operations)
+                || !setup.source().getItem(0).is(Items.DIAMOND)
+                || !setup.golem().getMainHandItem().isEmpty()) {
+            helper.fail("Same-lock reverse route could not return its genuine remainder");
+            return;
+        }
+        helper.succeed();
+    }
+
+    @GameTest(maxTicks = 20)
     public void waitsForLlmDecisionWithoutPickingFuelOrBlocking(GameTestHelper helper) {
         TestSetup setup = setup(helper);
         if (setup == null) {
@@ -204,6 +293,126 @@ public final class CopperGolemSortingPolicyGameTest {
         helper.succeed();
     }
 
+    @GameTest(maxTicks = 20)
+    public void liveMixinCommitsFullDepositOnceAcrossLaterTargetResolution(GameTestHelper helper) {
+        TestSetup setup = setup(helper);
+        if (setup == null) return;
+
+        setup.source().setItem(0, new ItemStack(Items.DIAMOND, 16));
+        setup.target().setItem(0, new ItemStack(Items.DIAMOND));
+        startSorting(setup.golem(), helper, setup.targetBinding());
+        LiveBehavior live = createLiveBehavior(helper);
+        if (live == null
+                || !invokeLivePickup(helper, live, setup.golem(), setup.source())
+                || !invokeLiveDeposit(helper, live, setup.golem(), setup.target())) return;
+
+        if (!setup.source().getItem(0).isEmpty()
+                || !setup.golem().getMainHandItem().isEmpty()
+                || setup.target().getItem(0).getCount() != 17
+                || setup.operations().rememberedSource(setup.golem()).isPresent()) {
+            helper.fail("Full live sorting deposit did not commit once and clear its in-flight source");
+            return;
+        }
+
+        if (!invokeLaterTargetResolution(helper, live, setup.golem())) return;
+        if (!setup.source().getItem(0).isEmpty()
+                || setup.target().getItem(0).getCount() != 17
+                || !setup.golem().getMainHandItem().isEmpty()) {
+            helper.fail("A later target-resolution tick replayed or returned a completed deposit");
+            return;
+        }
+        helper.succeed();
+    }
+
+    @GameTest(maxTicks = 20)
+    public void liveMixinReturnsOnlyPartialDepositRemainder(GameTestHelper helper) {
+        TestSetup setup = setup(helper);
+        if (setup == null) return;
+
+        setup.source().setItem(0, new ItemStack(Items.DIAMOND, 16));
+        setup.target().setItem(0, new ItemStack(Items.DIAMOND, 63));
+        fillOtherTargetSlots(setup.target());
+        startSorting(setup.golem(), helper, setup.targetBinding());
+        LiveBehavior live = createLiveBehavior(helper);
+        if (live == null
+                || !invokeLivePickup(helper, live, setup.golem(), setup.source())
+                || !invokeLiveDeposit(helper, live, setup.golem(), setup.target())) return;
+
+        if (setup.target().getItem(0).getCount() != 64
+                || setup.golem().getMainHandItem().getCount() != 15) {
+            helper.fail("Partial live sorting deposit did not keep exactly the uninserted remainder");
+            return;
+        }
+        if (!invokeLaterTargetResolution(helper, live, setup.golem())) return;
+        if (setup.target().getItem(0).getCount() != 64
+                || setup.source().getItem(0).getCount() != 15
+                || !setup.golem().getMainHandItem().isEmpty()) {
+            helper.fail("Partial live sorting returned more than the genuine remainder");
+            return;
+        }
+        helper.succeed();
+    }
+
+    @GameTest(maxTicks = 20)
+    public void liveMixinReturnsRejectedDepositWithoutChangingDestination(GameTestHelper helper) {
+        TestSetup setup = setup(helper);
+        if (setup == null) return;
+
+        startSorting(setup.golem(), helper, setup.targetBinding());
+        LiveBehavior live = createLiveBehavior(helper);
+        if (live == null || !invokeLivePickup(helper, live, setup.golem(), setup.source())) return;
+        CompoundTag tag = CopperGolemData.readEntityTag(setup.golem());
+        CopperGolemStateMutation.moveBindingLlmCache(
+                tag, setup.targetBinding(), "minecraft:diamond", false, false);
+        CopperGolemData.writeEntityTag(setup.golem(), tag);
+
+        if (!invokeLiveDeposit(helper, live, setup.golem(), setup.target())) return;
+        if (!setup.golem().getMainHandItem().is(Items.DIAMOND)
+                || setup.target().getItem(0).getCount() != 1) {
+            helper.fail("A destination rejected after pickup was still mutated");
+            return;
+        }
+        if (!invokeLaterTargetResolution(helper, live, setup.golem())) return;
+        if (!setup.source().getItem(0).is(Items.DIAMOND)
+                || setup.source().getItem(0).getCount() != 1
+                || setup.target().getItem(0).getCount() != 1
+                || !setup.golem().getMainHandItem().isEmpty()) {
+            helper.fail("A rejected live deposit did not return exactly its carried item");
+            return;
+        }
+        helper.succeed();
+    }
+
+    @GameTest(maxTicks = 20)
+    public void liveMixinReturnsItemWhenCapacityChangesAfterPickup(GameTestHelper helper) {
+        TestSetup setup = setup(helper);
+        if (setup == null) return;
+
+        setup.source().setItem(0, new ItemStack(Items.DIAMOND, 16));
+        startSorting(setup.golem(), helper, setup.targetBinding());
+        LiveBehavior live = createLiveBehavior(helper);
+        if (live == null || !invokeLivePickup(helper, live, setup.golem(), setup.source())) return;
+        setup.target().setItem(0, new ItemStack(Items.DIAMOND, 64));
+        fillOtherTargetSlots(setup.target());
+        CompoundTag fuelAfterPickup = CopperGolemData.readEntityTag(setup.golem());
+        int remainingFuelTicks = fuelAfterPickup.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0);
+
+        if (!invokeLiveDeposit(helper, live, setup.golem(), setup.target())
+                || !invokeLaterTargetResolution(helper, live, setup.golem())) return;
+        CompoundTag result = CopperGolemData.readEntityTag(setup.golem());
+        if (setup.source().getItem(0).getCount() != 16
+                || setup.target().getItem(0).getCount() != 64
+                || !setup.golem().getMainHandItem().isEmpty()) {
+            helper.fail("A mid-flight capacity change duplicated, deleted, or deposited the carried stack");
+            return;
+        }
+        if (result.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) != remainingFuelTicks) {
+            helper.fail("Returning a rejected in-flight stack consumed fuel a second time");
+            return;
+        }
+        helper.succeed();
+    }
+
     private static TestSetup setup(GameTestHelper helper) {
         CopperGolem golem = CopperGolemDirectInteractionGameTest.spawnCopperGolem(helper);
         if (golem == null) {
@@ -231,7 +440,8 @@ public final class CopperGolemSortingPolicyGameTest {
         CompoundTag tag = CopperGolemData.readEntityTag(golem);
         CopperGolemData.writeBindings(tag, List.of(targetBinding));
         CopperGolemData.writeEntityTag(golem, tag);
-        return new TestSetup(golem, source, targetBinding, new PersistedSortingOperations(new DefaultItemMetadata()));
+        return new TestSetup(golem, source, target, targetBinding,
+                new PersistedSortingOperations(new DefaultItemMetadata()));
     }
 
     private static void startSorting(CopperGolem golem, GameTestHelper helper, CopperGolemBinding targetBinding) {
@@ -246,21 +456,89 @@ public final class CopperGolemSortingPolicyGameTest {
     }
 
     private static boolean invokeLivePickup(GameTestHelper helper, CopperGolem golem, Container source) {
+        LiveBehavior live = createLiveBehavior(helper);
+        return live != null && invokeLivePickup(helper, live, golem, source);
+    }
+
+    private static LiveBehavior createLiveBehavior(GameTestHelper helper) {
         try {
             TransportItemsBetweenContainers behavior = new TransportItemsBetweenContainers(
                     1.0F, state -> true, state -> true, 16, 8, Map.of(), mob -> { }, target -> false);
             Field targetField = TransportItemsBetweenContainers.class.getDeclaredField("target");
             targetField.setAccessible(true);
-            targetField.set(behavior, TransportItemsBetweenContainers.TransportItemTarget.tryCreatePossibleTarget(
-                    helper.absolutePos(SOURCE_POS), helper.getLevel()));
+            return new LiveBehavior(behavior, targetField);
+        } catch (ReflectiveOperationException exception) {
+            helper.fail("Could not create the transformed live sorting behavior: " + exception);
+            return null;
+        }
+    }
+
+    private static boolean invokeLivePickup(
+            GameTestHelper helper,
+            LiveBehavior live,
+            CopperGolem golem,
+            Container source
+    ) {
+        try {
+            live.targetField().set(live.behavior(),
+                    TransportItemsBetweenContainers.TransportItemTarget.tryCreatePossibleTarget(
+                            helper.absolutePos(SOURCE_POS), helper.getLevel()));
             Method pickup = TransportItemsBetweenContainers.class.getDeclaredMethod(
                     "pickUpItems", PathfinderMob.class, Container.class);
             pickup.setAccessible(true);
-            pickup.invoke(behavior, golem, source);
+            pickup.invoke(live.behavior(), golem, source);
             return true;
         } catch (ReflectiveOperationException exception) {
             helper.fail("Could not invoke the transformed live pickup method: " + exception);
             return false;
+        }
+    }
+
+    private static boolean invokeLiveDeposit(
+            GameTestHelper helper,
+            LiveBehavior live,
+            CopperGolem golem,
+            Container destination
+    ) {
+        try {
+            live.targetField().set(live.behavior(),
+                    TransportItemsBetweenContainers.TransportItemTarget.tryCreatePossibleTarget(
+                            helper.absolutePos(TARGET_POS), helper.getLevel()));
+            Method putDown = TransportItemsBetweenContainers.class.getDeclaredMethod(
+                    "putDownItem", PathfinderMob.class, Container.class);
+            putDown.setAccessible(true);
+            putDown.invoke(live.behavior(), golem, destination);
+            return true;
+        } catch (ReflectiveOperationException exception) {
+            helper.fail("Could not invoke the transformed live deposit method: " + exception);
+            return false;
+        }
+    }
+
+    private static boolean invokeLaterTargetResolution(
+            GameTestHelper helper,
+            LiveBehavior live,
+            CopperGolem golem
+    ) {
+        try {
+            Method getTarget = TransportItemsBetweenContainers.class.getDeclaredMethod(
+                    "getTransportTarget", net.minecraft.server.level.ServerLevel.class, PathfinderMob.class);
+            getTarget.setAccessible(true);
+            Object resolved = getTarget.invoke(live.behavior(), helper.getLevel(), golem);
+            if (!(resolved instanceof Optional<?>)) {
+                helper.fail("Live target resolution returned an unexpected result");
+                return false;
+            }
+            return true;
+        } catch (ReflectiveOperationException exception) {
+            helper.fail("Could not invoke the transformed later target-resolution method: " + exception);
+            return false;
+        }
+    }
+
+    private static void fillOtherTargetSlots(Container target) {
+        for (int slot = 1; slot < target.getContainerSize(); slot++) {
+            target.setItem(slot, new ItemStack(Items.COBBLESTONE, 64));
         }
     }
 
@@ -270,6 +548,62 @@ public final class CopperGolemSortingPolicyGameTest {
         CopperGolemData.writeEntityTag(golem, tag);
     }
 
-    private record TestSetup(CopperGolem golem, Container source, CopperGolemBinding targetBinding,
+    private record TestSetup(CopperGolem golem, Container source, Container target,
+                             CopperGolemBinding targetBinding,
                              PersistedSortingOperations operations) { }
+
+    private record LiveBehavior(TransportItemsBetweenContainers behavior, Field targetField) { }
+
+    private static final class RouteGateOperations extends PersistedSortingOperations {
+        private boolean routeAllowed;
+        private int destinationInspections;
+
+        private RouteGateOperations(boolean routeAllowed) {
+            super(new DefaultItemMetadata());
+            this.routeAllowed = routeAllowed;
+        }
+
+        @Override
+        public boolean mayTransfer(
+                CopperGolem golem,
+                net.minecraft.server.level.ServerLevel level,
+                BlockPos source,
+                BlockPos destination
+        ) {
+            return routeAllowed;
+        }
+
+        @Override
+        public boolean canAccept(
+                CopperGolem golem,
+                net.minecraft.server.level.ServerLevel level,
+                CopperGolemBinding binding,
+                Container container,
+                ItemStack carried
+        ) {
+            destinationInspections++;
+            return super.canAccept(golem, level, binding, container, carried);
+        }
+    }
+
+    private static final class InternalRouteOperations extends PersistedSortingOperations {
+        private InternalRouteOperations() {
+            super(new DefaultItemMetadata());
+        }
+
+        @Override
+        public boolean mayTransfer(
+                CopperGolem golem,
+                net.minecraft.server.level.ServerLevel level,
+                BlockPos source,
+                BlockPos destination
+        ) {
+            return true;
+        }
+
+        @Override
+        public boolean mayInsert(CopperGolem golem, Container destination) {
+            return false;
+        }
+    }
 }

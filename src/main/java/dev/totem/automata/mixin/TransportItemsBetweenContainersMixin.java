@@ -51,7 +51,11 @@ public abstract class TransportItemsBetweenContainersMixin {
         if (!CopperGolemSortingAuthority.transportEnabled(golem)) { cir.setReturnValue(Optional.empty()); return; }
         Optional<TransportItemTarget> target = CopperGolemSortingAuthority.nextDestination(golem, level, mob.getMainHandItem());
         if (target.isPresent()) { cir.setReturnValue(target); return; }
-        if (!CopperGolemSortingAuthority.returnCarried(golem, level)) cir.setReturnValue(Optional.empty());
+        CopperGolemSortingAuthority.returnCarried(golem, level);
+        // Whether the remainder was returned or must stay in the Golem's hand,
+        // this sorting attempt is complete. Do not let vanilla resolve another
+        // target from the pre-transfer state in the same tick.
+        cir.setReturnValue(Optional.empty());
     }
 
     @Inject(method = "isWantedBlock", at = @At("HEAD"), cancellable = true)

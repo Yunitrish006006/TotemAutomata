@@ -1,6 +1,5 @@
 package dev.totem.automata.copper;
 
-import dev.totem.automata.containersafety.LocksmithAutomationBridge;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Container;
@@ -32,9 +31,10 @@ public final class SortingModeController {
                     || ops.rememberedSource(golem).filter(source -> source.dimension().equals(binding.dimension()) && source.containerPos().equals(binding.containerPos())).isPresent()) continue;
             TransportItemTarget target = ops.target(level, binding.containerPos());
             ops.rememberTriedDestination(golem, binding);
-            if (target != null
-                    && LocksmithAutomationBridge.mayInsert(
-                            target.container(), GatheringOperator.operatorId(golem).orElse(null))
+            Optional<SortingOperations.Source> source = ops.rememberedSource(golem);
+            if (target != null && source.isPresent()
+                    && source.get().dimension().equals(level.dimension())
+                    && ops.mayTransfer(golem, level, source.get().containerPos(), binding.containerPos())
                     && ops.canAccept(golem, level, binding, target.container(), carried)) return Optional.of(target);
         }
         return Optional.empty();
@@ -58,6 +58,10 @@ public final class SortingModeController {
         int slot = sortableSlot.getAsInt();
         ItemStack stack = source.getItem(slot);
         if (stack.isEmpty()) return ItemStack.EMPTY;
+        if (!hasEligibleDestination(golem, level, sourcePos, stack, ops)) {
+            ops.markBlocked(golem, level, sourcePos, source);
+            return ItemStack.EMPTY;
+        }
         ItemStack picked = source.removeItem(slot, Math.min(stack.getCount(), ops.maxTransportStackSize()));
         if (!picked.isEmpty()) { ops.rememberSource(golem, level, sourcePos, slot); ops.consumeFuel(golem, level); }
         return picked;
@@ -68,8 +72,8 @@ public final class SortingModeController {
         Optional<SortingOperations.Source> source = ops.rememberedSource(golem);
         if (source.isEmpty() || !source.get().dimension().equals(level.dimension())) return false;
         TransportItemTarget target = ops.target(level, source.get().containerPos()); if (target == null) return false;
-        if (!LocksmithAutomationBridge.mayInsert(
-                target.container(), GatheringOperator.operatorId(golem).orElse(null))) return false;
+        if (!ops.mayReturnToSource(
+                golem, level, source.get().containerPos(), target.container())) return false;
         ItemStack remaining = ops.returnToSource(target.container(), carried, source.get().slot()); target.container().setChanged();
         golem.setItemInHand(InteractionHand.MAIN_HAND, remaining);
         if (remaining.isEmpty()) { ops.clearRememberedSource(golem); return true; }
@@ -79,11 +83,36 @@ public final class SortingModeController {
         ItemStack carried = golem.getMainHandItem(); if (carried.isEmpty()) return Optional.empty();
         Optional<CopperGolemBinding> binding = ops.bindings(golem).stream().filter(value -> value.dimension().equals(level.dimension()) && value.containerPos().equals(targetPos)).findFirst();
         if (binding.isEmpty() || !ops.acceptsByCachedDecision(golem, binding.get(), carried)) return Optional.of(carried);
-        if (!LocksmithAutomationBridge.mayInsert(
-                container, GatheringOperator.operatorId(golem).orElse(null))) return Optional.of(carried);
+        Optional<SortingOperations.Source> source = ops.rememberedSource(golem);
+        if (source.isEmpty() || !source.get().dimension().equals(level.dimension())
+                || !ops.mayTransfer(golem, level, source.get().containerPos(), targetPos)) {
+            return Optional.of(carried);
+        }
         ItemStack remaining = SortingDestinationService.insert(container, carried);
         if (remaining.getCount() < carried.getCount()) container.setChanged();
         return Optional.of(remaining);
+    }
+
+    private static boolean hasEligibleDestination(
+            CopperGolem golem,
+            ServerLevel level,
+            BlockPos sourcePos,
+            ItemStack stack,
+            SortingOperations ops
+    ) {
+        ItemStack candidate = stack.copyWithCount(
+                Math.min(stack.getCount(), ops.maxTransportStackSize()));
+        for (CopperGolemBinding binding : ops.bindings(golem)) {
+            if (!binding.dimension().equals(level.dimension())
+                    || binding.containerPos().equals(sourcePos)) continue;
+            TransportItemTarget target = ops.target(level, binding.containerPos());
+            if (target != null
+                    && ops.mayTransfer(golem, level, sourcePos, binding.containerPos())
+                    && ops.canAccept(golem, level, binding, target.container(), candidate)) {
+                return true;
+            }
+        }
+        return false;
     }
     public static void tickBlocked(CopperGolem golem, ServerLevel level, SortingOperations ops) {
         if (golem.tickCount % BLOCKED_JUMP_INTERVAL_TICKS == 0 && ops.shouldClearBlocked(golem, level)) { ops.clearBlocked(golem); return; }

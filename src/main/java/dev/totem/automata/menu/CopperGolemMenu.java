@@ -76,7 +76,7 @@ public final class CopperGolemMenu extends AbstractContainerMenu {
     private boolean visible() { return golem == null ? gatheringVisible : authority.isGatheringMode(golem); }
     private final class FuelSlot extends Slot {
         FuelSlot(Container c,int s,int x,int y){super(c,s,x,y);}
-        @Override public boolean mayPlace(ItemStack stack){ return level != null ? authority.isFuel(level,stack) : !stack.isEmpty() && inventory.player.level().fuelValues().isFuel(stack); }
+        @Override public boolean mayPlace(ItemStack stack){ return level != null ? authority.isFuel(level,stack) : dev.totem.automata.copper.CopperGolemFuelService.isInfiniteFuel(stack) || !stack.isEmpty() && inventory.player.level().fuelValues().isFuel(stack); }
     }
     private final class ToolSlot extends Slot {
         ToolSlot(Container c,int s,int x,int y){super(c,s,x,y);}

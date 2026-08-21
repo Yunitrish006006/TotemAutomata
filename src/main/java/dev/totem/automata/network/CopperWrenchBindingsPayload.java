@@ -19,7 +19,7 @@ import java.util.UUID;
  */
 public record CopperWrenchBindingsPayload(
         UUID golemId, int revision, boolean running, String mode, String activity,
-        String fuelItemId, int fuelCount, int fuelTicks,
+        String fuelItemId, int fuelCount, int fuelTicks, boolean infiniteFuel,
         String gatheringToolItemId, int gatheringToolCount, int gatheringToolDamage, int gatheringToolMaxDamage,
         String gatheringStorageItemId, int gatheringStorageCount,
         String llmApiUrl, String llmApiKey, String llmModel, int llmActiveCount,
@@ -48,7 +48,8 @@ public record CopperWrenchBindingsPayload(
             (buf, payload) -> {
                 buf.writeUUID(payload.golemId()); buf.writeInt(payload.revision()); buf.writeBoolean(payload.running());
                 buf.writeUtf(payload.mode(), 32); buf.writeUtf(payload.activity(), 64); buf.writeUtf(payload.fuelItemId(), 128);
-                buf.writeInt(payload.fuelCount()); buf.writeInt(payload.fuelTicks()); buf.writeUtf(payload.gatheringToolItemId(), 128);
+                buf.writeInt(payload.fuelCount()); buf.writeInt(payload.fuelTicks()); buf.writeBoolean(payload.infiniteFuel());
+                buf.writeUtf(payload.gatheringToolItemId(), 128);
                 buf.writeInt(payload.gatheringToolCount()); buf.writeInt(payload.gatheringToolDamage()); buf.writeInt(payload.gatheringToolMaxDamage());
                 buf.writeUtf(payload.gatheringStorageItemId(), 128); buf.writeInt(payload.gatheringStorageCount());
                 buf.writeUtf(payload.llmApiUrl(), 2048); buf.writeUtf(payload.llmApiKey(), 512); buf.writeUtf(payload.llmModel(), 256);
@@ -64,7 +65,7 @@ public record CopperWrenchBindingsPayload(
             },
             buf -> new CopperWrenchBindingsPayload(
                     buf.readUUID(), buf.readInt(), buf.readBoolean(), buf.readUtf(32), buf.readUtf(64), buf.readUtf(128),
-                    buf.readInt(), buf.readInt(), buf.readUtf(128), buf.readInt(), buf.readInt(), buf.readInt(), buf.readUtf(128),
+                    buf.readInt(), buf.readInt(), buf.readBoolean(), buf.readUtf(128), buf.readInt(), buf.readInt(), buf.readInt(), buf.readUtf(128),
                     buf.readInt(), buf.readUtf(2048), buf.readUtf(512), buf.readUtf(256), buf.readInt(),
                     readOptionalBindingEntry(buf), readOptionalGatheringArea(buf), readStringList(buf), buf.readBoolean(),
                     buf.readUtf(2048), buf.readInt(), buf.readInt(), readStringList(buf), readStringList(buf), readStringList(buf),

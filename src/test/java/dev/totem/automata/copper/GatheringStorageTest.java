@@ -1,16 +1,42 @@
 package dev.totem.automata.copper;
 
+import net.minecraft.SharedConstants;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.data.registries.VanillaRegistries;
+import net.minecraft.server.Bootstrap;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GatheringStorageTest {
+    @BeforeAll
+    static void bootstrapMinecraft() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        RegistryAccess.Frozen builtInLookup = RegistryAccess.fromRegistryOfRegistries(BuiltInRegistries.REGISTRY);
+        Set<?> builtInRegistryKeys = builtInLookup.listRegistryKeys().collect(Collectors.toSet());
+        HolderLookup.Provider lookup = HolderLookup.Provider.create(Stream.concat(
+                builtInLookup.listRegistries(),
+                VanillaRegistries.createLookup().listRegistries()
+                        .filter(registry -> !builtInRegistryKeys.contains(registry.key()))));
+        BuiltInRegistries.DATA_COMPONENT_INITIALIZERS
+                .build(lookup)
+                .forEach(initializer -> initializer.apply());
+        Bootstrap.validate();
+    }
+
     @Test
     void mixedTypesShareOneTotalCapacity() {
         List<ItemStack> storage = List.of(

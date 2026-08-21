@@ -342,7 +342,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                                   int mouseX, int mouseY) {
         drawGatheringThoughtBubble(graphics, bounds, snapshot, mouseX, mouseY);
         drawGatheringHome(graphics, bounds, snapshot, mouseX, mouseY);
-        renderFuelRemaining(graphics, bounds, snapshot, false);
+        renderFuelRemaining(graphics, bounds, snapshot, false, mouseX, mouseY);
     }
 
     private void drawInfoIcon(GuiGraphicsExtractor graphics, ItemStack stack, int x, int y, int borderColor,
@@ -444,7 +444,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_binding_count", snapshot.bindings().size()),
                 x + 48, y + 114, 0xFF555555, false);
         renderPreviewGolem(graphics, bounds, snapshot, mouseX, mouseY, x + 50, x + 124);
-        renderFuelRemaining(graphics, bounds, snapshot, true);
+        renderFuelRemaining(graphics, bounds, snapshot, true, mouseX, mouseY);
     }
 
     private void drawBindingFilterDetail(GuiGraphicsExtractor graphics, CopperGolemMenuPanelLayout.Bounds bounds,
@@ -646,13 +646,24 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
     }
 
     private void renderFuelRemaining(GuiGraphicsExtractor graphics, CopperGolemMenuPanelLayout.Bounds bounds,
-                                     dev.totem.automata.network.CopperWrenchBindingsPayload snapshot, boolean sorting) {
-        if (snapshot.fuelTicks() <= 0) return;
+                                     dev.totem.automata.network.CopperWrenchBindingsPayload snapshot,
+                                     boolean sorting, int mouseX, int mouseY) {
+        if (!snapshot.infiniteFuel() && snapshot.fuelTicks() <= 0) return;
         int flameHeight = 10;
         int flameX = bounds.x() + (sorting ? 29 : 96);
         int flameY = bounds.y() + (sorting ? 102 : 76);
         graphics.blitSprite(RenderPipelines.GUI_TEXTURED, LIT_PROGRESS, 14, 14, 0, 14 - flameHeight,
                 flameX, flameY + 14 - flameHeight, 14, flameHeight);
+        if (snapshot.infiniteFuel()) {
+            graphics.text(font,
+                    Component.translatable("message.deadrecall.copper_wrench.fuel_infinite_short"),
+                    flameX + 8, flameY + 5, 0xFFFFFFFF, true);
+            if (isInside(mouseX, mouseY, flameX, flameY, 18, 14)) {
+                graphics.setTooltipForNextFrame(font,
+                        Component.translatable("message.deadrecall.copper_wrench.fuel_infinite"),
+                        mouseX, mouseY);
+            }
+        }
     }
 
     private void renderSlot(GuiGraphicsExtractor graphics, Identifier sprite, int x, int y) {

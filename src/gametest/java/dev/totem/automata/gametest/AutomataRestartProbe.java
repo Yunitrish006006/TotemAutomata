@@ -3,6 +3,7 @@ package dev.totem.automata.gametest;
 import dev.totem.automata.copper.CopperGolemActivity;
 import dev.totem.automata.copper.CopperGolemBinding;
 import dev.totem.automata.copper.CopperGolemData;
+import dev.totem.automata.copper.CopperGolemFuelService;
 import dev.totem.automata.copper.CopperGolemMode;
 import dev.totem.automata.copper.GatheringToolPolicy;
 import dev.totem.automata.copper.SortingBindingService;
@@ -97,7 +98,9 @@ public final class AutomataRestartProbe implements ModInitializer {
         tag.putString(CopperGolemData.TAG_MODE, CopperGolemMode.GATHERING.id());
         tag.putBoolean(CopperGolemData.TAG_TRANSPORT_ENABLED, false);
         tag.putString(CopperGolemData.TAG_ACTIVITY, CopperGolemActivity.SEARCHING.id());
-        CopperGolemData.writeItemStack(tag, CopperGolemData.TAG_FUEL_STACK, new ItemStack(Items.COAL, 3), level.registryAccess());
+        tag.putInt(CopperGolemData.TAG_FUEL_TICKS, 731);
+        CopperGolemData.writeItemStack(tag, CopperGolemData.TAG_FUEL_STACK,
+                new ItemStack(Items.NETHER_STAR, 2), level.registryAccess());
         CopperGolemData.writeItemStack(tag, "deadrecall_gathering_tool_stack", namedStack(Items.IRON_PICKAXE, 11, "Automata restart tool"), level.registryAccess());
         CopperGolemData.writeItemStack(tag, "deadrecall_gathering_storage_stack", namedStack(Items.COBBLESTONE, 9, "Automata restart storage"), level.registryAccess());
         CopperGolemData.writeBindings(tag, List.of(new CopperGolemBinding(level.dimension(), DESTINATION_POS)));
@@ -135,7 +138,12 @@ public final class AutomataRestartProbe implements ModInitializer {
                         && Component.literal("Automata restart storage").equals(storage.get(DataComponents.CUSTOM_NAME)),
                 "Storage components did not persist");
         ItemStack fuel = CopperGolemData.readItemStack(tag, CopperGolemData.TAG_FUEL_STACK, level.registryAccess());
-        require(fuel.is(Items.COAL) && fuel.getCount() == 3, "Fuel did not persist");
+        require(fuel.is(Items.NETHER_STAR) && fuel.getCount() == 2,
+                "Infinite fuel did not persist");
+        require(tag.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) == 731,
+                "Paused finite fuel state did not persist beneath the Nether Star");
+        require(CopperGolemFuelService.hasFuelAvailable(tag, level),
+                "Reloaded Nether Star was not recognized as infinite fuel");
     }
 
     private static ItemStack namedStack(net.minecraft.world.item.Item item, int count, String name) {
