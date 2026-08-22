@@ -10,8 +10,8 @@ permissions: {contents: write}
 concurrency: {group: 'modrinth-${{ github.workflow }}-${{ github.ref }}', cancel-in-progress: false}
 env:
   MODULE_ID: totem-automata
-  CORE_REF: a8cedca207f9d4444ae4a52fd384ebd830fbd026
-  EXCAVATION_REF: b3f784d8e2faa542ef44e60a961a34bca19d1f91
+  CORE_REF: 22a8c6a2b753d9832b3296ece5b80ec6e8595f80
+  EXCAVATION_REF: 05b387cd4a016fc8b6b3d674ccbf99180fc54772
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -44,16 +44,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          chmod +x gradlew .lockstep/TotemCore/gradlew .lockstep/TotemExcavation/gradlew
+          chmod +x .lockstep/TotemCore/gradlew
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore jar --no-daemon --stacktrace
-          core="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"; test "$core" = 0.7.2
+          core="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"; test "$core" = 0.7.3
           core_jar="$GITHUB_WORKSPACE/.lockstep/TotemCore/build/libs/totem-core-${core}.jar"; test -f "$core_jar"
-          ./.lockstep/TotemExcavation/gradlew -p .lockstep/TotemExcavation -PtotemCoreJar="$core_jar" jar --no-daemon --stacktrace
-          excavation="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"; test "$excavation" = 0.1.5
+          ./.lockstep/TotemCore/gradlew -p .lockstep/TotemExcavation -PtotemCoreJar="$core_jar" jar --no-daemon --stacktrace
+          excavation="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"; test "$excavation" = 0.1.6
           excavation_jar="$GITHUB_WORKSPACE/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation}.jar"; test -f "$excavation_jar"
-          ./gradlew -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" jar --no-daemon --stacktrace
+          ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" jar --no-daemon --stacktrace
           v="$(sed -n 's/^mod_version=//p' gradle.properties)"; a="$(sed -n 's/^archives_base_name=//p' gradle.properties)"; artifact="build/libs/${a}-${v}.jar"
-          [[ -f "$artifact" ]] || ./gradlew -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" remapJar --no-daemon --stacktrace
+          [[ -f "$artifact" ]] || ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" remapJar --no-daemon --stacktrace
           test -f "$artifact"
       - name: Publish and verify
         id: modrinth
