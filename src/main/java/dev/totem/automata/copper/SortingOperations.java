@@ -33,6 +33,41 @@ public interface SortingOperations {
         );
     }
 
+    default boolean mayTransfer(
+            CopperGolem golem,
+            ServerLevel level,
+            BlockPos source,
+            BlockPos destination
+    ) {
+        return LocksmithAutomationBridge.mayTransfer(
+                level, source, destination,
+                GatheringOperator.operatorId(golem).orElse(null));
+    }
+
+    default boolean mayInsert(CopperGolem golem, Container destination) {
+        return LocksmithAutomationBridge.mayInsert(
+                destination,
+                GatheringOperator.operatorId(golem).orElse(null));
+    }
+
+    /**
+     * Returning a remainder normally crosses an INSERT boundary. If the
+     * original transfer was internal to one Lock UUID, its reverse route is
+     * also authorised even when that lock's boundary mode is DENY.
+     */
+    default boolean mayReturnToSource(
+            CopperGolem golem,
+            ServerLevel level,
+            BlockPos sourcePosition,
+            Container source
+    ) {
+        if (mayInsert(golem, source)) return true;
+        return triedDestinations(golem).stream()
+                .filter(binding -> binding.dimension().equals(level.dimension()))
+                .anyMatch(binding -> mayTransfer(
+                        golem, level, binding.containerPos(), sourcePosition));
+    }
+
     OptionalInt sortableSourceSlot(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos);
     boolean hasAnySortableItem(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos);
     default boolean awaitingSortingDecision(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos) {

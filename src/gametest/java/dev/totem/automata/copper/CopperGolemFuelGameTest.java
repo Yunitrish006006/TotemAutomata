@@ -23,4 +23,34 @@ public final class CopperGolemFuelGameTest {
         }
         helper.succeed();
     }
+
+    @GameTest(maxTicks = 20)
+    public void netherStarProvidesInfiniteFuelWithoutMutatingFiniteState(GameTestHelper helper) {
+        CompoundTag tag = new CompoundTag();
+        tag.putInt(CopperGolemData.TAG_FUEL_TICKS, 731);
+        CopperGolemFuelService.writeFuelStack(
+                tag, new ItemStack(Items.NETHER_STAR, 2), helper.getLevel());
+
+        for (int cycle = 0; cycle < 8; cycle++) {
+            if (!CopperGolemFuelService.hasFuelAvailable(tag, helper.getLevel())
+                    || !CopperGolemFuelService.consumeForTransport(tag, helper.getLevel())) {
+                helper.fail("Nether Star stopped powering repeated Copper Golem work");
+                return;
+            }
+        }
+
+        ItemStack remaining = CopperGolemFuelService.readFuelStack(tag, helper.getLevel());
+        if (!remaining.is(Items.NETHER_STAR) || remaining.getCount() != 2
+                || tag.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) != 731) {
+            helper.fail("Infinite fuel consumed a Nether Star or changed paused finite burn state");
+            return;
+        }
+        CopperGolemFuelService.writeFuelStack(tag, ItemStack.EMPTY, helper.getLevel());
+        if (!CopperGolemFuelService.consumeForTransport(tag, helper.getLevel())
+                || tag.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) != 531) {
+            helper.fail("Removing infinite fuel did not resume the preserved finite counter");
+            return;
+        }
+        helper.succeed();
+    }
 }

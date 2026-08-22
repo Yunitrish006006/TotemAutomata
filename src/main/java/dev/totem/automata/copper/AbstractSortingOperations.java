@@ -41,7 +41,11 @@ public abstract class AbstractSortingOperations implements SortingOperations {
             for (CopperGolemBinding binding : bindings(golem)) {
                 if (!binding.dimension().equals(level.dimension()) || binding.containerPos().equals(sourcePos)) continue;
                 var target = target(level, binding.containerPos());
-                if (target != null && canAccept(golem, level, binding, target.container(), candidate)) return OptionalInt.of(slot);
+                if (target != null
+                        && mayTransfer(golem, level, sourcePos, binding.containerPos())
+                        && canAccept(golem, level, binding, target.container(), candidate)) {
+                    return OptionalInt.of(slot);
+                }
             }
         }
         return OptionalInt.empty();

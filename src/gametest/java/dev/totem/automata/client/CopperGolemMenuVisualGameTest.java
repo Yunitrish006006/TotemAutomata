@@ -198,7 +198,7 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
                 List.of(), List.of("minecraft:diamond"), List.of(), List.of());
         return new CopperWrenchBindingsPayload(
                 GOLEM_ID, 7, true, "sorting", "searching",
-                "minecraft:coal", 4, 800,
+                "minecraft:nether_star", 1, 800, true,
                 "minecraft:air", 0, 0, 0,
                 "minecraft:air", 0,
                 "", "", "", 0,
@@ -212,7 +212,7 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
                 true, true, false, "", 0, 0, List.of(), List.of(), List.of(), List.of());
         return new CopperWrenchBindingsPayload(
                 GOLEM_ID, 8, true, "gathering", "working",
-                "minecraft:coal", 4, 800,
+                "minecraft:coal", 4, 800, false,
                 "totem:excavation/diamond_hammer", 1, 12, 1561,
                 "minecraft:copper_ore", 6,
                 "", "", "", 0,

@@ -4,6 +4,7 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 /** Fuel accounting for one Copper Golem transport operation. */
 public final class CopperGolemFuelService {
@@ -21,10 +22,14 @@ public final class CopperGolemFuelService {
     }
 
     public static boolean hasFuelAvailable(CompoundTag tag, ServerLevel level) {
-        return tag.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) > 0 || isFuel(level, readFuelStack(tag, level));
+        return tag.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0) > 0
+                || isFuel(level, readFuelStack(tag, level));
     }
 
     public static boolean consumeForTransport(CompoundTag tag, ServerLevel level) {
+        if (isInfiniteFuel(readFuelStack(tag, level))) {
+            return true;
+        }
         int fuelTicks = tag.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0);
         if (fuelTicks <= 0) {
             ItemStack fuelStack = readFuelStack(tag, level);
@@ -39,7 +44,12 @@ public final class CopperGolemFuelService {
     }
 
     public static boolean isFuel(ServerLevel level, ItemStack stack) {
-        return !stack.isEmpty() && level.fuelValues().isFuel(stack);
+        return isInfiniteFuel(stack)
+                || !stack.isEmpty() && level.fuelValues().isFuel(stack);
+    }
+
+    public static boolean isInfiniteFuel(ItemStack stack) {
+        return stack.is(Items.NETHER_STAR);
     }
 
     private static ItemStack consumeOneFuelItem(ItemStack fuelStack) {

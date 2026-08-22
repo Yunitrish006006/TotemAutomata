@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CopperGolemMenuScreenSessionTest {
     private static CopperWrenchBindingsPayload payload(UUID id) {
         var entry = new CopperWrenchBindingsPayload.BindingEntry("minecraft:overworld", 1, 2, 3, "minecraft:chest", "minecraft:chest", true, true, false, "", 0, 0, List.of(), List.of(), List.of(), List.of());
-        return new CopperWrenchBindingsPayload(id, 2, false, "sorting", "stopped", "minecraft:coal", 1, 100, "minecraft:air", 0, 0, 0, "minecraft:air", 0, "", "", "", 0, null, null, List.of(), false, "", 0, 0, List.of(), List.of(), List.of(), List.of(), List.of(entry));
+        return new CopperWrenchBindingsPayload(id, 2, false, "sorting", "stopped", "minecraft:coal", 1, 100, false, "minecraft:air", 0, 0, 0, "minecraft:air", 0, "", "", "", 0, null, null, List.of(), false, "", 0, 0, List.of(), List.of(), List.of(), List.of(), List.of(entry));
     }
 
     @Test void routesOnlyItsGolemSnapshotAndDispatchesControllerCommands() {

@@ -1,6 +1,8 @@
 package dev.totem.automata.containersafety;
 
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.Container;
 
 import java.lang.reflect.Method;
@@ -20,6 +22,33 @@ public final class LocksmithAutomationBridge {
 
     public static boolean mayInsert(Container destination, UUID operatorId) {
         return invoke("insert", destination, operatorId);
+    }
+
+    public static boolean mayTransfer(
+            ServerLevel level,
+            BlockPos source,
+            BlockPos destination,
+            UUID operatorId
+    ) {
+        if (!FabricLoader.getInstance().isModLoaded("totem-locksmith")) return true;
+        Adapter current = adapter();
+        if (current == null) return false;
+        return invokeTransfer(current.transfer(), level, source, destination, operatorId);
+    }
+
+    static boolean invokeTransfer(
+            Method transfer,
+            ServerLevel level,
+            BlockPos source,
+            BlockPos destination,
+            UUID operatorId
+    ) {
+        if (transfer == null) return false;
+        try {
+            return (boolean) transfer.invoke(null, level, source, destination, operatorId);
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            return false;
+        }
     }
 
     private static boolean invoke(String operation, Container container, UUID operatorId) {
@@ -42,7 +71,9 @@ public final class LocksmithAutomationBridge {
                 Class<?> api = Class.forName("dev.totem.locksmith.api.v1.LocksmithAutomationApi");
                 adapter = new Adapter(
                         api.getMethod("mayExtract", Container.class, UUID.class),
-                        api.getMethod("mayInsert", Container.class, UUID.class));
+                        api.getMethod("mayInsert", Container.class, UUID.class),
+                        api.getMethod("mayTransfer", ServerLevel.class, BlockPos.class,
+                                BlockPos.class, UUID.class));
             } catch (ReflectiveOperationException ignored) {
                 adapter = null;
             }
@@ -51,6 +82,6 @@ public final class LocksmithAutomationBridge {
         }
     }
 
-    private record Adapter(Method extract, Method insert) {
+    private record Adapter(Method extract, Method insert, Method transfer) {
     }
 }

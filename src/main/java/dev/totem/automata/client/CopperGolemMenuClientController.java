@@ -82,7 +82,10 @@ public final class CopperGolemMenuClientController {
     }
 
     private boolean validBinding(int index) { return snapshot != null && index >= 0 && index < snapshot.bindings().size(); }
-    private static boolean hasFuel(CopperWrenchBindingsPayload payload) { return payload.fuelCount() > 0 && payload.fuelTicks() > 0; }
+    private static boolean hasFuel(CopperWrenchBindingsPayload payload) {
+        return payload.infiniteFuel() || payload.fuelTicks() > 0
+                || payload.fuelCount() > 0;
+    }
     private static String normalizedMode(String mode) { return mode == null ? "sorting" : mode.trim().toLowerCase(java.util.Locale.ROOT); }
     private static String normalize(String value) { return value == null ? "" : value.trim(); }
 
@@ -90,7 +93,7 @@ public final class CopperGolemMenuClientController {
             String apiUrl, String apiKey, String model, boolean gatheringLlmEnabled, String gatheringLlmPrompt,
             List<CopperWrenchBindingsPayload.BindingEntry> bindings) {
         return new CopperWrenchBindingsPayload(p.golemId(), p.revision(), running, mode, activity, p.fuelItemId(), p.fuelCount(),
-                p.fuelTicks(), p.gatheringToolItemId(), p.gatheringToolCount(), p.gatheringToolDamage(), p.gatheringToolMaxDamage(),
+                p.fuelTicks(), p.infiniteFuel(), p.gatheringToolItemId(), p.gatheringToolCount(), p.gatheringToolDamage(), p.gatheringToolMaxDamage(),
                 p.gatheringStorageItemId(), p.gatheringStorageCount(), apiUrl, apiKey, model, p.llmActiveCount(), p.sourceContainer(),
                 p.gatheringArea(), p.gatheringManualTargets(), gatheringLlmEnabled, gatheringLlmPrompt, p.gatheringLlmCachedBlockIds(),
                 p.gatheringLlmCachedTags(), p.gatheringLlmAllowedBlockIds(), p.gatheringLlmDeniedBlockIds(), p.gatheringLlmAllowedTags(),

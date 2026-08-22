@@ -73,6 +73,7 @@ public final class PersistedCopperGolemSnapshotSender implements BiConsumer<net.
                 CopperGolemData.mode(tag).id(),
                 activity.id(),
                 itemId(fuel), fuel.getCount(), tag.getIntOr(CopperGolemData.TAG_FUEL_TICKS, 0),
+                CopperGolemFuelService.isInfiniteFuel(fuel),
                 itemId(tool), tool.getCount(), tool.isDamageableItem() ? tool.getDamageValue() : 0,
                 tool.isDamageableItem() ? tool.getMaxDamage() : 0,
                 itemId(storage), storage.getCount(),
