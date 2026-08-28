@@ -7,6 +7,7 @@ build_workflow="$repo_root/.github/workflows/build.yml"
 normalizer="$repo_root/.github/scripts/normalize-modrinth-dry-run.sh"
 remote_filter="$repo_root/.github/scripts/verify-modrinth-remote-dependencies.jq"
 summary_filter="$repo_root/.github/scripts/modrinth-dependency-summary.jq"
+error_filter="$repo_root/.github/scripts/modrinth-error-summary.jq"
 failures=0
 
 fail() {
@@ -29,14 +30,20 @@ require_literal 'CORE_REF: 82b21944b1e4865f5d34f13febc5049d936a636f' \
   'release TotemCore commit pin is stale.'
 require_literal 'EXCAVATION_REF: 6b54011195b81ec9a9a09146d162ba303ebd8ee4' \
   'release TotemExcavation commit pin is stale.'
+require_literal 'TOTEM_CORE_REFERENCE_VERSION_ID: iOzAgHtL' \
+  'TotemCore 0.7.11 Modrinth reference version is stale.'
+require_literal 'TOTEM_EXCAVATION_REFERENCE_VERSION_ID: Klewi9E3' \
+  'TotemExcavation 0.1.8 Modrinth reference version is stale.'
 require_literal 'TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.11.jar' \
-  'required TotemCore external file is not exact.'
+  'required TotemCore reference artifact is not exact.'
 require_literal 'TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.8.jar' \
-  'optional TotemExcavation external file is not exact.'
+  'optional TotemExcavation reference artifact is not exact.'
 require_literal '.github/staging/modrinth-changelog-*.md' \
   'release changelog changes do not trigger the publication workflow.'
 require_literal '.github/scripts/check-modrinth-release-gate.sh' \
   'release-gate script changes do not trigger the publication workflow.'
+require_literal '.github/scripts/modrinth-error-summary.jq' \
+  'safe Modrinth error-summary changes do not trigger the publication workflow.'
 require_literal '.github/scripts/verify-modrinth-remote-dependencies.jq' \
   'dependency verifier changes do not trigger the publication workflow.'
 require_literal '.github/scripts/normalize-modrinth-dry-run.sh' \
@@ -55,8 +62,25 @@ require_literal 'release Minecraft version must be exactly 26.2.' \
   'release Minecraft version is not pinned to 26.2.'
 require_literal -- '--argjson deps "$deps"' \
   'Modrinth create metadata does not receive the verified dependency array.'
+require_literal '"version/${TOTEM_CORE_REFERENCE_VERSION_ID}"' \
+  'TotemCore project dependency is not resolved from the exact 0.7.11 version.'
+require_literal '"version/${TOTEM_EXCAVATION_REFERENCE_VERSION_ID}"' \
+  'TotemExcavation project dependency is not resolved from the exact 0.1.8 version.'
+require_literal '{project_id:$core,dependency_type:"required"}' \
+  'TotemCore is not emitted as a required Modrinth project dependency.'
+require_literal '{project_id:$excavation,dependency_type:"optional"}' \
+  'TotemExcavation is not emitted as an optional Modrinth project dependency.'
+require_literal "printf '%s\\n' \"\$data\" > /tmp/version-data.json" \
+  'validated Modrinth metadata is not serialized to the multipart source file.'
+require_literal -- "-F 'data=</tmp/version-data.json;type=application/json'" \
+  'Modrinth create metadata is not uploaded from a file-safe multipart part.'
+require_literal -- '-f .github/scripts/modrinth-error-summary.jq' \
+  'Modrinth HTTP errors are not reduced to approved fields.'
 require_literal -- '-f .github/scripts/verify-modrinth-remote-dependencies.jq' \
   'published dependencies are not checked by the strict verifier.'
+if grep -Fq -- '-F "data=${data}' "$workflow"; then
+  fail 'inline multipart JSON can be truncated at changelog semicolons; upload metadata from a file.'
+fi
 if ! grep -Fq 'run: .github/scripts/check-modrinth-release-gate.sh' "$build_workflow"; then
   fail 'normal pull-request CI does not execute the Modrinth release gate.'
 fi
@@ -80,29 +104,29 @@ done
 verify_dependencies() {
   jq -e \
     --arg fabric P7dR8mSH \
-    --arg core_file totem-core-0.7.11.jar \
-    --arg excavation_file totem-excavation-0.1.8.jar \
+    --arg core core-project \
+    --arg excavation excavation-project \
     -f "$remote_filter"
 }
 
 accepted=(
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":"totem-core-0.7.11.jar"},{"dependency_type":"optional","project_id":null,"version_id":null,"file_name":"totem-excavation-0.1.8.jar"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":null},{"dependency_type":"optional","project_id":null,"version_id":null,"file_name":null}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":null},{"dependency_type":"optional","file_name":"totem-excavation-0.1.8.jar"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.11.jar"},{"dependency_type":"optional","file_name":null}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":"core-project","version_id":null,"file_name":null},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","project_id":"core-project"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
 )
 for candidate in "${accepted[@]}"; do
   if ! verify_dependencies <<<"$candidate" >/dev/null; then
-    fail 'dependency verifier rejected exact or Modrinth-normalized null metadata.'
+    fail 'dependency verifier rejected exact project-linked metadata.'
   fi
 done
 
 rejected=(
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"wrong-core.jar"},{"dependency_type":"optional","file_name":"totem-excavation-0.1.8.jar"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.11.jar"},{"dependency_type":"optional","file_name":"wrong-excavation.jar"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"optional","file_name":"totem-core-0.7.11.jar"},{"dependency_type":"optional","file_name":"totem-excavation-0.1.8.jar"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.11.jar"},{"dependency_type":"optional","file_name":"totem-excavation-0.1.8.jar"},{"dependency_type":"optional","project_id":"extra"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},"error",{"dependency_type":"optional","file_name":"totem-excavation-0.1.8.jar"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","project_id":"wrong-core"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","project_id":"core-project"},{"dependency_type":"optional","project_id":"wrong-excavation"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"optional","project_id":"core-project"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","project_id":"core-project","version_id":"wrong-version"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","project_id":"core-project"},{"dependency_type":"optional","project_id":"excavation-project","file_name":"wrong.jar"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","project_id":"core-project"},{"dependency_type":"optional","project_id":"excavation-project"},{"dependency_type":"optional","project_id":"extra"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},"error",{"dependency_type":"optional","project_id":"excavation-project"}]}'
 )
 for candidate in "${rejected[@]}"; do
   if verify_dependencies <<<"$candidate" >/dev/null 2>&1; then
@@ -118,9 +142,21 @@ elif [[ "$summary_actual" != "$summary_expected" ]]; then
   fail 'dependency failure summary leaks or adds unapproved fields.'
 fi
 
+error_input='{"error":"invalid_input","description":"safe detail","token":"must-not-leak","data":{"project_id":"must-not-leak"}}'
+error_expected='{"error":"invalid_input","description":"safe detail"}'
+if ! error_actual="$(jq -c -f "$error_filter" <<<"$error_input")"; then
+  fail 'safe Modrinth error summary rejected documented error metadata.'
+elif [[ "$error_actual" != "$error_expected" ]]; then
+  fail 'Modrinth error summary leaks fields outside error and description.'
+fi
+if [[ "$(jq -c -f "$error_filter" <<<'["not-an-error-object"]')" \
+    != '{"error":null,"description":null}' ]]; then
+  fail 'Modrinth error summary does not suppress non-object response bodies.'
+fi
+
 if (( failures > 0 )); then
   printf 'Modrinth release gate failed with %d error(s).\n' "$failures" >&2
   exit 1
 fi
 
-printf 'Modrinth release gate passed: dry-run parsing and exact three-dependency metadata are enforced.\n'
+printf 'Modrinth release gate passed: file-safe multipart JSON, redacted errors, and exact three-project dependencies are enforced.\n'
