@@ -17,13 +17,22 @@ public final class ClassifyingSortingOperations extends PersistedSortingOperatio
     }
 
     @Override public boolean canAccept(CopperGolem golem, ServerLevel level, CopperGolemBinding binding, Container container, ItemStack carried) {
-        CompoundTag tag = CopperGolemData.readEntityTag(golem);
+        return canAccept(CopperGolemData.readEntityTag(golem), golem, level, binding, container, carried);
+    }
+
+    @Override public boolean canAccept(CopperGolem golem, ServerLevel level, CopperGolemBinding binding,
+                                       Container container, ItemStack carried, RouteSnapshot snapshot) {
+        return canAccept(snapshot.authorityTag(), golem, level, binding, container, carried);
+    }
+
+    private boolean canAccept(CompoundTag tag, CopperGolem golem, ServerLevel level,
+                              CopperGolemBinding binding, Container container, ItemStack carried) {
         SortingLlmState.Config bindingConfig = SortingLlmState.get(tag, binding);
         Optional<Boolean> cached = CachedSortingDecisionPolicy.decide(bindingConfig.allowedItemIds(), bindingConfig.deniedItemIds(),
                 bindingConfig.allowedTags(), bindingConfig.deniedTags(), items.itemId(carried), items.itemTags(carried));
-        if (cached.isPresent()) return super.canAccept(golem, level, binding, container, carried);
+        if (cached.isPresent()) return super.canAccept(bindingConfig, container, carried);
         GolemLlmState.Config golemConfig = GolemLlmState.read(tag);
-        if (!classificationEnabled(bindingConfig, golemConfig)) return super.canAccept(golem, level, binding, container, carried);
+        if (!classificationEnabled(bindingConfig, golemConfig)) return super.canAccept(bindingConfig, container, carried);
         if (!SortingDestinationService.hasAvailableSpace(container, carried)) return false;
         SortingLlmClassifier.requestClassification(level.getServer(), golem.getUUID(), binding, items.itemId(carried),
                 items.itemName(carried), items.itemTags(carried), bindingConfig.prompt(), golemConfig.apiUrl(), golemConfig.apiKey(),

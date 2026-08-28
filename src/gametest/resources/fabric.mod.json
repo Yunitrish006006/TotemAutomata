@@ -20,7 +20,8 @@
       "dev.totem.automata.copper.CopperGolemLockedSourceGameTest",
       "dev.totem.automata.copper.CopperGolemMigrationGameTest",
       "dev.totem.automata.copper.CopperGolemSortingPolicyGameTest",
-      "dev.totem.automata.copper.CopperGolemSourcePersistenceGameTest"
+      "dev.totem.automata.copper.CopperGolemSourcePersistenceGameTest",
+      "dev.totem.automata.copper.FurnaceDestinationGameTest"
     ],
     "fabric-client-gametest": [
       "dev.totem.automata.client.CopperGolemMenuVisualGameTest",

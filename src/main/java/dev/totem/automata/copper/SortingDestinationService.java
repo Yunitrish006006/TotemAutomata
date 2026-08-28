@@ -35,13 +35,19 @@ public final class SortingDestinationService {
         if (carried.isEmpty() || !ContainerSafetyBridge.mayInsertIntoContainer(destination, carried)) return false;
         for (int slot = 0; slot < destination.getContainerSize(); slot++) {
             ItemStack stack = destination.getItem(slot);
-            if (stack.isEmpty() || (ItemStack.isSameItemSameComponents(stack, carried) && stack.getCount() < stack.getMaxStackSize())) return true;
-            if (PortableBackpackSorting.canPlaceSomewhere(stack, carried)) return true;
+            if (ContainerInsertionPolicy.canPlace(destination, slot, carried)
+                    && (stack.isEmpty() || (ItemStack.isSameItemSameComponents(stack, carried)
+                    && stack.getCount() < slotLimit(destination, stack)))) {
+                return true;
+            }
+            if (!ContainerInsertionPolicy.isFurnaceLike(destination)
+                    && PortableBackpackSorting.canPlaceSomewhere(stack, carried)) return true;
         }
         return false;
     }
 
     private static int findPortableDestination(Container destination, ItemStack carried) {
+        if (ContainerInsertionPolicy.isFurnaceLike(destination)) return -1;
         for (int slot = 0; slot < destination.getContainerSize(); slot++) {
             if (PortableBackpackSorting.canSortInto(destination.getItem(slot), carried)) return slot;
         }
@@ -51,29 +57,37 @@ public final class SortingDestinationService {
     private static boolean canAcceptDirectly(Container destination, ItemStack carried) {
         boolean matching = false, empty = false;
         for (int slot = 0; slot < destination.getContainerSize(); slot++) {
+            if (!ContainerInsertionPolicy.canPlace(destination, slot, carried)) continue;
             ItemStack stack = destination.getItem(slot);
             if (stack.isEmpty()) { empty = true; continue; }
             if (!ItemStack.isSameItemSameComponents(stack, carried)) continue;
             matching = true;
-            if (stack.getCount() < stack.getMaxStackSize()) return true;
+            if (stack.getCount() < slotLimit(destination, stack)) return true;
         }
+        if (ContainerInsertionPolicy.isFurnaceLike(destination)) return empty;
         return matching && empty;
     }
 
     private static ItemStack insertDirectly(Container destination, ItemStack carried) {
         ItemStack remaining = carried.copy();
         for (int slot = 0; slot < destination.getContainerSize() && !remaining.isEmpty(); slot++) {
+            if (!ContainerInsertionPolicy.canPlace(destination, slot, remaining)) continue;
             ItemStack stack = destination.getItem(slot);
             if (stack.isEmpty() || !ItemStack.isSameItemSameComponents(stack, remaining)) continue;
-            int count = Math.min(remaining.getCount(), stack.getMaxStackSize() - stack.getCount());
+            int count = Math.min(remaining.getCount(), slotLimit(destination, stack) - stack.getCount());
             if (count <= 0) continue;
             stack.grow(count); remaining.shrink(count); destination.setItem(slot, stack);
         }
         for (int slot = 0; slot < destination.getContainerSize() && !remaining.isEmpty(); slot++) {
-            if (!destination.getItem(slot).isEmpty()) continue;
-            int count = Math.min(remaining.getCount(), remaining.getMaxStackSize());
+            if (!destination.getItem(slot).isEmpty()
+                    || !ContainerInsertionPolicy.canPlace(destination, slot, remaining)) continue;
+            int count = Math.min(remaining.getCount(), slotLimit(destination, remaining));
             destination.setItem(slot, remaining.copyWithCount(count)); remaining.shrink(count);
         }
         return remaining.isEmpty() ? ItemStack.EMPTY : remaining;
+    }
+
+    private static int slotLimit(Container destination, ItemStack stack) {
+        return Math.min(stack.getMaxStackSize(), destination.getMaxStackSize(stack));
     }
 }

@@ -18,6 +18,7 @@ public final class GatheringBreakTransaction {
         GatheringToolDamage.Result damage = GatheringToolDamage.apply(level, tool);
         CopperGolemData.writeItemStack(tag, TOOL, damage.stack().isEmpty() ? ItemStack.EMPTY : damage.stack().copyWithCount(1), level.registryAccess());
         GatheringRuntimeState.clearTarget(tag);
+        GatheringBreakProgress.clear(tag);
         return Optional.of(new Result(tag, damage.broken()));
     }
     public record Result(CompoundTag tag, boolean toolBroken) { }

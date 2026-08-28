@@ -1,10 +1,13 @@
 package dev.totem.automata.copper;
 
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.world.entity.animal.golem.CopperGolem;
 
 import java.util.Objects;
+import java.util.UUID;
 
 /**
  * One-shot Fabric lifecycle registration for a fully composed Automata
@@ -41,7 +44,22 @@ public final class CopperGolemLifecycleRegistration {
                 CopperGolemLifecycle.dropGatheringInventory(golem);
             }
         });
+        ServerEntityEvents.ENTITY_LOAD.register((entity, level) -> {
+            if (entity instanceof CopperGolem golem) {
+                controller.track(golem);
+            }
+        });
+        ServerEntityEvents.ENTITY_UNLOAD.register((entity, level) -> {
+            if (entity instanceof CopperGolem golem) {
+                controller.untrack(golem);
+            }
+        });
         ServerTickEvents.END_SERVER_TICK.register(server -> controller.tick(server, behavior));
+        ServerLifecycleEvents.SERVER_STOPPED.register(server -> controller.clear());
         registeredController = controller;
+    }
+
+    static boolean isTrackedForTesting(UUID golemId) {
+        return registeredController != null && registeredController.isTracked(golemId);
     }
 }

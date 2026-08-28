@@ -17,9 +17,10 @@ public final class GatheringHomeDeposit {
     public static Result tick(CopperGolem golem, ServerLevel level, BlockPos homePos, Container home, List<ItemStack> storage) {
         if (golem.distanceToSqr(Vec3.atCenterOf(homePos)) > 6.25D) {
             setActivity(golem, CopperGolemActivity.RETURNING_HOME);
-            golem.getNavigation().moveTo(homePos.getX()+.5D, homePos.getY(), homePos.getZ()+.5D, .75D);
+            GatheringNavigation.moveHome(golem, level, homePos);
             return Result.MOVING;
         }
+        GatheringNavigation.forget(golem);
         setActivity(golem, CopperGolemActivity.DEPOSITING);
         if (!LocksmithAutomationBridge.mayInsert(home, GatheringOperator.operatorId(golem).orElse(null))) {
             setActivity(golem, CopperGolemActivity.BLOCKED_HOME_FULL);
@@ -44,8 +45,9 @@ public final class GatheringHomeDeposit {
     }
     private static void setActivity(CopperGolem golem, CopperGolemActivity activity) {
         CompoundTag tag = CopperGolemData.readEntityTag(golem);
-        GatheringRuntimeState.setActivity(tag, activity);
-        CopperGolemData.writeEntityTag(golem, tag);
+        if (GatheringRuntimeState.setActivity(tag, activity)) {
+            CopperGolemData.writeEntityTag(golem, tag);
+        }
     }
     public enum Result { MOVING, DEPOSITED, BLOCKED_FULL }
 }
