@@ -32,7 +32,67 @@ public final class PersistedCopperGolemRuntime implements CopperGolemBehavior {
     }
 
     @Override
+    public boolean needsScanBudget(CopperGolem golem) {
+        CompoundTag tag = CopperGolemData.readEntityTag(golem);
+        return CopperGolemData.mode(tag) == CopperGolemMode.GATHERING
+                && tag.getBooleanOr(CopperGolemData.TAG_TRANSPORT_ENABLED, false)
+                && GatheringRuntimeState.target(tag).isEmpty();
+    }
+
+    @Override
+    public Scheduling scheduling(ServerLevel level, CopperGolem golem) {
+        if (golem.isRemoved() || !golem.isAlive()) return new Scheduling(false, false);
+        CompoundTag tag = CopperGolemData.readEntityTag(golem);
+        CopperGolemMode mode = CopperGolemData.mode(tag);
+        boolean shouldTick = mode == CopperGolemMode.GATHERING
+                || tag.getBooleanOr(SORTING_BLOCKED, false)
+                || !SortingBindingService.getBindings(tag).isEmpty()
+                || SortingBindingService.getSourceContainer(tag).isPresent();
+        if (!shouldTick || mode != CopperGolemMode.GATHERING
+                || !tag.getBooleanOr(CopperGolemData.TAG_TRANSPORT_ENABLED, false)
+                || GatheringRuntimeState.target(tag).isPresent()) {
+            return new Scheduling(shouldTick, false);
+        }
+        boolean waiting = CopperGolemData.activity(tag) == CopperGolemActivity.BLOCKED_NO_VALID_TARGET
+                && level.getGameTime() < GatheringRuntimeState.retryTick(tag);
+        boolean prerequisites = !waiting
+                && GatheringConfiguration.scanBounds(tag, level.dimension()).isPresent()
+                && GatheringHomeResolver.resolve(tag, level).isPresent()
+                && CopperGolemFuelService.hasFuelAvailable(tag, level)
+                && !CopperGolemData.readItemStack(tag, "deadrecall_gathering_tool_stack", level.registryAccess()).isEmpty()
+                && GatheringTargetPolicy.hasRules(
+                        GatheringConfiguration.manualTargets(tag),
+                        GatheringLlmState.read(tag),
+                        GolemLlmState.read(tag)
+                );
+        if (prerequisites) {
+            var storage = GatheringStorage.read(tag, level.registryAccess());
+            CopperGolemActivity activity = CopperGolemData.activity(tag);
+            GatheringTickPlan.Action action = GatheringTickPlan.decide(
+                    true,
+                    true,
+                    GatheringStorage.full(storage),
+                    activity
+            );
+            prerequisites = storage.isEmpty() || action != GatheringTickPlan.Action.DEPOSIT;
+        }
+        return new Scheduling(true, prerequisites);
+    }
+
+    @Override
     public void tick(MinecraftServer server, ServerLevel level, CopperGolem golem, boolean shouldPruneBindings) {
+        tick(server, level, golem, shouldPruneBindings, GatheringScanCursor.DEFAULT_BUDGET);
+    }
+
+    @Override
+    public void tick(MinecraftServer server, ServerLevel level, CopperGolem golem,
+                     boolean shouldPruneBindings, int scanBudget) {
+        tickScheduled(server, level, golem, shouldPruneBindings, scanBudget);
+    }
+
+    @Override
+    public TickResult tickScheduled(MinecraftServer server, ServerLevel level, CopperGolem golem,
+                                    boolean shouldPruneBindings, int scanBudget) {
         CompoundTag tag = CopperGolemData.readEntityTag(golem);
         if (CopperGolemData.migrate(tag)) {
             CopperGolemData.writeEntityTag(golem, tag);
@@ -47,16 +107,18 @@ public final class PersistedCopperGolemRuntime implements CopperGolemBehavior {
                 && tag.getBooleanOr(CopperGolemData.TAG_TRANSPORT_ENABLED, false)
                 && tag.getBooleanOr(SORTING_BLOCKED, false)) {
             SortingModeController.tickBlocked(golem, level, sorting);
-            return;
+            return TickResult.NONE;
         }
         if (mode != CopperGolemMode.GATHERING) {
-            return;
+            return TickResult.NONE;
         }
         if (tag.getBooleanOr(CopperGolemData.TAG_TRANSPORT_ENABLED, false)) {
-            gathering.tick(server, level, golem, false);
+            return gathering.tickScheduled(server, level, golem, false, scanBudget);
         } else {
-            CopperGolemLifecycle.clearGatheringDisplayedItem(golem);
-            GatheringLlmWarmup.tick(golem, level);
+            if (CopperGolemData.activity(tag) != CopperGolemActivity.STOPPED) {
+                gathering.stop(golem, tag);
+            }
+            return TickResult.NONE;
         }
     }
 }

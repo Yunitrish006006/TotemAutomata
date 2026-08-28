@@ -18,6 +18,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.animal.golem.CopperGolem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -26,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /** Regression coverage recovered from the pre-extraction DeadRecall authority pressure suite. */
 public final class CopperGolemAuthorityPressureGameTest {
@@ -148,6 +151,137 @@ public final class CopperGolemAuthorityPressureGameTest {
             controller.untrack(golem);
             golem.discard();
         }
+        helper.succeed();
+    }
+
+    @GameTest(maxTicks = 40)
+    public void inactiveLoadedGolemRemainsTrackedAndTicksAfterActivation(GameTestHelper helper) {
+        CopperGolemController controller = new CopperGolemController();
+        CopperGolem golem = spawnCopperGolem(helper, GOLEM_POS);
+        AtomicBoolean active = new AtomicBoolean();
+        AtomicInteger ticks = new AtomicInteger();
+        CopperGolemBehavior behavior = new CopperGolemBehavior() {
+            @Override public boolean shouldTrack(CopperGolem value) {
+                return active.get();
+            }
+
+            @Override public void tick(net.minecraft.server.MinecraftServer server,
+                                       net.minecraft.server.level.ServerLevel level,
+                                       CopperGolem value,
+                                       boolean shouldPruneBindings) {
+                ticks.incrementAndGet();
+            }
+        };
+
+        controller.track(golem);
+        controller.tick(helper.getLevel().getServer(), behavior);
+        require(helper, trackedCount(controller) == 1,
+                "An inactive but loaded Copper Golem was removed from event-scoped tracking");
+        require(helper, ticks.get() == 0, "Inactive Copper Golem unexpectedly ran managed work");
+
+        active.set(true);
+        controller.tick(helper.getLevel().getServer(), behavior);
+        require(helper, ticks.get() == 1,
+                "A loaded Copper Golem did not become active without a full-entity discovery scan");
+        controller.untrack(golem);
+        golem.discard();
+        helper.succeed();
+    }
+
+    @GameTest(maxTicks = 40)
+    public void lifecycleEventsTrackAndUntrackLoadedCopperGolem(GameTestHelper helper) {
+        CopperGolem golem = spawnCopperGolem(helper, GOLEM_POS);
+        require(helper, CopperGolemLifecycleRegistration.isTrackedForTesting(golem.getUUID()),
+                "ENTITY_LOAD did not add the Copper Golem to the scheduler");
+        UUID golemId = golem.getUUID();
+        golem.discard();
+        helper.runAfterDelay(1, () -> {
+            require(helper, !CopperGolemLifecycleRegistration.isTrackedForTesting(golemId),
+                    "ENTITY_UNLOAD did not remove the Copper Golem from the scheduler");
+            helper.succeed();
+        });
+    }
+
+    @GameTest(maxTicks = 40)
+    public void persistedTargetSkipsCursorAndExpensiveValidation(GameTestHelper helper) {
+        CopperGolem golem = spawnCopperGolem(helper, GOLEM_POS);
+        BlockPos target = helper.absolutePos(GOLEM_POS.offset(5, 0, 0));
+        CompoundTag tag = CopperGolemData.readEntityTag(golem);
+        CopperGolemData.migrate(tag);
+        tag.putString(CopperGolemData.TAG_MODE, CopperGolemMode.GATHERING.id());
+        tag.putBoolean(CopperGolemData.TAG_TRANSPORT_ENABLED, true);
+        GatheringConfiguration.setCorner(tag, helper.getLevel().dimension(), target.offset(-1, -1, -1), false);
+        GatheringConfiguration.setCorner(tag, helper.getLevel().dimension(), target.offset(1, 1, 1), true);
+        CopperGolemData.writeItemStack(tag, "deadrecall_gathering_tool_stack",
+                new ItemStack(Items.IRON_PICKAXE), helper.getLevel().registryAccess());
+        tag.putInt(GatheringRuntimeState.TARGET_X, target.getX());
+        tag.putInt(GatheringRuntimeState.TARGET_Y, target.getY());
+        tag.putInt(GatheringRuntimeState.TARGET_Z, target.getZ());
+        GatheringRuntimeState.setActivity(tag, CopperGolemActivity.MOVING_TO_TARGET);
+        CopperGolemData.writeEntityTag(golem, tag);
+
+        AtomicInteger cheapChecks = new AtomicInteger();
+        AtomicInteger expensiveChecks = new AtomicInteger();
+        AtomicInteger targetTicks = new AtomicInteger();
+        PersistedGatheringBehavior behavior = new PersistedGatheringBehavior(
+                new PersistedGatheringBehavior.WorldOperations() {
+                    @Override public boolean hasHome(CopperGolem value, net.minecraft.server.level.ServerLevel level, CompoundTag snapshot) { return true; }
+                    @Override public boolean hasFuel(CopperGolem value, net.minecraft.server.level.ServerLevel level, CompoundTag snapshot) { return true; }
+                    @Override public boolean hasTargetRules(CopperGolem value, CompoundTag snapshot) { return true; }
+                    @Override public boolean isCheaplyValidTarget(CopperGolem value, net.minecraft.server.level.ServerLevel level,
+                                                                   CompoundTag snapshot, GatheringScanCursor.Bounds bounds, BlockPos pos) {
+                        cheapChecks.incrementAndGet();
+                        return true;
+                    }
+                    @Override public boolean isValidTarget(CopperGolem value, net.minecraft.server.level.ServerLevel level,
+                                                            CompoundTag snapshot, BlockPos pos) {
+                        expensiveChecks.incrementAndGet();
+                        return true;
+                    }
+                    @Override public void deposit(CopperGolem value, net.minecraft.server.level.ServerLevel level, List<ItemStack> storage) { }
+                    @Override public void stop(CopperGolem value) { }
+                    @Override public void tickTarget(CopperGolem value, net.minecraft.server.level.ServerLevel level,
+                                                     CompoundTag snapshot, BlockPos pos) { targetTicks.incrementAndGet(); }
+                }
+        );
+
+        CopperGolemBehavior.TickResult result = behavior.tickScheduled(
+                helper.getLevel().getServer(), helper.getLevel(), golem, false, 32);
+        require(helper, result.scanPositionsInspected() == 0,
+                "A persisted target consumed cursor scan budget");
+        require(helper, cheapChecks.get() == 1,
+                "A persisted target did not receive exactly one cheap validity guard");
+        require(helper, expensiveChecks.get() == 0,
+                "A persisted target unexpectedly re-ran expensive candidate validation");
+        require(helper, targetTicks.get() == 1,
+                "The persisted target was not processed after skipping discovery");
+        golem.discard();
+        helper.succeed();
+    }
+
+    @GameTest(maxTicks = 40)
+    public void disabledGatheringTransitionsOnceThenKeepsStateUnchanged(GameTestHelper helper) {
+        CopperGolem golem = spawnCopperGolem(helper, GOLEM_POS);
+        CompoundTag tag = CopperGolemData.readEntityTag(golem);
+        CopperGolemData.migrate(tag);
+        tag.putString(CopperGolemData.TAG_MODE, CopperGolemMode.GATHERING.id());
+        tag.putBoolean(CopperGolemData.TAG_TRANSPORT_ENABLED, false);
+        GatheringRuntimeState.setActivity(tag, CopperGolemActivity.MOVING_TO_TARGET);
+        CopperGolemData.writeEntityTag(golem, tag);
+        golem.setItemInHand(InteractionHand.MAIN_HAND, new ItemStack(Items.IRON_PICKAXE));
+
+        PersistedCopperGolemRuntime runtime = new PersistedCopperGolemRuntime();
+        runtime.tickScheduled(helper.getLevel().getServer(), helper.getLevel(), golem, false, 32);
+        CompoundTag afterTransition = CopperGolemData.readEntityTag(golem);
+        require(helper, CopperGolemData.activity(afterTransition) == CopperGolemActivity.STOPPED,
+                "Disabled gathering did not enter STOPPED");
+        require(helper, golem.getMainHandItem().isEmpty(),
+                "Disabled gathering did not clear its virtual displayed item once");
+
+        runtime.tickScheduled(helper.getLevel().getServer(), helper.getLevel(), golem, false, 32);
+        require(helper, afterTransition.equals(CopperGolemData.readEntityTag(golem)),
+                "A stopped gathering Golem mutated persisted state on a later tick");
+        golem.discard();
         helper.succeed();
     }
 

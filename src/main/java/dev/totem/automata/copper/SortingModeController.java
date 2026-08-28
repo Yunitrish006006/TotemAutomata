@@ -12,6 +12,7 @@ import net.minecraft.world.level.Level;
 
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.ArrayList;
 
 /** Sorting controller separated from the Wrench/menu authority through {@link SortingOperations}. */
 public final class SortingModeController {
@@ -26,17 +27,23 @@ public final class SortingModeController {
     }
     public static Optional<TransportItemTarget> nextDestination(CopperGolem golem, ServerLevel level, ItemStack carried, SortingOperations ops) {
         if (carried.isEmpty()) return Optional.empty();
-        for (CopperGolemBinding binding : ops.bindings(golem)) {
-            if (!binding.dimension().equals(level.dimension()) || ops.triedDestinations(golem).contains(binding)
-                    || ops.rememberedSource(golem).filter(source -> source.dimension().equals(binding.dimension()) && source.containerPos().equals(binding.containerPos())).isPresent()) continue;
+        SortingOperations.RouteSnapshot snapshot = ops.routeSnapshot(golem);
+        var attempted = new ArrayList<CopperGolemBinding>();
+        for (CopperGolemBinding binding : snapshot.bindings()) {
+            if (!binding.dimension().equals(level.dimension()) || snapshot.triedDestinations().contains(binding)
+                    || snapshot.rememberedSource().filter(source -> source.dimension().equals(binding.dimension()) && source.containerPos().equals(binding.containerPos())).isPresent()) continue;
             TransportItemTarget target = ops.target(level, binding.containerPos());
-            ops.rememberTriedDestination(golem, binding);
-            Optional<SortingOperations.Source> source = ops.rememberedSource(golem);
+            attempted.add(binding);
+            Optional<SortingOperations.Source> source = snapshot.rememberedSource();
             if (target != null && source.isPresent()
                     && source.get().dimension().equals(level.dimension())
                     && ops.mayTransfer(golem, level, source.get().containerPos(), binding.containerPos())
-                    && ops.canAccept(golem, level, binding, target.container(), carried)) return Optional.of(target);
+                    && ops.canAccept(golem, level, binding, target.container(), carried, snapshot)) {
+                ops.rememberTriedDestinations(golem, attempted);
+                return Optional.of(target);
+            }
         }
+        ops.rememberTriedDestinations(golem, attempted);
         return Optional.empty();
     }
     public static ItemStack pickUp(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos, SortingOperations ops) {
@@ -69,11 +76,12 @@ public final class SortingModeController {
     public static boolean returnCarried(CopperGolem golem, ServerLevel level, SortingOperations ops) {
         ItemStack carried = golem.getMainHandItem();
         if (carried.isEmpty()) { ops.clearRememberedSource(golem); return true; }
-        Optional<SortingOperations.Source> source = ops.rememberedSource(golem);
+        SortingOperations.RouteSnapshot snapshot = ops.routeSnapshot(golem);
+        Optional<SortingOperations.Source> source = snapshot.rememberedSource();
         if (source.isEmpty() || !source.get().dimension().equals(level.dimension())) return false;
         TransportItemTarget target = ops.target(level, source.get().containerPos()); if (target == null) return false;
         if (!ops.mayReturnToSource(
-                golem, level, source.get().containerPos(), target.container())) return false;
+                golem, level, source.get().containerPos(), target.container(), snapshot)) return false;
         ItemStack remaining = ops.returnToSource(target.container(), carried, source.get().slot()); target.container().setChanged();
         golem.setItemInHand(InteractionHand.MAIN_HAND, remaining);
         if (remaining.isEmpty()) { ops.clearRememberedSource(golem); return true; }
@@ -81,9 +89,10 @@ public final class SortingModeController {
     }
     public static Optional<ItemStack> deposit(CopperGolem golem, ServerLevel level, BlockPos targetPos, Container container, SortingOperations ops) {
         ItemStack carried = golem.getMainHandItem(); if (carried.isEmpty()) return Optional.empty();
-        Optional<CopperGolemBinding> binding = ops.bindings(golem).stream().filter(value -> value.dimension().equals(level.dimension()) && value.containerPos().equals(targetPos)).findFirst();
-        if (binding.isEmpty() || !ops.acceptsByCachedDecision(golem, binding.get(), carried)) return Optional.of(carried);
-        Optional<SortingOperations.Source> source = ops.rememberedSource(golem);
+        SortingOperations.RouteSnapshot snapshot = ops.routeSnapshot(golem);
+        Optional<CopperGolemBinding> binding = snapshot.bindings().stream().filter(value -> value.dimension().equals(level.dimension()) && value.containerPos().equals(targetPos)).findFirst();
+        if (binding.isEmpty() || !ops.acceptsByCachedDecision(golem, binding.get(), carried, snapshot)) return Optional.of(carried);
+        Optional<SortingOperations.Source> source = snapshot.rememberedSource();
         if (source.isEmpty() || !source.get().dimension().equals(level.dimension())
                 || !ops.mayTransfer(golem, level, source.get().containerPos(), targetPos)) {
             return Optional.of(carried);
@@ -102,20 +111,24 @@ public final class SortingModeController {
     ) {
         ItemStack candidate = stack.copyWithCount(
                 Math.min(stack.getCount(), ops.maxTransportStackSize()));
-        for (CopperGolemBinding binding : ops.bindings(golem)) {
+        SortingOperations.RouteSnapshot snapshot = ops.routeSnapshot(golem);
+        for (CopperGolemBinding binding : snapshot.bindings()) {
             if (!binding.dimension().equals(level.dimension())
                     || binding.containerPos().equals(sourcePos)) continue;
             TransportItemTarget target = ops.target(level, binding.containerPos());
             if (target != null
                     && ops.mayTransfer(golem, level, sourcePos, binding.containerPos())
-                    && ops.canAccept(golem, level, binding, target.container(), candidate)) {
+                    && ops.canAccept(golem, level, binding, target.container(), candidate, snapshot)) {
                 return true;
             }
         }
         return false;
     }
     public static void tickBlocked(CopperGolem golem, ServerLevel level, SortingOperations ops) {
-        if (golem.tickCount % BLOCKED_JUMP_INTERVAL_TICKS == 0 && ops.shouldClearBlocked(golem, level)) { ops.clearBlocked(golem); return; }
+        if (ops.blockedRetryDue(golem)) {
+            if (ops.shouldClearBlocked(golem, level)) { ops.clearBlocked(golem); return; }
+            ops.advanceBlockedRetry(golem);
+        }
         golem.getNavigation().stop(); golem.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET); golem.setDeltaMovement(0, golem.getDeltaMovement().y, 0);
         if (golem.onGround() && golem.tickCount % BLOCKED_JUMP_INTERVAL_TICKS == 0) { golem.jumpFromGround(); golem.setJumping(true); }
     }

@@ -108,23 +108,24 @@ public final class AutomataRestartProbe implements ModInitializer {
         CopperGolemData.writeEntityTag(golem, tag);
         require(level.addFreshEntity(golem), "Could not add Automata copper golem");
         write(markerDirectory.resolve(UUID_FILE), golem.getUUID().toString() + "\n");
-        verifyState(level, golem);
+        verifyState(level, golem, CopperGolemActivity.SEARCHING);
     }
 
     private static void verify(ServerLevel level, Path markerDirectory) {
         CopperGolem golem = requireGolem(level, readUuid(markerDirectory));
-        verifyState(level, golem);
+        verifyState(level, golem, CopperGolemActivity.STOPPED);
         level.setChunkForced(CHUNK_X, CHUNK_Z, false);
     }
 
-    private static void verifyState(ServerLevel level, CopperGolem golem) {
+    private static void verifyState(ServerLevel level, CopperGolem golem, CopperGolemActivity expectedActivity) {
         CompoundTag tag = CopperGolemData.readEntityTag(golem);
         require(tag.getBooleanOr(PROBE_MARKER, false), "Probe marker did not persist");
         require(tag.getIntOr(CopperGolemData.TAG_DATA_VERSION, 0) == CopperGolemData.DATA_VERSION, "Data version did not persist");
         require(tag.getIntOr(CopperGolemData.TAG_REVISION, 0) == 41, "Revision did not persist");
         require(CopperGolemData.mode(tag) == CopperGolemMode.GATHERING, "Mode did not persist");
         require(!tag.getBooleanOr(CopperGolemData.TAG_TRANSPORT_ENABLED, true), "Stopped transport state did not persist");
-        require(CopperGolemData.activity(tag) == CopperGolemActivity.SEARCHING, "Activity did not persist");
+        require(CopperGolemData.activity(tag) == expectedActivity,
+                "Activity did not persist/settle to " + expectedActivity.id());
         require(CopperGolemData.readBindings(tag).equals(List.of(new CopperGolemBinding(level.dimension(), DESTINATION_POS))), "Bindings did not persist");
         require(SortingBindingService.getSourceContainer(tag)
                         .filter(binding -> binding.dimension().equals(level.dimension()) && binding.containerPos().equals(SOURCE_POS))

@@ -1,82 +1,486 @@
 name: Publish Modrinth
+
 on:
   push:
     branches: [master]
-    paths: [gradle.properties, .github/workflows/publish-modrinth.yml]
+    paths:
+      - gradle.properties
+      - .github/staging/modrinth-changelog-*.md
+      - .github/workflows/publish-modrinth.yml
+      - .github/scripts/check-modrinth-release-gate.sh
+      - .github/scripts/modrinth-dependency-summary.jq
+      - .github/scripts/normalize-modrinth-dry-run.sh
+      - .github/scripts/verify-modrinth-remote-dependencies.jq
   workflow_dispatch:
     inputs:
-      dry_run: {description: Validate without publishing, required: true, default: true, type: boolean}
-permissions: {contents: write}
-concurrency: {group: 'modrinth-${{ github.workflow }}-${{ github.ref }}', cancel-in-progress: false}
+      dry_run:
+        description: Validate without publishing
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+concurrency:
+  group: 'modrinth-${{ github.workflow }}-${{ github.ref }}'
+  cancel-in-progress: false
+
 env:
   MODULE_ID: totem-automata
-  CORE_REF: 22a8c6a2b753d9832b3296ece5b80ec6e8595f80
-  EXCAVATION_REF: 05b387cd4a016fc8b6b3d674ccbf99180fc54772
+  CORE_REF: 82b21944b1e4865f5d34f13febc5049d936a636f
+  EXCAVATION_REF: 6b54011195b81ec9a9a09146d162ba303ebd8ee4
+  FABRIC_API_PROJECT_ID: P7dR8mSH
+  TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.11.jar
+  TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.8.jar
+
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-        with: {fetch-depth: 0}
-      - id: release
+      - name: Check out Automata
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release source
+        id: release
         shell: bash
-        env: {EVENT_NAME: '${{ github.event_name }}', BEFORE_SHA: '${{ github.event.before }}', REQUESTED_DRY_RUN: '${{ inputs.dry_run }}'}
+        env:
+          EVENT_NAME: '${{ github.event_name }}'
+          BEFORE_SHA: '${{ github.event.before }}'
+          REQUESTED_DRY_RUN: '${{ inputs.dry_run }}'
         run: |
           set -euo pipefail
-          current="$(sed -n 's/^mod_version=//p' gradle.properties)"; test -n "$current"
-          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then echo 'should_publish=true' >> "$GITHUB_OUTPUT"; echo "dry_run=${REQUESTED_DRY_RUN}" >> "$GITHUB_OUTPUT"; exit 0; fi
-          changed="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" 2>/dev/null || true)"; previous="$(git show "${BEFORE_SHA}:gradle.properties" 2>/dev/null | sed -n 's/^mod_version=//p' || true)"
-          if grep -Fxq '.github/workflows/publish-modrinth.yml' <<<"$changed" || [[ -z "$previous" || "$previous" != "$current" ]]; then echo 'should_publish=true' >> "$GITHUB_OUTPUT"; echo 'dry_run=false' >> "$GITHUB_OUTPUT"; else echo 'should_publish=false' >> "$GITHUB_OUTPUT"; echo 'dry_run=false' >> "$GITHUB_OUTPUT"; fi
-      - if: steps.release.outputs.should_publish == 'true'
+          fail_release_source() {
+            echo "Release source validation failed: $1" >&2
+            exit 1
+          }
+
+          current="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          [[ -n "$current" ]] \
+            || fail_release_source 'gradle.properties has no mod_version.'
+
+          should_publish=false
+          dry_run=false
+          if [[ "$EVENT_NAME" == workflow_dispatch ]]; then
+            should_publish=true
+            if ! dry_run="$(.github/scripts/normalize-modrinth-dry-run.sh "${REQUESTED_DRY_RUN:-true}")"; then
+              fail_release_source 'manual dry_run input is invalid.'
+            fi
+          else
+            changed="$(git diff --name-only "$BEFORE_SHA" "$GITHUB_SHA" 2>/dev/null || true)"
+            previous="$(git show "${BEFORE_SHA}:gradle.properties" 2>/dev/null \
+              | sed -n 's/^mod_version=//p' || true)"
+            if [[ -z "$previous" || "$previous" != "$current" ]] \
+                || grep -Eq '^\.github/(staging/modrinth-changelog-.*\.md|workflows/publish-modrinth\.yml|scripts/(check-modrinth-release-gate\.sh|modrinth-dependency-summary\.jq|normalize-modrinth-dry-run\.sh|verify-modrinth-remote-dependencies\.jq))$' <<<"$changed"; then
+              should_publish=true
+            fi
+          fi
+
+          echo "should_publish=$should_publish" >> "$GITHUB_OUTPUT"
+          echo "dry_run=$dry_run" >> "$GITHUB_OUTPUT"
+          echo "version=$current" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Java 25
+        if: steps.release.outputs.should_publish == 'true'
         uses: actions/setup-java@v5
-        with: {distribution: temurin, java-version: '25'}
-      - if: steps.release.outputs.should_publish == 'true'
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        if: steps.release.outputs.should_publish == 'true'
         uses: gradle/actions/setup-gradle@v4
-      - if: steps.release.outputs.should_publish == 'true'
+        with:
+          cache-disabled: true
+
+      - name: Check out pinned TotemCore
+        if: steps.release.outputs.should_publish == 'true'
         uses: actions/checkout@v4
-        with: {repository: Yunitrish006006/TotemCore, ref: '${{ env.CORE_REF }}', path: .lockstep/TotemCore, persist-credentials: false}
-      - if: steps.release.outputs.should_publish == 'true'
+        with:
+          repository: Yunitrish006006/TotemCore
+          ref: '${{ env.CORE_REF }}'
+          path: .lockstep/TotemCore
+          persist-credentials: false
+
+      - name: Check out pinned TotemExcavation
+        if: steps.release.outputs.should_publish == 'true'
         uses: actions/checkout@v4
-        with: {repository: Yunitrish006006/TotemExcavation, ref: '${{ env.EXCAVATION_REF }}', path: .lockstep/TotemExcavation, persist-credentials: false}
+        with:
+          repository: Yunitrish006006/TotemExcavation
+          ref: '${{ env.EXCAVATION_REF }}'
+          path: .lockstep/TotemExcavation
+          persist-credentials: false
+
+      - name: Verify release gate
+        if: steps.release.outputs.should_publish == 'true'
+        shell: bash
+        run: .github/scripts/check-modrinth-release-gate.sh
+
       - name: Build release JAR
         if: steps.release.outputs.should_publish == 'true'
         shell: bash
+        env:
+          EXPECTED_VERSION: '${{ steps.release.outputs.version }}'
         run: |
           set -euo pipefail
+          fail_release_build() {
+            echo "Release JAR validation failed: $1" >&2
+            exit 1
+          }
+
           chmod +x .lockstep/TotemCore/gradlew
-          ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore jar --no-daemon --stacktrace
-          core="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"; test "$core" = 0.7.3
-          core_jar="$GITHUB_WORKSPACE/.lockstep/TotemCore/build/libs/totem-core-${core}.jar"; test -f "$core_jar"
-          ./.lockstep/TotemCore/gradlew -p .lockstep/TotemExcavation -PtotemCoreJar="$core_jar" jar --no-daemon --stacktrace
-          excavation="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"; test "$excavation" = 0.1.6
-          excavation_jar="$GITHUB_WORKSPACE/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation}.jar"; test -f "$excavation_jar"
-          ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" jar --no-daemon --stacktrace
-          v="$(sed -n 's/^mod_version=//p' gradle.properties)"; a="$(sed -n 's/^archives_base_name=//p' gradle.properties)"; artifact="build/libs/${a}-${v}.jar"
-          [[ -f "$artifact" ]] || ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" remapJar --no-daemon --stacktrace
-          test -f "$artifact"
+          core="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
+          [[ "$core" == 0.7.11 ]] \
+            || fail_release_build 'pinned TotemCore checkout is not version 0.7.11.'
+          ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore \
+            clean jar --no-daemon --stacktrace
+          core_jar="$GITHUB_WORKSPACE/.lockstep/TotemCore/build/libs/totem-core-${core}.jar"
+          [[ -f "$core_jar" ]] \
+            || fail_release_build 'pinned TotemCore production JAR is missing.'
+
+          excavation="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
+          [[ "$excavation" == 0.1.8 ]] \
+            || fail_release_build 'pinned TotemExcavation checkout is not version 0.1.8.'
+          ./.lockstep/TotemCore/gradlew -p .lockstep/TotemExcavation \
+            -PtotemCoreJar="$core_jar" clean jar --no-daemon --stacktrace
+          excavation_jar="$GITHUB_WORKSPACE/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation}.jar"
+          [[ -f "$excavation_jar" ]] \
+            || fail_release_build 'pinned TotemExcavation production JAR is missing.'
+
+          actual_version="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          [[ "$actual_version" == "$EXPECTED_VERSION" ]] \
+            || fail_release_build 'checked-out mod_version changed after release resolution.'
+          ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" \
+            -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
+            clean jar --no-daemon --stacktrace
+          archive="$(sed -n 's/^archives_base_name=//p' gradle.properties)"
+          [[ -n "$archive" ]] \
+            || fail_release_build 'gradle.properties has no archives_base_name.'
+          artifact="build/libs/${archive}-${actual_version}.jar"
+          [[ -f "$artifact" ]] \
+            || fail_release_build 'clean Gradle jar build did not produce the expected release artifact.'
+
       - name: Publish and verify
         id: modrinth
         if: steps.release.outputs.should_publish == 'true'
         shell: bash
-        env: {DRY_RUN: '${{ steps.release.outputs.dry_run }}', MODRINTH_TOKEN: '${{ secrets.MODRINTH_TOKEN }}', MODRINTH_PROJECT_ID: '${{ secrets.MODRINTH_PROJECT_ID }}'}
+        env:
+          DRY_RUN: '${{ steps.release.outputs.dry_run }}'
+          EXPECTED_VERSION: '${{ steps.release.outputs.version }}'
+          MODRINTH_TOKEN: '${{ secrets.MODRINTH_TOKEN }}'
+          MODRINTH_PROJECT_ID: '${{ secrets.MODRINTH_PROJECT_ID }}'
         run: |
           set -euo pipefail
-          v="$(sed -n 's/^mod_version=//p' gradle.properties)"; a="$(sed -n 's/^archives_base_name=//p' gradle.properties)"; mc="$(sed -n 's/^minecraft_version=//p' gradle.properties)"; artifact="build/libs/${a}-${v}.jar"
-          test -n "$MODRINTH_TOKEN"; test -n "$MODRINTH_PROJECT_ID"; test -f "$artifact"; unzip -p "$artifact" fabric.mod.json >/tmp/fabric.mod.json
-          jq -e --arg id "$MODULE_ID" --arg v "$v" --arg mc "~${mc}" --arg core '>=0.7.0 <0.8.0' --arg excavation '>=0.1.5' '.id==$id and .version==$v and .depends.minecraft==$mc and .depends["totem-core"]==$core and .suggests["totem-excavation"]==$excavation' /tmp/fabric.mod.json >/dev/null
-          api=https://api.modrinth.com/v2; args=(--fail --silent --show-error --retry 3 -H "Authorization: ${MODRINTH_TOKEN}" -H "User-Agent: Yunitrish006006/${MODULE_ID}-publisher/2.0")
-          curl "${args[@]}" "$api/project/${MODRINTH_PROJECT_ID}" >/tmp/project.json; p="$(jq -er .id /tmp/project.json)"; sha="$(sha512sum "$artifact"|awk '{print $1}')"
-          if [[ "$DRY_RUN" == true ]]; then echo "version=$v" >> "$GITHUB_OUTPUT"; echo "sha512=$sha" >> "$GITHUB_OUTPUT"; exit 0; fi
-          curl "${args[@]}" "$api/project/${p}/version?include_changelog=false" >/tmp/versions.json; count="$(jq --arg v "$v" '[.[]|select(.version_number==$v)]|length' /tmp/versions.json)"
-          if [[ "$count" != 0 ]]; then test "$count" = 1; id="$(jq -er --arg v "$v" '.[]|select(.version_number==$v)|.id' /tmp/versions.json)"; rsha="$(jq -er --arg v "$v" '.[]|select(.version_number==$v)|(([.files[]|select(.primary==true)][0]//.files[0]).hashes.sha512)' /tmp/versions.json)"; test "$rsha" = "$sha" || exit 1; else c="$(git log -1 --format=%B)"; data="$(jq -nc --arg n "${MODULE_ID} ${v}" --arg v "$v" --arg c "$c" --arg p "$p" --arg mc "$mc" '{name:$n,version_number:$v,changelog:$c,dependencies:[],game_versions:[$mc],version_type:"release",loaders:["fabric"],featured:false,status:"listed",project_id:$p,file_parts:["primary"],primary_file:"primary",environment:"client_and_server"}')"; curl "${args[@]}" -X POST "$api/version" -F "data=${data};type=application/json" -F "primary=@${artifact};filename=$(basename "$artifact");type=application/java-archive" >/tmp/version.json; id="$(jq -er .id /tmp/version.json)"; fi
-          curl "${args[@]}" "$api/version/$id" >/tmp/remote.json
-          jq -e --arg p "$p" --arg v "$v" --arg mc "$mc" --arg f "$(basename "$artifact")" --arg sha "$sha" '.project_id==$p and .version_number==$v and .game_versions==[$mc] and .loaders==["fabric"] and (([.files[]|select(.primary==true)][0]//.files[0]).filename==$f) and (([.files[]|select(.primary==true)][0]//.files[0]).hashes.sha512==$sha)' /tmp/remote.json >/dev/null
-          echo "version=$v" >> "$GITHUB_OUTPUT"; echo "version_id=$id" >> "$GITHUB_OUTPUT"; echo "sha512=$sha" >> "$GITHUB_OUTPUT"
+          fail_release() {
+            echo "Modrinth publication validation failed: $1" >&2
+            exit 1
+          }
+
+          case "$DRY_RUN" in
+            true|false) ;;
+            *) fail_release 'resolved dry_run value must be true or false.' ;;
+          esac
+
+          v="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          [[ -n "$v" ]] || fail_release 'gradle.properties has no mod_version.'
+          [[ "$v" == "$EXPECTED_VERSION" ]] \
+            || fail_release 'artifact version does not match the resolved release version.'
+          archive="$(sed -n 's/^archives_base_name=//p' gradle.properties)"
+          mc="$(sed -n 's/^minecraft_version=//p' gradle.properties)"
+          [[ -n "$archive" ]] || fail_release 'gradle.properties has no archives_base_name.'
+          [[ "$mc" == 26.2 ]] \
+            || fail_release 'release Minecraft version must be exactly 26.2.'
+          artifact="build/libs/${archive}-${v}.jar"
+          [[ -n "$MODRINTH_TOKEN" ]] || fail_release 'MODRINTH_TOKEN is not configured.'
+          [[ -n "$MODRINTH_PROJECT_ID" ]] || fail_release 'MODRINTH_PROJECT_ID is not configured.'
+          [[ -f "$artifact" ]] || fail_release 'expected release JAR is missing.'
+
+          if ! unzip -p "$artifact" fabric.mod.json >/tmp/fabric.mod.json; then
+            fail_release 'release JAR has no readable fabric.mod.json.'
+          fi
+          if ! jq -e \
+              --arg id "$MODULE_ID" \
+              --arg v "$v" \
+              --arg mc "~${mc}" \
+              --arg core '>=0.7.0 <0.8.0' \
+              --arg excavation '>=0.1.5' \
+              '.id==$id
+               and .version==$v
+               and .environment=="*"
+               and .depends.minecraft==$mc
+               and .depends["totem-core"]==$core
+               and .suggests["totem-excavation"]==$excavation' \
+              /tmp/fabric.mod.json >/dev/null; then
+            fail_release 'release JAR Fabric metadata does not match module, version, environment, Minecraft, Core, or Excavation requirements.'
+          fi
+
+          api=https://api.modrinth.com/v2
+          args=(--silent --show-error --retry 3 \
+            -H "Authorization: ${MODRINTH_TOKEN}" \
+            -H "User-Agent: Yunitrish006006/${MODULE_ID}-publisher/3.0")
+
+          fetch_modrinth_json() {
+            local label="$1"
+            local path="$2"
+            local output="$3"
+            local expected_type="$4"
+            local status
+
+            if ! status="$(curl "${args[@]}" --output "$output" \
+                --write-out '%{http_code}' "$api/$path")"; then
+              echo "Modrinth ${label} lookup failed before an HTTP response was received." >&2
+              return 1
+            fi
+            if [[ "$status" != 200 ]]; then
+              echo "Modrinth ${label} lookup returned HTTP ${status}." >&2
+              return 1
+            fi
+            if ! jq -e --arg expected_type "$expected_type" \
+                'type == $expected_type' "$output" >/dev/null; then
+              echo "Modrinth ${label} lookup returned invalid JSON; expected ${expected_type}." >&2
+              return 1
+            fi
+          }
+
+          fetch_modrinth_json 'release project' \
+            "project/${MODRINTH_PROJECT_ID}" /tmp/project.json object
+          if ! p="$(jq -er '.id | strings | select(length > 0)' /tmp/project.json)"; then
+            fail_release 'release project response has no project ID.'
+          fi
+          [[ "$p" == "$MODRINTH_PROJECT_ID" ]] \
+            || fail_release 'release project lookup returned a different project identity.'
+          if ! jq -e '.project_type == "mod"' /tmp/project.json >/dev/null; then
+            fail_release 'configured Modrinth project is not a mod project.'
+          fi
+          if ! project_summary="$(jq -er '
+              select((.title | type == "string" and length > 0)
+                     and (.slug | type == "string" and length > 0)
+                     and (.status | type == "string" and length > 0)
+                     and (.requested_status == null
+                          or (.requested_status | type == "string" and length > 0)))
+              | "Modrinth release project: title=\(.title), slug=\(.slug), status=\(.status), requested_status=\(.requested_status // "none"), project_type=\(.project_type)."
+            ' /tmp/project.json)"; then
+            fail_release 'release project response is missing non-sensitive status metadata.'
+          fi
+          echo "$project_summary"
+
+          if ! sha="$(sha512sum "$artifact" | awk '{print $1}')" \
+              || [[ ! "$sha" =~ ^[0-9a-f]{128}$ ]]; then
+            fail_release 'could not calculate a valid SHA-512 for the release JAR.'
+          fi
+
+          core_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
+          core_archive="$(sed -n 's/^archives_base_name=//p' .lockstep/TotemCore/gradle.properties)"
+          excavation_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
+          excavation_archive="$(sed -n 's/^archives_base_name=//p' .lockstep/TotemExcavation/gradle.properties)"
+          [[ -n "$core_version" && -n "$core_archive" ]] \
+            || fail_release 'pinned TotemCore metadata is incomplete.'
+          [[ -n "$excavation_version" && -n "$excavation_archive" ]] \
+            || fail_release 'pinned TotemExcavation metadata is incomplete.'
+          core_dependency_file="${core_archive}-${core_version}.jar"
+          excavation_dependency_file="${excavation_archive}-${excavation_version}.jar"
+          [[ "$core_dependency_file" == "$TOTEM_CORE_DEPENDENCY_FILE" \
+              && -f ".lockstep/TotemCore/build/libs/${core_dependency_file}" ]] \
+            || fail_release 'pinned TotemCore artifact is not exact external file totem-core-0.7.11.jar.'
+          [[ "$excavation_dependency_file" == "$TOTEM_EXCAVATION_DEPENDENCY_FILE" \
+              && -f ".lockstep/TotemExcavation/build/libs/${excavation_dependency_file}" ]] \
+            || fail_release 'pinned TotemExcavation artifact is not exact external file totem-excavation-0.1.8.jar.'
+
+          if ! deps="$(jq -nce \
+              --arg fabric "$FABRIC_API_PROJECT_ID" \
+              --arg core_file "$core_dependency_file" \
+              --arg excavation_file "$excavation_dependency_file" \
+              '[
+                {project_id:$fabric,dependency_type:"required"},
+                {file_name:$core_file,dependency_type:"required"},
+                {file_name:$excavation_file,dependency_type:"optional"}
+              ]')"; then
+            fail_release 'could not construct the exact three Modrinth dependencies.'
+          fi
+
+          changelog_file=".github/staging/modrinth-changelog-${v}.md"
+          [[ -f "$changelog_file" ]] \
+            || fail_release 'versioned Modrinth changelog is missing.'
+          c="$(<"$changelog_file")"
+          [[ -n "$c" ]] || fail_release 'release changelog is empty.'
+
+          if ! data="$(jq -nce \
+              --arg n "${MODULE_ID} ${v}" \
+              --arg v "$v" \
+              --arg c "$c" \
+              --arg p "$p" \
+              --arg mc "$mc" \
+              --argjson deps "$deps" \
+              '{
+                name:$n,
+                version_number:$v,
+                changelog:$c,
+                dependencies:$deps,
+                game_versions:[$mc],
+                version_type:"release",
+                loaders:["fabric"],
+                featured:false,
+                status:"listed",
+                project_id:$p,
+                file_parts:["primary"],
+                primary_file:"primary",
+                environment:"client_and_server"
+              }')"; then
+            fail_release 'could not construct Modrinth version creation metadata.'
+          fi
+          if ! jq -e \
+              --arg p "$p" \
+              --arg v "$v" \
+              --arg mc "$mc" \
+              --arg fabric "$FABRIC_API_PROJECT_ID" \
+              --arg core_file "$core_dependency_file" \
+              --arg excavation_file "$excavation_dependency_file" \
+              '.project_id==$p
+               and .version_number==$v
+               and .version_type=="release"
+               and .game_versions==[$mc]
+               and .loaders==["fabric"]
+               and .environment=="client_and_server"' \
+              <<<"$data" >/dev/null \
+              || ! jq -e \
+                --arg fabric "$FABRIC_API_PROJECT_ID" \
+                --arg core_file "$core_dependency_file" \
+                --arg excavation_file "$excavation_dependency_file" \
+                -f .github/scripts/verify-modrinth-remote-dependencies.jq \
+                <<<"$data" >/dev/null; then
+            fail_release 'constructed release metadata does not match release, Minecraft 26.2, Fabric, client_and_server, or exact dependency requirements.'
+          fi
+
+          fetch_modrinth_json 'release versions' \
+            "project/${p}/version?include_changelog=false" /tmp/versions.json array
+          if ! count="$(jq -er --arg v "$v" \
+              '[.[] | select(.version_number==$v)] | length' /tmp/versions.json)"; then
+            fail_release 'could not count matching existing Modrinth versions.'
+          fi
+
+          id=""
+          if [[ "$count" == 1 ]]; then
+            if ! id="$(jq -er --arg v "$v" \
+                '.[] | select(.version_number==$v) | .id | strings | select(length > 0)' \
+                /tmp/versions.json)"; then
+              fail_release 'existing Modrinth version has no version ID.'
+            fi
+            if ! remote_sha="$(jq -er --arg v "$v" \
+                '.[] | select(.version_number==$v)
+                 | (([.files[] | select(.primary==true)][0] // .files[0]).hashes.sha512)
+                 | strings | select(length > 0)' /tmp/versions.json)"; then
+              fail_release 'existing Modrinth version has no primary-file SHA-512.'
+            fi
+            [[ "$remote_sha" == "$sha" ]] \
+              || fail_release "version ${v} already exists with a different artifact SHA-512; refusing to overwrite it. Bump mod_version."
+          elif [[ "$count" != 0 ]]; then
+            fail_release "found ${count} existing Modrinth versions numbered ${v}; expected at most one."
+          fi
+
+          if [[ "$DRY_RUN" == true && -z "$id" ]]; then
+            echo "Validated Modrinth metadata for ${v} (release); dependencies=${FABRIC_API_PROJECT_ID},${core_dependency_file},${excavation_dependency_file}."
+            echo "version=$v" >> "$GITHUB_OUTPUT"
+            echo "sha512=$sha" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ -z "$id" ]]; then
+            if ! create_status="$(curl "${args[@]}" -X POST "$api/version" \
+                -F "data=${data};type=application/json" \
+                -F "primary=@${artifact};filename=$(basename "$artifact");type=application/java-archive" \
+                --output /tmp/version.json --write-out '%{http_code}')"; then
+              echo 'Modrinth version creation failed before an HTTP response was received.' >&2
+              exit 1
+            fi
+            if [[ "$create_status" != 200 ]]; then
+              echo "Modrinth version creation returned HTTP ${create_status}; expected exact Fabric API, required Core, and optional Excavation dependencies." >&2
+              exit 1
+            fi
+            if ! id="$(jq -er '.id | strings | select(length > 0)' /tmp/version.json)"; then
+              fail_release 'Modrinth version creation response has no version ID.'
+            fi
+          fi
+
+          fetch_modrinth_json 'published version' "version/${id}" /tmp/remote.json object
+          if ! jq -e \
+              --arg p "$p" \
+              --arg v "$v" \
+              --arg mc "$mc" \
+              --arg f "$(basename "$artifact")" \
+              --arg sha "$sha" \
+              '.project_id==$p
+               and .version_number==$v
+               and .version_type=="release"
+               and .game_versions==[$mc]
+               and .loaders==["fabric"]
+               and (([.files[] | select(.primary==true)][0] // .files[0]).filename==$f)
+               and (([.files[] | select(.primary==true)][0] // .files[0]).hashes.sha512==$sha)' \
+              /tmp/remote.json >/dev/null; then
+            fail_release 'remote version does not match release, Minecraft 26.2, Fabric, file name, or SHA-512 metadata.'
+          fi
+          if ! jq -e \
+              --arg fabric "$FABRIC_API_PROJECT_ID" \
+              --arg core_file "$core_dependency_file" \
+              --arg excavation_file "$excavation_dependency_file" \
+              -f .github/scripts/verify-modrinth-remote-dependencies.jq \
+              /tmp/remote.json >/dev/null; then
+            if ! dependency_summary="$(jq -c \
+                -f .github/scripts/modrinth-dependency-summary.jq /tmp/remote.json)"; then
+              dependency_summary='{"dependency_count":null,"dependencies":[]}'
+            fi
+            printf 'Published Modrinth dependency summary: %s\n' "$dependency_summary" >&2
+            fail_release 'remote dependencies must be exactly required Fabric API, required Core placeholder, and optional Excavation placeholder; external file_name may only be exact or normalized null.'
+          fi
+
+          if [[ "$DRY_RUN" == true ]]; then
+            echo "Validated existing Modrinth ${v} release and artifact SHA-512 without mutation."
+          fi
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          echo "version_id=$id" >> "$GITHUB_OUTPUT"
+          echo "sha512=$sha" >> "$GITHUB_OUTPUT"
+
       - name: Record verified publication
-        if: steps.release.outputs.should_publish == 'true' && steps.release.outputs.dry_run == 'false'
+        if: steps.release.outputs.should_publish == 'true' && steps.release.outputs.dry_run == 'false' && steps.modrinth.outcome == 'success'
         shell: bash
-        env: {GH_TOKEN: '${{ github.token }}', MOD_VERSION: '${{ steps.modrinth.outputs.version }}', VERSION_ID: '${{ steps.modrinth.outputs.version_id }}', SHA512: '${{ steps.modrinth.outputs.sha512 }}'}
+        env:
+          GH_TOKEN: '${{ github.token }}'
+          MOD_VERSION: '${{ steps.modrinth.outputs.version }}'
+          VERSION_ID: '${{ steps.modrinth.outputs.version_id }}'
+          SHA512: '${{ steps.modrinth.outputs.sha512 }}'
         run: |
           set -euo pipefail
-          marker=".github/staging/modrinth-published-${MOD_VERSION}.json"; api="https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${marker}"; body="$(jq -n --arg v "$MOD_VERSION" --arg id "$VERSION_ID" --arg sha "$SHA512" --arg run "$GITHUB_RUN_ID" '{version:$v,modrinth_version_id:$id,sha512:$sha,verified_by_run:$run}')"; enc="$(printf '%s\n' "$body"|base64 -w0)"; old="$(curl -sS -H "Authorization: Bearer ${GH_TOKEN}" -H 'X-GitHub-Api-Version: 2022-11-28' "$api"|jq -r '.sha//empty')"; payload="$(jq -n --arg m "release: record Modrinth ${MOD_VERSION}" --arg c "$enc" --arg b "$GITHUB_REF_NAME" --arg s "$old" 'if $s=="" then {message:$m,content:$c,branch:$b} else {message:$m,content:$c,branch:$b,sha:$s} end')"; curl --fail -sS -X PUT -H "Authorization: Bearer ${GH_TOKEN}" -H 'X-GitHub-Api-Version: 2022-11-28' "$api" -d "$payload" >/dev/null
+          fail_marker() {
+            echo "Publication marker failed: $1" >&2
+            exit 1
+          }
+
+          [[ -n "$MOD_VERSION" && -n "$VERSION_ID" && -n "$SHA512" ]] \
+            || fail_marker 'verified publication outputs are incomplete.'
+          marker=".github/staging/modrinth-published-${MOD_VERSION}.json"
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/contents/${marker}"
+          body="$(jq -n \
+            --arg v "$MOD_VERSION" \
+            --arg id "$VERSION_ID" \
+            --arg sha "$SHA512" \
+            --arg run "$GITHUB_RUN_ID" \
+            '{version:$v,release_type:"release",modrinth_version_id:$id,sha512:$sha,verified_by_run:$run}')"
+          enc="$(printf '%s\n' "$body" | base64 -w0)"
+          old="$(curl --silent --show-error \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' "$api" \
+            | jq -r '.sha // empty')"
+          payload="$(jq -n \
+            --arg m "release: record Modrinth ${MOD_VERSION}" \
+            --arg c "$enc" \
+            --arg b master \
+            --arg s "$old" \
+            'if $s=="" then {message:$m,content:$c,branch:$b} else {message:$m,content:$c,branch:$b,sha:$s} end')"
+          if ! curl --fail --silent --show-error -X PUT \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "$api" -d "$payload" >/dev/null; then
+            fail_marker 'GitHub rejected the verified publication marker.'
+          fi

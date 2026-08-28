@@ -32,23 +32,26 @@ public abstract class TransportItemsBetweenContainersMixin {
 
     @Inject(method = "checkExtraStartConditions(Lnet/minecraft/server/level/ServerLevel;Lnet/minecraft/world/entity/PathfinderMob;)Z", at = @At("HEAD"), cancellable = true)
     private void totemAutomata$requireBindingBeforeTransport(ServerLevel level, PathfinderMob mob, CallbackInfoReturnable<Boolean> cir) {
-        if (mob instanceof CopperGolem golem
-                && (!CopperGolemSortingAuthority.sortingMode(golem)
-                || !CopperGolemSortingAuthority.hasBinding(golem)
-                || !CopperGolemSortingAuthority.transportEnabled(golem)
-                || CopperGolemSortingAuthority.sortingBlocked(golem)
+        if (mob instanceof CopperGolem golem) {
+            CopperGolemSortingAuthority.State state = CopperGolemSortingAuthority.snapshot(golem);
+            if (!state.sortingMode()
+                || !state.hasBinding()
+                || !state.transportEnabled()
+                || state.sortingBlocked()
                 || (golem.getMainHandItem().isEmpty()
-                && (!CopperGolemSortingAuthority.hasSource(golem)
-                || !CopperGolemSortingAuthority.hasFuel(golem, level))))) {
-            cir.setReturnValue(false);
+                && (!state.hasSource()
+                || !state.hasFuel(level)))) {
+                cir.setReturnValue(false);
+            }
         }
     }
 
     @Inject(method = "getTransportTarget", at = @At("HEAD"), cancellable = true)
     private void totemAutomata$useBoundCopperGolemTarget(ServerLevel level, PathfinderMob mob, CallbackInfoReturnable<Optional<TransportItemTarget>> cir) {
-        if (!(mob instanceof CopperGolem golem) || !CopperGolemSortingAuthority.sortingMode(golem) || mob.getMainHandItem().isEmpty()) return;
-        if (!CopperGolemSortingAuthority.hasBinding(golem)) return;
-        if (!CopperGolemSortingAuthority.transportEnabled(golem)) { cir.setReturnValue(Optional.empty()); return; }
+        if (!(mob instanceof CopperGolem golem) || mob.getMainHandItem().isEmpty()) return;
+        CopperGolemSortingAuthority.State state = CopperGolemSortingAuthority.snapshot(golem);
+        if (!state.sortingMode() || !state.hasBinding()) return;
+        if (!state.transportEnabled()) { cir.setReturnValue(Optional.empty()); return; }
         Optional<TransportItemTarget> target = CopperGolemSortingAuthority.nextDestination(golem, level, mob.getMainHandItem());
         if (target.isPresent()) { cir.setReturnValue(target); return; }
         CopperGolemSortingAuthority.returnCarried(golem, level);
@@ -60,18 +63,18 @@ public abstract class TransportItemsBetweenContainersMixin {
 
     @Inject(method = "isWantedBlock", at = @At("HEAD"), cancellable = true)
     private void totemAutomata$acceptBoundCopperGolemTargetState(PathfinderMob mob, BlockState state, CallbackInfoReturnable<Boolean> cir) {
-        if (mob instanceof CopperGolem golem && !mob.getMainHandItem().isEmpty()
-                && CopperGolemSortingAuthority.sortingMode(golem)
-                && CopperGolemSortingAuthority.hasBinding(golem)
-                && CopperGolemSortingAuthority.transportEnabled(golem)) cir.setReturnValue(true);
+        if (mob instanceof CopperGolem golem && !mob.getMainHandItem().isEmpty()) {
+            CopperGolemSortingAuthority.State snapshot = CopperGolemSortingAuthority.snapshot(golem);
+            if (snapshot.sortingMode() && snapshot.hasBinding() && snapshot.transportEnabled()) cir.setReturnValue(true);
+        }
     }
 
     @Inject(method = "pickUpItems", at = @At("HEAD"), cancellable = true)
     private void totemAutomata$pickUpSortableItem(PathfinderMob mob, Container container, CallbackInfo ci) {
-        if (!(mob instanceof CopperGolem golem) || !CopperGolemSortingAuthority.sortingMode(golem)
-                || !CopperGolemSortingAuthority.hasSource(golem) || !CopperGolemSortingAuthority.hasBinding(golem)
-                || !CopperGolemSortingAuthority.transportEnabled(golem) || !(mob.level() instanceof ServerLevel level) || target == null) return;
-        if (!CopperGolemSortingAuthority.sourceAt(golem, level, target.pos()) || !CopperGolemSortingAuthority.hasFuel(golem, level)) {
+        if (!(mob instanceof CopperGolem golem) || !(mob.level() instanceof ServerLevel level) || target == null) return;
+        CopperGolemSortingAuthority.State state = CopperGolemSortingAuthority.snapshot(golem);
+        if (!state.sortingMode() || !state.hasSource() || !state.hasBinding() || !state.transportEnabled()) return;
+        if (!state.sourceAt(level, target.pos()) || !state.hasFuel(level)) {
             stopTargetingCurrentTarget(mob); ci.cancel(); return;
         }
         ItemStack picked = CopperGolemSortingAuthority.pickUp(golem, level, container, target.pos());
@@ -85,9 +88,9 @@ public abstract class TransportItemsBetweenContainersMixin {
 
     @Inject(method = "putDownItem", at = @At("HEAD"), cancellable = true)
     private void totemAutomata$putDownItemIntoDestination(PathfinderMob mob, Container container, CallbackInfo ci) {
-        if (!(mob instanceof CopperGolem golem) || !CopperGolemSortingAuthority.sortingMode(golem)
-                || !CopperGolemSortingAuthority.hasBinding(golem) || !CopperGolemSortingAuthority.transportEnabled(golem)
-                || !(mob.level() instanceof ServerLevel level) || target == null) return;
+        if (!(mob instanceof CopperGolem golem) || !(mob.level() instanceof ServerLevel level) || target == null) return;
+        CopperGolemSortingAuthority.State state = CopperGolemSortingAuthority.snapshot(golem);
+        if (!state.sortingMode() || !state.hasBinding() || !state.transportEnabled()) return;
         Optional<ItemStack> remaining = CopperGolemSortingAuthority.deposit(golem, level, target.pos(), container);
         if (remaining.isEmpty()) return;
         ItemStack remainingStack = remaining.get();
@@ -101,7 +104,9 @@ public abstract class TransportItemsBetweenContainersMixin {
 
     @Inject(method = "putDownItem", at = @At("TAIL"))
     private void totemAutomata$clearSourceAfterPuttingDownItem(PathfinderMob mob, Container container, CallbackInfo ci) {
-        if (mob instanceof CopperGolem golem && CopperGolemSortingAuthority.sortingMode(golem)
-                && mob.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()) CopperGolemSortingAuthority.clearRememberedSource(golem);
+        if (mob instanceof CopperGolem golem && mob.getItemInHand(InteractionHand.MAIN_HAND).isEmpty()
+                && CopperGolemSortingAuthority.snapshot(golem).sortingMode()) {
+            CopperGolemSortingAuthority.clearRememberedSource(golem);
+        }
     }
 }

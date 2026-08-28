@@ -44,7 +44,21 @@ public final class GatheringRuntimeState {
         clearTargetTags(tag); tag.remove(SCAN_INDEX); clearNearestCursor(tag); if (clearSkippedTargets) tag.remove(SKIPPED_TARGETS);
         tag.remove(WARMUP_INDEX); tag.remove(RETRY_TICK); tag.remove(CopperGolemData.TAG_ACTIVITY);
     }
-    public static void setActivity(CompoundTag tag, CopperGolemActivity activity) { tag.putString(CopperGolemData.TAG_ACTIVITY, activity.id()); }
+    /** Writes an activity only when it is an actual state transition. */
+    public static boolean setActivity(CompoundTag tag, CopperGolemActivity activity) {
+        if (CopperGolemData.activity(tag) == activity
+                && tag.getStringOr(CopperGolemData.TAG_ACTIVITY, "").equals(activity.id())) {
+            return false;
+        }
+        tag.putString(CopperGolemData.TAG_ACTIVITY, activity.id());
+        return true;
+    }
+    /** Clears a rejected target while preserving the resumable cursor. */
+    public static void deferTarget(CompoundTag tag, long retryTick) {
+        clearTargetTags(tag);
+        tag.putLong(RETRY_TICK, retryTick);
+        setActivity(tag, CopperGolemActivity.BLOCKED_NO_VALID_TARGET);
+    }
     public static void clearTarget(CompoundTag tag) { clearTargetTags(tag); tag.remove(CopperGolemData.TAG_ACTIVITY); }
     private static void clearTargetRetry(CompoundTag tag) { tag.remove(RETRY_TICK); }
     private static void clearTargetTags(CompoundTag tag) { tag.remove(TARGET_X); tag.remove(TARGET_Y); tag.remove(TARGET_Z); }

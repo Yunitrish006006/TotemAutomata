@@ -32,22 +32,22 @@ public final class GatheringDeposit {
     }
     private static void simulate(Container container, List<ItemStack> slots, ItemStack remaining) {
         for (int slot = 0; slot < slots.size() && !remaining.isEmpty(); slot++) {
-            ItemStack existing = slots.get(slot); if (existing.isEmpty() || !ItemStack.isSameItemSameComponents(existing, remaining) || !container.canPlaceItem(slot, remaining)) continue;
+            ItemStack existing = slots.get(slot); if (existing.isEmpty() || !ItemStack.isSameItemSameComponents(existing, remaining) || !ContainerInsertionPolicy.canPlace(container, slot, remaining)) continue;
             int moved = Math.min(remaining.getCount(), Math.min(existing.getMaxStackSize(), container.getMaxStackSize(remaining)) - existing.getCount());
             if (moved > 0) { existing.grow(moved); remaining.shrink(moved); slots.set(slot, existing); }
         }
         for (int slot = 0; slot < slots.size() && !remaining.isEmpty(); slot++) {
-            if (!slots.get(slot).isEmpty() || !container.canPlaceItem(slot, remaining)) continue;
+            if (!slots.get(slot).isEmpty() || !ContainerInsertionPolicy.canPlace(container, slot, remaining)) continue;
             int moved = Math.min(remaining.getCount(), container.getMaxStackSize(remaining)); slots.set(slot, remaining.copyWithCount(moved)); remaining.shrink(moved);
         }
     }
     private static void merge(Container container, int slot, ItemStack remaining) {
-        ItemStack existing = container.getItem(slot); if (existing.isEmpty() || !ItemStack.isSameItemSameComponents(existing, remaining) || !container.canPlaceItem(slot, remaining)) return;
+        ItemStack existing = container.getItem(slot); if (existing.isEmpty() || !ItemStack.isSameItemSameComponents(existing, remaining) || !ContainerInsertionPolicy.canPlace(container, slot, remaining)) return;
         int moved = Math.min(remaining.getCount(), Math.min(existing.getMaxStackSize(), container.getMaxStackSize(remaining)) - existing.getCount());
         if (moved > 0) { existing.grow(moved); remaining.shrink(moved); container.setItem(slot, existing); }
     }
     private static void place(Container container, int slot, ItemStack remaining) {
-        if (!container.getItem(slot).isEmpty() || !container.canPlaceItem(slot, remaining)) return;
+        if (!container.getItem(slot).isEmpty() || !ContainerInsertionPolicy.canPlace(container, slot, remaining)) return;
         int moved = Math.min(remaining.getCount(), container.getMaxStackSize(remaining)); if (moved > 0) { container.setItem(slot, remaining.copyWithCount(moved)); remaining.shrink(moved); }
     }
 }

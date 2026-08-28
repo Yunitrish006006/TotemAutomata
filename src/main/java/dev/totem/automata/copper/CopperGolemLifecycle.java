@@ -23,8 +23,11 @@ public final class CopperGolemLifecycle {
 
     /** Clears the virtual gathering tool/storage display without touching sorting cargo. */
     public static void clearGatheringDisplayedItem(CopperGolem golem) {
+        if (golem.getMainHandItem().isEmpty()) {
+            return;
+        }
         CompoundTag tag = CopperGolemData.readEntityTag(golem);
-        if (CopperGolemData.mode(tag) == CopperGolemMode.GATHERING && !golem.getMainHandItem().isEmpty()) {
+        if (CopperGolemData.mode(tag) == CopperGolemMode.GATHERING) {
             golem.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
         }
     }

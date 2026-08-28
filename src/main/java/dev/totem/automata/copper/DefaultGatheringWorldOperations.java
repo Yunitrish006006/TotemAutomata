@@ -11,9 +11,15 @@ import java.util.List;
 /** Concrete module-owned prerequisite, scanner, and deposit operations for gathering. */
 public final class DefaultGatheringWorldOperations implements PersistedGatheringBehavior.WorldOperations {
     private static final String TOOL="deadrecall_gathering_tool_stack";
-    @Override public boolean hasHome(CopperGolem golem, ServerLevel level) { return GatheringHomeResolver.resolve(CopperGolemData.readEntityTag(golem), level).isPresent(); }
-    @Override public boolean hasFuel(CopperGolem golem, ServerLevel level) { return CopperGolemFuelService.hasFuelAvailable(CopperGolemData.readEntityTag(golem), level); }
+    @Override public boolean hasHome(CopperGolem golem, ServerLevel level, CompoundTag tag) { return GatheringHomeResolver.resolve(tag, level).isPresent(); }
+    @Override public boolean hasFuel(CopperGolem golem, ServerLevel level, CompoundTag tag) { return CopperGolemFuelService.hasFuelAvailable(tag, level); }
     @Override public boolean hasTargetRules(CopperGolem golem, CompoundTag tag) { return GatheringTargetPolicy.hasRules(GatheringConfiguration.manualTargets(tag), GatheringLlmState.read(tag), GolemLlmState.read(tag)); }
+    @Override public boolean isCheaplyValidTarget(CopperGolem golem, ServerLevel level, CompoundTag tag,
+                                                   GatheringScanCursor.Bounds bounds, BlockPos pos) {
+        var home = GatheringHomeResolver.resolve(tag, level);
+        return home.isPresent() && GatheringTargetPreconditions.eligible(
+                level, bounds, home.get().binding(), CopperGolemData.readBindings(tag), pos);
+    }
     @Override public boolean isValidTarget(CopperGolem golem, ServerLevel level, CompoundTag tag, BlockPos pos) {
         var home=GatheringHomeResolver.resolve(tag,level); var bounds=GatheringConfiguration.scanBounds(tag,level.dimension()); if(home.isEmpty()||bounds.isEmpty())return false;
         if(!GatheringTargetPreconditions.eligible(level,bounds.get(),home.get().binding(),CopperGolemData.readBindings(tag),pos)||GatheringNavigation.destinations(level,golem,pos).isEmpty())return false;
@@ -35,8 +41,47 @@ public final class DefaultGatheringWorldOperations implements PersistedGathering
                 .ifPresent(home->GatheringHomeDeposit.tick(golem,level,home.binding().containerPos(),home.container(),storage));
     }
     @Override public void stop(CopperGolem golem) { golem.getNavigation().stop(); }
-    @Override public void tickTarget(CopperGolem golem, ServerLevel level, BlockPos target) {
-        if (golem.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(target)) > 4D) { CompoundTag moving=CopperGolemData.readEntityTag(golem); GatheringRuntimeState.setActivity(moving, CopperGolemActivity.MOVING_TO_TARGET); CopperGolemData.writeEntityTag(golem,moving); GatheringNavigation.moveOrSkip(golem, level, target); return; }
-        CompoundTag tag=CopperGolemData.readEntityTag(golem); GatheringRuntimeState.setActivity(tag,CopperGolemActivity.WORKING); var state=level.getBlockState(target); ItemStack tool=CopperGolemData.readItemStack(tag,TOOL,level.registryAccess()); var progress=GatheringBreakProgress.advance(tag,level,target,state,tool); CopperGolemData.writeEntityTag(golem,tag); level.destroyBlockProgress(golem.getId(),target,progress.crackStage()); if(progress.progressTicks()%5==0){level.levelEvent(2001,target,net.minecraft.world.level.block.Block.getId(state));golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND,true);} if(progress.complete()){level.destroyBlockProgress(golem.getId(),target,-1);GatheringOperator.resolve(golem,level).ifPresent(player->{var result=GatheringBlockBreaker.breakTarget(golem,level,player,target);if(result==GatheringBlockBreaker.Result.BROKEN){CopperGolemLifecycle.clearGatheringDisplayedItem(golem);CompoundTag updated=CopperGolemData.readEntityTag(golem);GatheringRuntimeState.setActivity(updated,CopperGolemActivity.SEARCHING);CopperGolemData.writeEntityTag(golem,updated);}else if(result==GatheringBlockBreaker.Result.TOOL_BROKEN){CopperGolemLifecycle.clearGatheringDisplayedItem(golem);}});}
+    @Override public void tickTarget(CopperGolem golem, ServerLevel level, CompoundTag tag, BlockPos target) {
+        if (golem.distanceToSqr(net.minecraft.world.phys.Vec3.atCenterOf(target)) > 4D) {
+            if (GatheringRuntimeState.setActivity(tag, CopperGolemActivity.MOVING_TO_TARGET)) CopperGolemData.writeEntityTag(golem,tag);
+            GatheringNavigation.moveOrSkip(golem, level, target);
+            return;
+        }
+        GatheringNavigation.forget(golem);
+        GatheringRuntimeState.setActivity(tag, CopperGolemActivity.WORKING);
+        var state = level.getBlockState(target);
+        ItemStack tool = CopperGolemData.readItemStack(tag, TOOL, level.registryAccess());
+        var progress = GatheringBreakProgress.advance(tag, level, target, state, tool);
+        CopperGolemData.writeEntityTag(golem, tag);
+        level.destroyBlockProgress(golem.getId(), target, progress.crackStage());
+        if (progress.progressTicks() % 5 == 0) {
+            level.levelEvent(2001, target, net.minecraft.world.level.block.Block.getId(state));
+            golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND, true);
+        }
+        if (!progress.complete()) return;
+
+        level.destroyBlockProgress(golem.getId(), target, -1);
+        GatheringBlockBreaker.Result result = GatheringOperator.resolve(golem, level)
+                .map(player -> GatheringBlockBreaker.breakTarget(golem, level, player, target))
+                .orElse(GatheringBlockBreaker.Result.REJECTED);
+        if (result == GatheringBlockBreaker.Result.BROKEN) {
+            CopperGolemLifecycle.clearGatheringDisplayedItem(golem);
+            CompoundTag updated = CopperGolemData.readEntityTag(golem);
+            if (GatheringRuntimeState.setActivity(updated, CopperGolemActivity.SEARCHING)) {
+                CopperGolemData.writeEntityTag(golem, updated);
+            }
+        } else if (result == GatheringBlockBreaker.Result.TOOL_BROKEN) {
+            CopperGolemLifecycle.clearGatheringDisplayedItem(golem);
+        } else {
+            CompoundTag rejected = CopperGolemData.readEntityTag(golem);
+            GatheringBreakProgress.clear(rejected);
+            GatheringRuntimeState.deferTarget(
+                    rejected,
+                    level.getGameTime() + GatheringScanCursor.RETRY_TICKS
+            );
+            CopperGolemData.writeEntityTag(golem, rejected);
+            CopperGolemLifecycle.clearGatheringDisplayedItem(golem);
+            golem.getNavigation().stop();
+        }
     }
 }

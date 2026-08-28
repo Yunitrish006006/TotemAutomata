@@ -27,23 +27,26 @@ public abstract class AbstractSortingOperations implements SortingOperations {
             BLOCKED_SOURCE_DIM = "deadrecall_blocked_source_container_dim",
             BLOCKED_SOURCE_X = "deadrecall_blocked_source_container_x", BLOCKED_SOURCE_Y = "deadrecall_blocked_source_container_y",
             BLOCKED_SOURCE_Z = "deadrecall_blocked_source_container_z", BLOCKED_SOURCE_HASH = "deadrecall_blocked_source_hash",
-            BLOCKED_BINDINGS_HASH = "deadrecall_blocked_bindings_hash", BLOCKED_TARGETS_HASH = "deadrecall_blocked_targets_hash";
+            BLOCKED_BINDINGS_HASH = "deadrecall_blocked_bindings_hash", BLOCKED_TARGETS_HASH = "deadrecall_blocked_targets_hash",
+            BLOCKED_RETRY_DELAY = "totem_automata_sorting_blocked_retry_delay",
+            BLOCKED_NEXT_RETRY = "totem_automata_sorting_blocked_next_retry_tick";
 
     @Override public List<CopperGolemBinding> bindings(CopperGolem golem) { return CopperGolemData.readBindings(tag(golem)); }
     @Override public boolean canAccept(CopperGolem golem, ServerLevel level, CopperGolemBinding binding, Container container, ItemStack carried) {
         return acceptsByCachedDecision(golem, binding, carried) && SortingDestinationService.canAccept(container, carried);
     }
     @Override public OptionalInt sortableSourceSlot(CopperGolem golem, ServerLevel level, Container source, BlockPos sourcePos) {
+        RouteSnapshot snapshot = routeSnapshot(golem);
         for (int slot = 0; slot < source.getContainerSize(); slot++) {
             ItemStack stack = source.getItem(slot);
             if (stack.isEmpty()) continue;
             ItemStack candidate = stack.copyWithCount(Math.min(stack.getCount(), maxTransportStackSize()));
-            for (CopperGolemBinding binding : bindings(golem)) {
+            for (CopperGolemBinding binding : snapshot.bindings()) {
                 if (!binding.dimension().equals(level.dimension()) || binding.containerPos().equals(sourcePos)) continue;
                 var target = target(level, binding.containerPos());
                 if (target != null
                         && mayTransfer(golem, level, sourcePos, binding.containerPos())
-                        && canAccept(golem, level, binding, target.container(), candidate)) {
+                        && canAccept(golem, level, binding, target.container(), candidate, snapshot)) {
                     return OptionalInt.of(slot);
                 }
             }
@@ -58,7 +61,9 @@ public abstract class AbstractSortingOperations implements SortingOperations {
         return readBindingList(tag, TRIED_DESTINATIONS);
     }
     @Override public Optional<Source> rememberedSource(CopperGolem golem) {
-        CompoundTag tag = tag(golem);
+        return rememberedSource(tag(golem));
+    }
+    private static Optional<Source> rememberedSource(CompoundTag tag) {
         if (!tag.contains(SOURCE_SLOT)) return Optional.empty();
         Optional<CopperGolemBinding> remembered = CopperGolemData.readBinding(
                 tag,
@@ -83,9 +88,32 @@ public abstract class AbstractSortingOperations implements SortingOperations {
         return net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers.TransportItemTarget.tryCreatePossibleTarget(pos, level);
     }
     @Override public void rememberTriedDestination(CopperGolem golem, CopperGolemBinding binding) {
-        CompoundTag tag = tag(golem); List<CopperGolemBinding> tried = new ArrayList<>(readBindingList(tag, TRIED_DESTINATIONS));
-        if (tried.contains(binding)) return;
-        tried.add(binding); writeBindingList(tag, TRIED_DESTINATIONS, tried); write(golem, tag);
+        rememberTriedDestinations(golem, List.of(binding));
+    }
+    @Override public void rememberTriedDestinations(CopperGolem golem, List<CopperGolemBinding> attempted) {
+        if (attempted.isEmpty()) return;
+        CompoundTag tag = tag(golem);
+        List<CopperGolemBinding> tried = new ArrayList<>(readBindingList(tag, TRIED_DESTINATIONS));
+        boolean changed = false;
+        for (CopperGolemBinding binding : attempted) {
+            if (!tried.contains(binding)) {
+                tried.add(binding);
+                changed = true;
+            }
+        }
+        if (!changed) return;
+        writeBindingList(tag, TRIED_DESTINATIONS, tried);
+        write(golem, tag);
+    }
+
+    @Override public RouteSnapshot routeSnapshot(CopperGolem golem) {
+        CompoundTag snapshot = tag(golem);
+        return new RouteSnapshot(
+                CopperGolemData.readBindings(snapshot),
+                readBindingList(snapshot, TRIED_DESTINATIONS),
+                rememberedSource(snapshot),
+                snapshot
+        );
     }
     @Override public boolean hasFuel(CopperGolem golem, ServerLevel level) { return CopperGolemFuelService.hasFuelAvailable(tag(golem), level); }
     @Override public int maxTransportStackSize() { return 16; }
@@ -106,9 +134,11 @@ public abstract class AbstractSortingOperations implements SortingOperations {
     }
     @Override public void markBlocked(CopperGolem golem, ServerLevel level, BlockPos sourcePos, Container source) {
         CompoundTag tag = tag(golem); tag.putBoolean(BLOCKED, true); tag.remove(BLOCKED_ACCESS);
+        List<CopperGolemBinding> bindings = CopperGolemData.readBindings(tag);
         CopperGolemData.writeBinding(tag, new CopperGolemBinding(level.dimension(), sourcePos.immutable()), BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z);
-        tag.putInt(BLOCKED_SOURCE_HASH, hash(source)); tag.putInt(BLOCKED_BINDINGS_HASH, hashBindings(bindings(golem))); tag.putInt(BLOCKED_TARGETS_HASH, hashTargets(golem, level));
-        tag.remove(TRIED_DESTINATIONS); write(golem, tag); clearRememberedSource(golem);
+        tag.putInt(BLOCKED_SOURCE_HASH, hash(source)); tag.putInt(BLOCKED_BINDINGS_HASH, hashBindings(bindings)); tag.putInt(BLOCKED_TARGETS_HASH, hashTargets(golem, level, bindings));
+        initializeBlockedRetry(tag, golem.tickCount);
+        tag.remove(TRIED_DESTINATIONS); clearRememberedSource(tag); write(golem, tag);
     }
     @Override public void markAccessBlocked(CopperGolem golem, ServerLevel level, BlockPos sourcePos) {
         CompoundTag tag = tag(golem);
@@ -119,9 +149,10 @@ public abstract class AbstractSortingOperations implements SortingOperations {
         tag.remove(BLOCKED_SOURCE_HASH);
         tag.remove(BLOCKED_BINDINGS_HASH);
         tag.remove(BLOCKED_TARGETS_HASH);
+        initializeBlockedRetry(tag, golem.tickCount);
         tag.remove(TRIED_DESTINATIONS);
+        clearRememberedSource(tag);
         write(golem, tag);
-        clearRememberedSource(golem);
     }
     @Override public boolean shouldClearBlocked(CopperGolem golem, ServerLevel level) {
         CompoundTag tag = tag(golem);
@@ -132,16 +163,29 @@ public abstract class AbstractSortingOperations implements SortingOperations {
         Optional<CopperGolemBinding> source = CopperGolemData.readBinding(tag, BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z);
         if (source.isEmpty() || !source.get().dimension().equals(level.dimension())) return true;
         var target = target(level, source.get().containerPos()); if (target == null) return true;
+        List<CopperGolemBinding> bindings = CopperGolemData.readBindings(tag);
         return tag.getIntOr(BLOCKED_SOURCE_HASH, 0) != hash(target.container())
-                || tag.getIntOr(BLOCKED_BINDINGS_HASH, 0) != hashBindings(bindings(golem))
-                || tag.getIntOr(BLOCKED_TARGETS_HASH, 0) != hashTargets(golem, level);
+                || tag.getIntOr(BLOCKED_BINDINGS_HASH, 0) != hashBindings(bindings)
+                || tag.getIntOr(BLOCKED_TARGETS_HASH, 0) != hashTargets(golem, level, bindings);
+    }
+    @Override public boolean blockedRetryDue(CopperGolem golem) {
+        CompoundTag tag = tag(golem);
+        return SortingBlockedBackoff.due(golem.tickCount, tag.getLongOr(BLOCKED_NEXT_RETRY, 0));
+    }
+    @Override public void advanceBlockedRetry(CopperGolem golem) {
+        CompoundTag tag = tag(golem);
+        int delay = SortingBlockedBackoff.nextDelay(tag.getIntOr(BLOCKED_RETRY_DELAY, 0));
+        tag.putInt(BLOCKED_RETRY_DELAY, delay);
+        tag.putLong(BLOCKED_NEXT_RETRY, (long) golem.tickCount + delay);
+        write(golem, tag);
     }
     @Override public void clearBlocked(CopperGolem golem) {
         CompoundTag tag = tag(golem); boolean changed = false;
-        for (String key : List.of(BLOCKED, BLOCKED_ACCESS, BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z, BLOCKED_SOURCE_HASH, BLOCKED_BINDINGS_HASH, BLOCKED_TARGETS_HASH)) {
+        for (String key : List.of(BLOCKED, BLOCKED_ACCESS, BLOCKED_SOURCE_DIM, BLOCKED_SOURCE_X, BLOCKED_SOURCE_Y, BLOCKED_SOURCE_Z, BLOCKED_SOURCE_HASH, BLOCKED_BINDINGS_HASH, BLOCKED_TARGETS_HASH, BLOCKED_RETRY_DELAY, BLOCKED_NEXT_RETRY)) {
             if (tag.contains(key)) { tag.remove(key); changed = true; }
         }
-        if (changed) { write(golem, tag); clearRememberedSource(golem); }
+        if (clearRememberedSource(tag)) changed = true;
+        if (changed) write(golem, tag);
     }
     @Override public ItemStack returnToSource(Container source, ItemStack carried, int sourceSlot) {
         if (carried.isEmpty() || source.getContainerSize() == 0) return carried;
@@ -153,6 +197,10 @@ public abstract class AbstractSortingOperations implements SortingOperations {
     }
     @Override public void clearRememberedSource(CopperGolem golem) {
         CompoundTag tag = tag(golem);
+        if (clearRememberedSource(tag)) write(golem, tag);
+    }
+    private static boolean clearRememberedSource(CompoundTag tag) {
+        boolean changed = false;
         for (String key : List.of(
                 REMEMBERED_SOURCE_DIM,
                 REMEMBERED_SOURCE_X,
@@ -161,9 +209,12 @@ public abstract class AbstractSortingOperations implements SortingOperations {
                 SOURCE_SLOT,
                 TRIED_DESTINATIONS
         )) {
-            tag.remove(key);
+            if (tag.contains(key)) {
+                tag.remove(key);
+                changed = true;
+            }
         }
-        write(golem, tag);
+        return changed;
     }
 
     private static CompoundTag tag(CopperGolem golem) { return CopperGolemData.readEntityTag(golem); }
@@ -203,10 +254,14 @@ public abstract class AbstractSortingOperations implements SortingOperations {
     private static int hashBindings(List<CopperGolemBinding> bindings) {
         int result = 1; for (CopperGolemBinding binding : bindings) { result = 31 * result + binding.dimension().identifier().hashCode(); result = 31 * result + binding.containerPos().hashCode(); } return result;
     }
-    private int hashTargets(CopperGolem golem, ServerLevel level) {
+    private int hashTargets(CopperGolem golem, ServerLevel level, List<CopperGolemBinding> bindings) {
         int result = 1;
-        for (CopperGolemBinding binding : bindings(golem)) { result = 31 * result + binding.dimension().identifier().hashCode(); result = 31 * result + binding.containerPos().hashCode();
+        for (CopperGolemBinding binding : bindings) { result = 31 * result + binding.dimension().identifier().hashCode(); result = 31 * result + binding.containerPos().hashCode();
             if (binding.dimension().equals(level.dimension())) { var target = target(level, binding.containerPos()); result = 31 * result + (target == null ? 0 : hash(target.container())); } }
         return result;
+    }
+    private static void initializeBlockedRetry(CompoundTag tag, int gameTick) {
+        tag.putInt(BLOCKED_RETRY_DELAY, SortingBlockedBackoff.INITIAL_DELAY_TICKS);
+        tag.putLong(BLOCKED_NEXT_RETRY, (long) gameTick + SortingBlockedBackoff.INITIAL_DELAY_TICKS);
     }
 }
