@@ -476,7 +476,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_sorting_step_source"), sourceX, y + 58, 0xFF555555, false);
         graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_sorting_step_golem"), x + 64, y + 58, 0xFF555555, false);
         Component targetStep = Component.translatable("message.deadrecall.copper_wrench.ui_sorting_step_target");
-        graphics.text(font, targetStep, x + bounds.width() - 8 - font.width(targetStep),
+        graphics.text(font, targetStep, x + bounds.width() - 12 - font.width(targetStep),
                 y + 58, 0xFF555555, false);
         renderSlot(graphics, SLOT, sourceX, sourceY);
         var source = snapshot.sourceContainer();
