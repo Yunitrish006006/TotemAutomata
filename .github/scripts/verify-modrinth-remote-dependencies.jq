@@ -16,7 +16,7 @@ and ([
       type == "object"
       and .project_id == null
       and .version_id == null
-      and .file_name == $core_file
+      and (.file_name == $core_file or .file_name == null)
       and .dependency_type == "required"
     )
 ] | length) == 1

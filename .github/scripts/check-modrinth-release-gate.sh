@@ -82,6 +82,9 @@ fi
 if ! grep -Fq 'run: .github/scripts/check-modrinth-release-gate.sh' "$build_workflow"; then
   fail 'normal pull-request CI does not execute the Modrinth release gate.'
 fi
+if ! grep -Fq '(.file_name == $core_file or .file_name == null)' "$remote_filter"; then
+  fail 'remote dependency verification does not accept Modrinth-normalized null for the exact submitted TotemCore file.'
+fi
 
 if grep -Eq '^[[:space:]]+test([[:space:]]|$)' "$workflow"; then
   fail 'workflow contains bare test commands that can report only status 1.'
@@ -109,11 +112,12 @@ verify_dependencies() {
 
 accepted=(
   '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":"totem-core-0.7.12.jar"},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":null},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
   '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.12.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
 )
 for candidate in "${accepted[@]}"; do
   if ! verify_dependencies <<<"$candidate" >/dev/null; then
-    fail 'dependency verifier rejected exact project-linked metadata.'
+    fail 'dependency verifier rejected exact or Modrinth-normalized project-linked metadata.'
   fi
 done
 
