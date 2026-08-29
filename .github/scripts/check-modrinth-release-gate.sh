@@ -34,6 +34,8 @@ require_literal 'TOTEM_EXCAVATION_REFERENCE_VERSION_ID: Klewi9E3' \
   'TotemExcavation 0.1.8 Modrinth reference version is stale.'
 require_literal 'TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.12.jar' \
   'required TotemCore reference artifact is not exact.'
+require_literal "--arg core '>=0.7.12 <0.8.0'" \
+  'release JAR metadata validation still accepts a pre-Observer TotemCore range.'
 require_literal 'TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.8.jar' \
   'optional TotemExcavation reference artifact is not exact.'
 require_literal '.github/staging/modrinth-changelog-*.md' \
