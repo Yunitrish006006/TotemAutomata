@@ -29,12 +29,11 @@ concurrency:
 
 env:
   MODULE_ID: totem-automata
-  CORE_REF: 82b21944b1e4865f5d34f13febc5049d936a636f
+  CORE_REF: e9dc2975cca37210f9d3bab2df4830e81af77295
   EXCAVATION_REF: 6b54011195b81ec9a9a09146d162ba303ebd8ee4
   FABRIC_API_PROJECT_ID: P7dR8mSH
-  TOTEM_CORE_REFERENCE_VERSION_ID: iOzAgHtL
   TOTEM_EXCAVATION_REFERENCE_VERSION_ID: Klewi9E3
-  TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.11.jar
+  TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.12.jar
   TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.8.jar
 
 jobs:
@@ -136,8 +135,8 @@ jobs:
 
           chmod +x .lockstep/TotemCore/gradlew
           core="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
-          [[ "$core" == 0.7.11 ]] \
-            || fail_release_build 'pinned TotemCore checkout is not version 0.7.11.'
+          [[ "$core" == 0.7.12 ]] \
+            || fail_release_build 'pinned TotemCore checkout is not version 0.7.12.'
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore \
             clean jar --no-daemon --stacktrace
           core_jar="$GITHUB_WORKSPACE/.lockstep/TotemCore/build/libs/totem-core-${core}.jar"
@@ -287,32 +286,10 @@ jobs:
           excavation_dependency_file="${excavation_archive}-${excavation_version}.jar"
           [[ "$core_dependency_file" == "$TOTEM_CORE_DEPENDENCY_FILE" \
               && -f ".lockstep/TotemCore/build/libs/${core_dependency_file}" ]] \
-            || fail_release 'pinned TotemCore reference artifact is not exactly totem-core-0.7.11.jar.'
+            || fail_release 'pinned TotemCore reference artifact is not exactly totem-core-0.7.12.jar.'
           [[ "$excavation_dependency_file" == "$TOTEM_EXCAVATION_DEPENDENCY_FILE" \
               && -f ".lockstep/TotemExcavation/build/libs/${excavation_dependency_file}" ]] \
             || fail_release 'pinned TotemExcavation reference artifact is not exactly totem-excavation-0.1.8.jar.'
-
-          fetch_modrinth_json 'TotemCore dependency version' \
-            "version/${TOTEM_CORE_REFERENCE_VERSION_ID}" \
-            /tmp/core-dependency-version.json object
-          if ! core_dependency_project="$(jq -er \
-              --arg id "$TOTEM_CORE_REFERENCE_VERSION_ID" \
-              --arg version "$core_version" \
-              --arg file "$core_dependency_file" \
-              --arg mc "$mc" \
-              'select(.id == $id
-                      and .version_number == $version
-                      and .version_type == "release"
-                      and (.game_versions | type) == "array"
-                      and (.game_versions | index($mc)) != null
-                      and (.loaders | type) == "array"
-                      and (.loaders | index("fabric")) != null
-                      and (.files | type) == "array"
-                      and any(.files[]; .filename == $file and .primary == true))
-               | .project_id | strings | select(length > 0)' \
-              /tmp/core-dependency-version.json)"; then
-            fail_release 'TotemCore dependency reference does not resolve to the pinned 0.7.11 artifact.'
-          fi
 
           fetch_modrinth_json 'TotemExcavation dependency version' \
             "version/${TOTEM_EXCAVATION_REFERENCE_VERSION_ID}" \
@@ -335,20 +312,17 @@ jobs:
               /tmp/excavation-dependency-version.json)"; then
             fail_release 'TotemExcavation dependency reference does not resolve to the pinned 0.1.8 artifact.'
           fi
-          [[ "$core_dependency_project" != "$FABRIC_API_PROJECT_ID" \
-              && "$excavation_dependency_project" != "$FABRIC_API_PROJECT_ID" \
-              && "$core_dependency_project" != "$excavation_dependency_project" \
-              && "$core_dependency_project" != "$p" \
+          [[ "$excavation_dependency_project" != "$FABRIC_API_PROJECT_ID" \
               && "$excavation_dependency_project" != "$p" ]] \
             || fail_release 'resolved Modrinth dependency projects must be distinct.'
 
           if ! deps="$(jq -nce \
               --arg fabric "$FABRIC_API_PROJECT_ID" \
-              --arg core "$core_dependency_project" \
+              --arg core_file "$core_dependency_file" \
               --arg excavation "$excavation_dependency_project" \
               '[
                 {project_id:$fabric,dependency_type:"required"},
-                {project_id:$core,dependency_type:"required"},
+                {file_name:$core_file,dependency_type:"required"},
                 {project_id:$excavation,dependency_type:"optional"}
               ]')"; then
             fail_release 'could not construct the exact three Modrinth dependencies.'
@@ -389,7 +363,7 @@ jobs:
               --arg v "$v" \
               --arg mc "$mc" \
               --arg fabric "$FABRIC_API_PROJECT_ID" \
-              --arg core "$core_dependency_project" \
+              --arg core_file "$core_dependency_file" \
               --arg excavation "$excavation_dependency_project" \
               '.project_id==$p
                and .version_number==$v
@@ -400,7 +374,7 @@ jobs:
               <<<"$data" >/dev/null \
               || ! jq -e \
                 --arg fabric "$FABRIC_API_PROJECT_ID" \
-                --arg core "$core_dependency_project" \
+                --arg core_file "$core_dependency_file" \
                 --arg excavation "$excavation_dependency_project" \
                 -f .github/scripts/verify-modrinth-remote-dependencies.jq \
                 <<<"$data" >/dev/null; then
@@ -434,7 +408,7 @@ jobs:
           fi
 
           if [[ "$DRY_RUN" == true && -z "$id" ]]; then
-            echo "Validated Modrinth metadata for ${v} (release); dependency references=${FABRIC_API_PROJECT_ID},${TOTEM_CORE_REFERENCE_VERSION_ID},${TOTEM_EXCAVATION_REFERENCE_VERSION_ID}."
+            echo "Validated Modrinth metadata for ${v} (release); dependency references=${FABRIC_API_PROJECT_ID},${TOTEM_CORE_DEPENDENCY_FILE},${TOTEM_EXCAVATION_REFERENCE_VERSION_ID}."
             echo "version=$v" >> "$GITHUB_OUTPUT"
             echo "sha512=$sha" >> "$GITHUB_OUTPUT"
             exit 0
@@ -461,7 +435,7 @@ jobs:
               else
                 echo 'Modrinth version creation returned a non-JSON error body; response body suppressed.' >&2
               fi
-              echo "Modrinth version creation returned HTTP ${create_status}; expected required Fabric API and TotemCore projects plus optional TotemExcavation project." >&2
+              echo "Modrinth version creation returned HTTP ${create_status}; expected required Fabric API project and TotemCore file plus optional TotemExcavation project." >&2
               exit 1
             fi
             if ! id="$(jq -er '.id | strings | select(length > 0)' /tmp/version.json)"; then
@@ -488,7 +462,7 @@ jobs:
           fi
           if ! jq -e \
               --arg fabric "$FABRIC_API_PROJECT_ID" \
-              --arg core "$core_dependency_project" \
+              --arg core_file "$core_dependency_file" \
               --arg excavation "$excavation_dependency_project" \
               -f .github/scripts/verify-modrinth-remote-dependencies.jq \
               /tmp/remote.json >/dev/null; then
@@ -497,7 +471,7 @@ jobs:
               dependency_summary='{"dependency_count":null,"dependencies":[]}'
             fi
             printf 'Published Modrinth dependency summary: %s\n' "$dependency_summary" >&2
-            fail_release 'remote dependencies must be exactly required Fabric API and TotemCore projects plus optional TotemExcavation project.'
+            fail_release 'remote dependencies must be exactly required Fabric API project and TotemCore file plus optional TotemExcavation project.'
           fi
 
           if [[ "$DRY_RUN" == true ]]; then
