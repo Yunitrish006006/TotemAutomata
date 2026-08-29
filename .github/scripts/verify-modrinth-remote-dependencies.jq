@@ -14,9 +14,9 @@ and ([
   .dependencies[]
   | select(
       type == "object"
-      and .project_id == $core
+      and .project_id == null
       and .version_id == null
-      and .file_name == null
+      and .file_name == $core_file
       and .dependency_type == "required"
     )
 ] | length) == 1

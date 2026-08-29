@@ -4,15 +4,15 @@ TotemAutomata 讓原版銅魁儡成為可設定的分類與採集助手。玩家
 替每隻銅魁儡設定來源銅箱、目的地、工作區、燃料、工具、手動規則與
 選配的 OpenAI-compatible LLM 判斷。
 
-此分支準備發布 **0.1.17**。支援 TotemCore `>=0.7.0 <0.8.0`；目前
-建議搭配 TotemCore **0.7.11**，並持續用相容性下限 0.7.0 驗證。
+目前的 Observer 開發分支需要 TotemCore `>=0.7.12 <0.8.0`；0.7.12
+提供由 Automata 擁有 production Screen 的唯讀 semantic provider contract。
 
 ## 安裝
 
 Client 與 Server 都放入：
 
 1. Fabric API `0.154.2+26.2`
-2. TotemCore `0.7.11`（支援 `>=0.7.0 <0.8.0`）
+2. TotemCore `0.7.12`（支援 `>=0.7.12 <0.8.0`）
 3. TotemAutomata `0.1.17`
 
 | 項目 | 需求 |
@@ -20,7 +20,7 @@ Client 與 Server 都放入：
 | Minecraft | 26.2 |
 | Fabric Loader | 0.19.3+ |
 | Java | 25+ |
-| 必要 Totem 模組 | `totem-core >=0.7.0 <0.8.0` |
+| 必要 Totem 模組 | `totem-core >=0.7.12 <0.8.0` |
 | 選配 | TotemRemnant（可攜式容器安全 policy）；TotemExcavation `0.1.5+`（錘子採集）；TotemLocksmith（鎖網路權限） |
 
 Automata 不要求 DeadRecall、TotemRemnant 或 Cognition。DeadRecall bundle
@@ -135,8 +135,8 @@ API Key 放進公開截圖、issue 或 log。
 
 ## 開發與驗證
 
-CI 會用 TotemCore 0.7.0、TotemExcavation 0.1.5 驗證相容性下限，發布流程
-使用目前的 TotemCore 0.7.11、TotemExcavation 0.1.8。另會驗證不安裝
+CI 會用 TotemCore 0.7.12、TotemExcavation 0.1.5 驗證相容性下限，發布流程
+使用目前的 TotemCore 0.7.12、TotemExcavation 0.1.8。另會驗證不安裝
 TotemExcavation 的 standalone 啟動、Server GameTests 與 headless Client
 GameTests。0.1.17 新增 deterministic scheduler、zero-scan target、event lifecycle、
 stopped zero-work、navigation cadence 與 sorting backoff regression coverage。

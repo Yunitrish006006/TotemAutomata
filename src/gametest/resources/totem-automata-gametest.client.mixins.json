@@ -3,7 +3,8 @@
   "package": "dev.totem.automata.gametest.mixin.client",
   "compatibilityLevel": "JAVA_25",
   "client": [
-    "CopperGolemMenuScreenTestAccessor"
+    "CopperGolemMenuScreenTestAccessor",
+    "ObserverPacketProbeMixin"
   ],
   "injectors": {
     "defaultRequire": 1
