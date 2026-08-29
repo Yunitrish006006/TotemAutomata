@@ -471,7 +471,7 @@ jobs:
               dependency_summary='{"dependency_count":null,"dependencies":[]}'
             fi
             printf 'Published Modrinth dependency summary: %s\n' "$dependency_summary" >&2
-            fail_release 'remote dependencies must be exactly required Fabric API project and TotemCore file plus optional TotemExcavation project.'
+            fail_release 'remote dependencies must be required Fabric API, the exact TotemCore file or its Modrinth-normalized null placeholder, plus optional TotemExcavation.'
           fi
 
           if [[ "$DRY_RUN" == true ]]; then
