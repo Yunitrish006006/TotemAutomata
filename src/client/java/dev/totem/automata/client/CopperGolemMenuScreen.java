@@ -4,12 +4,16 @@ import dev.totem.automata.menu.CopperGolemMenu;
 import dev.totem.automata.menu.CopperGolemMenuLayout;
 import dev.totem.automata.mixin.client.SlotAccessor;
 import dev.totem.automata.network.CopperGolemGatheringTargetPayload;
+import dev.totem.core.api.v1.client.observer.ObserverReadOnlyScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.PreeditEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -34,7 +38,8 @@ import java.util.Set;
  * snapshot; the remaining legacy card/editor parity keeps registration
  * cutover-only for now.
  */
-public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperGolemMenu> {
+public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperGolemMenu>
+        implements ObserverReadOnlyScreen {
     private static final int INFO_ICON_SIZE = 20;
     private static final int INFO_ICON_STRIDE = 24;
     private static final int MAX_VISIBLE_SORTING_TARGETS = 5;
@@ -65,16 +70,38 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
     private ItemStack draggedFilterItem = ItemStack.EMPTY;
     private boolean targetBlocksVisible;
     private CopperGolem previewGolem;
+    private final boolean observerReadOnly;
+    private final Runnable observerStop;
 
     public CopperGolemMenuScreen(CopperGolemMenu menu, Inventory inventory, Component title) {
+        this(menu, inventory, title, false);
+    }
+
+    /** Creates the production Automata screen without target action authority. */
+    public CopperGolemMenuScreen(CopperGolemMenu menu, Inventory inventory, Component title,
+                                 boolean observerReadOnly) {
+        this(menu, inventory, title, observerReadOnly, () -> { });
+    }
+
+    public CopperGolemMenuScreen(CopperGolemMenu menu, Inventory inventory, Component title,
+                                 boolean observerReadOnly, Runnable observerStop) {
         super(menu, inventory, title, CopperGolemMenuPanelLayout.PREFERRED_WIDTH, CopperGolemMenuPanelLayout.PREFERRED_HEIGHT);
         lifecycle = new CopperGolemMenuScreenLifecycle(menu, inventory, title);
+        this.observerReadOnly = observerReadOnly;
+        this.observerStop = observerStop;
+    }
+
+    @Override public boolean totem$isObserverReadOnly() { return observerReadOnly; }
+
+    @Override public void onClose() {
+        if (observerReadOnly) observerStop.run();
+        else super.onClose();
     }
 
     @Override
     protected void init() {
         super.init();
-        lifecycle.open();
+        if (!observerReadOnly) lifecycle.open();
         var bounds = CopperGolemMenuPanelLayout.bounds(width, height);
         leftPos = bounds.x();
         topPos = bounds.y();
@@ -94,6 +121,13 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                 Component.translatable("message.deadrecall.copper_wrench.binding_prompt_hint")));
         cacheValueField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.cache_value"), editorX, bounds.y() + 108, 156, 256,
                 Component.translatable("message.deadrecall.copper_wrench.ui_filter_value_hint")));
+        if (observerReadOnly) {
+            for (EditBox field : List.of(apiUrlField, apiKeyField, modelField,
+                    gatheringPromptField, bindingPromptField, cacheValueField)) {
+                field.setValue("");
+                field.active = false;
+            }
+        }
         createPreviewGolem();
         updateEditorVisibility();
     }
@@ -110,6 +144,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
     }
 
     private void refreshSnapshotState() {
+        if (observerReadOnly) return;
         lifecycle.session().controller().snapshot().ifPresent(snapshot -> {
             menu.setGatheringSlotsVisible("gathering".equals(snapshot.mode()));
             if (menu.slots.size() > CopperGolemMenuLayout.SLOT_FUEL) {
@@ -134,13 +169,25 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
     @Override
     public void removed() {
         draggedFilterItem = ItemStack.EMPTY;
-        lifecycle.close();
+        if (!observerReadOnly) lifecycle.close();
         super.removed();
     }
 
     /** Supplies deterministic, non-secret state to the client visual GameTest. */
     void acceptSnapshotForVisualTest(dev.totem.automata.network.CopperWrenchBindingsPayload snapshot) {
         lifecycle.session().accept(snapshot);
+    }
+
+    /** Applies an already-redacted owner snapshot without issuing a request. */
+    public void acceptObserverSnapshot(dev.totem.automata.network.CopperWrenchBindingsPayload snapshot) {
+        if (!observerReadOnly) throw new IllegalStateException("Not an Observer screen");
+        lifecycle.session().accept(snapshot);
+        menu.setGatheringSlotsVisible("gathering".equals(snapshot.mode()));
+    }
+
+    /** Returns current target state for the owner provider; caller must redact it. */
+    public java.util.Optional<dev.totem.automata.network.CopperWrenchBindingsPayload> observerCaptureSource() {
+        return lifecycle.session().controller().snapshot();
     }
 
     /** Selects a binding without sending input, solely for the deterministic visual GameTest. */
@@ -150,6 +197,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
+        if (observerReadOnly) return true;
         var snapshot = lifecycle.session().controller().snapshot().orElse(null);
         var bounds = CopperGolemMenuPanelLayout.bounds(width, height);
         if (event.button() == 0 && isInside(event.x(), event.y(), bounds.x() + 104, bounds.y() + 3, 18, 18)) {
@@ -247,12 +295,14 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+        if (observerReadOnly) return true;
         if (event.button() == 0 && !draggedFilterItem.isEmpty()) return true;
         return super.mouseDragged(event, dragX, dragY);
     }
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        if (observerReadOnly) return true;
         if (event.button() == 0 && !draggedFilterItem.isEmpty()) {
             Boolean allowed = filterDropTargetAt(event.x(), event.y());
             if (allowed != null) {
@@ -266,6 +316,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        if (observerReadOnly) return true;
         var snapshot = lifecycle.session().controller().snapshot().orElse(null);
         if (ui.tab() != CopperGolemMenuUiState.Tab.BINDINGS || snapshot == null || verticalAmount == 0) {
             return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
@@ -277,6 +328,21 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
             return true;
         }
         return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
+    }
+
+    @Override
+    public boolean keyPressed(KeyEvent event) {
+        if (!observerReadOnly) return super.keyPressed(event);
+        if (event.key() == 256) onClose();
+        return true;
+    }
+
+    @Override public boolean charTyped(CharacterEvent event) {
+        return observerReadOnly || super.charTyped(event);
+    }
+
+    @Override public boolean preeditUpdated(PreeditEvent event) {
+        return observerReadOnly || super.preeditUpdated(event);
     }
 
     @Override
@@ -409,7 +475,9 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         if (ui.selected() < 0 && !snapshot.bindings().isEmpty()) ui.select(0, snapshot.bindings().size());
         graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_sorting_step_source"), sourceX, y + 58, 0xFF555555, false);
         graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_sorting_step_golem"), x + 64, y + 58, 0xFF555555, false);
-        graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_sorting_step_target"), x + 136, y + 58, 0xFF555555, false);
+        Component targetStep = Component.translatable("message.deadrecall.copper_wrench.ui_sorting_step_target");
+        graphics.text(font, targetStep, x + bounds.width() - 8 - font.width(targetStep),
+                y + 58, 0xFF555555, false);
         renderSlot(graphics, SLOT, sourceX, sourceY);
         var source = snapshot.sourceContainer();
         renderItem(graphics, source == null ? new ItemStack(Items.CHEST) : iconStack(source.itemId()), sourceX, sourceY);
@@ -438,12 +506,15 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
             }
         }
         Component sortingHint = Component.translatable(snapshot.bindings().isEmpty()
-                ? "message.deadrecall.copper_wrench.ui_sorting_bind_targets_hint"
-                : "message.deadrecall.copper_wrench.ui_sorting_edit_target_hint");
-        graphics.text(font, sortingHint, x + 48, y + 103, 0xFF3F6F9F, false);
-        graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_binding_count", snapshot.bindings().size()),
-                x + 48, y + 114, 0xFF555555, false);
-        renderPreviewGolem(graphics, bounds, snapshot, mouseX, mouseY, x + 50, x + 124);
+                ? "message.deadrecall.copper_wrench.ui_sorting_bind_targets_short"
+                : "message.deadrecall.copper_wrench.ui_sorting_edit_target_short");
+        graphics.text(font, sortingHint, x + 104, y + 103, 0xFF3F6F9F, false);
+        graphics.text(font,
+                Component.translatable("message.deadrecall.copper_wrench.ui_binding_count_short",
+                        snapshot.bindings().size()),
+                x + 104, y + 114, 0xFF555555, false);
+        renderPreviewGolem(graphics, bounds, snapshot, mouseX, mouseY,
+                x + 50, y + 67, x + 124, y + 101);
         renderFuelRemaining(graphics, bounds, snapshot, true, mouseX, mouseY);
     }
 
@@ -583,7 +654,8 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         }
         graphics.fill(x + 45, y + 51, x + 50, y + 56, 0xFFFFFFFF);
         graphics.fill(x + 41, y + 55, x + 44, y + 58, 0xFFFFFFFF);
-        renderPreviewGolem(graphics, bounds, snapshot, mouseX, mouseY, x + 8, x + 78);
+        renderPreviewGolem(graphics, bounds, snapshot, mouseX, mouseY,
+                x + 8, y + 24, x + 78, y + 118);
     }
 
     private void drawGatheringHome(GuiGraphicsExtractor graphics, CopperGolemMenuPanelLayout.Bounds bounds,
@@ -632,7 +704,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
 
     private void renderPreviewGolem(GuiGraphicsExtractor graphics, CopperGolemMenuPanelLayout.Bounds bounds,
                                     dev.totem.automata.network.CopperWrenchBindingsPayload snapshot,
-                                    int mouseX, int mouseY, int left, int right) {
+                                    int mouseX, int mouseY, int left, int top, int right, int bottom) {
         CopperGolem golem = null;
         if (Minecraft.getInstance().level != null) {
             Entity entity = Minecraft.getInstance().level.getEntity(snapshot.golemId());
@@ -640,7 +712,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         }
         if (golem == null) golem = previewGolem;
         if (golem != null) {
-            InventoryScreen.extractEntityInInventoryFollowsMouse(graphics, left, bounds.y() + 24, right, bounds.y() + 118,
+            InventoryScreen.extractEntityInInventoryFollowsMouse(graphics, left, top, right, bottom,
                     30, 0.0625F, mouseX, mouseY, golem);
         }
     }
