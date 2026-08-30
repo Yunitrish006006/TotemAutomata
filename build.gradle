@@ -9,7 +9,7 @@ group = project.maven_group
 base { archivesName = project.archives_base_name }
 
 def totemCoreJar = file(providers.gradleProperty('totemCoreJar')
-        .getOrElse('../TotemCore/build/libs/totem-core-0.7.12.jar'))
+        .getOrElse('../TotemCore/build/libs/totem-core-0.7.13.jar'))
 def totemExcavationJar = file(providers.gradleProperty('totemExcavationJar')
         .getOrElse('../TotemExcavation/build/libs/totem-excavation-0.1.8.jar'))
 def includeTotemExcavationRuntime = providers.gradleProperty('includeTotemExcavationRuntime')
@@ -83,11 +83,38 @@ dependencies {
         modRuntimeOnly files(totemExcavationJar)
     }
 
+    // Exercise the same remapped distribution JARs that players install. The
+    // standalone probe separately verifies that Excavation remains optional.
+    productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    productionRuntimeMods files(totemCoreJar)
+    if (includeTotemExcavationRuntime) {
+        productionRuntimeMods files(totemExcavationJar)
+    }
+
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.withType(Test).configureEach { useJUnitPlatform() }
+
+// Loom's production task loads the main project JAR automatically. Package the
+// Fabric GameTest source set separately so the client fixture executes against
+// that distribution artifact in the official runtime namespace.
+tasks.register('productionGametestModJar', Jar) {
+    dependsOn(sourceSets.gametest.classesTaskName, sourceSets.gametest.processResourcesTaskName)
+    archiveClassifier = 'production-gametest'
+    from sourceSets.gametest.output
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+tasks.register('runProductionClientGameTest', net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+    dependsOn('productionGametestModJar')
+    mods.from(tasks.named('productionGametestModJar').flatMap { it.archiveFile })
+    jvmArgs.add('-Dfabric.client.gametest')
+    jvmArgs.add('-Dfabric.client.gametest.disableNetworkSynchronizer=true')
+    useXVFB = System.getProperty('os.name').toLowerCase(Locale.ROOT).contains('linux')
+}
 
 tasks.register("normalizeFabricApiTweakersForNamedDevRuntime") {
     group = "fabric"
@@ -180,6 +207,12 @@ tasks.named('runClientGameTest').configure {
                     "*_automata-golem-backpack-llm.png", "*_automata-golem-backpack-llm-disabled.png")
             rename { name -> name.replaceFirst(/^\d+_/, "") }
             into(file("test-artifacts/screenshots/safe-multi-repo-modularization"))
+        }
+        copy {
+            from(file("${buildDir}/run/clientGameTest/screenshots"))
+            include("*_totem-automata-gathering-area-depth-tested.png")
+            rename { name -> name.replaceFirst(/^\d+_/, "") }
+            into(file("test-artifacts/screenshots/selection-occlusion"))
         }
     }
 }

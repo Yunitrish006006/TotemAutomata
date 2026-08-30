@@ -26,16 +26,16 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 2
 fi
 
-require_literal 'CORE_REF: e9dc2975cca37210f9d3bab2df4830e81af77295' \
+require_literal 'CORE_REF: d7aa9bbc441f064abaad377e2d47f9dbb7141af6' \
   'release TotemCore commit pin is stale.'
 require_literal 'EXCAVATION_REF: 6b54011195b81ec9a9a09146d162ba303ebd8ee4' \
   'release TotemExcavation commit pin is stale.'
 require_literal 'TOTEM_EXCAVATION_REFERENCE_VERSION_ID: Klewi9E3' \
   'TotemExcavation 0.1.8 Modrinth reference version is stale.'
-require_literal 'TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.12.jar' \
+require_literal 'TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.13.jar' \
   'required TotemCore reference artifact is not exact.'
-require_literal "--arg core '>=0.7.12 <0.8.0'" \
-  'release JAR metadata validation still accepts a pre-Observer TotemCore range.'
+require_literal "--arg core '>=0.7.13 <0.8.0'" \
+  'release JAR metadata validation still accepts a pre-outline TotemCore range.'
 require_literal 'TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.8.jar' \
   'optional TotemExcavation reference artifact is not exact.'
 require_literal '.github/staging/modrinth-changelog-*.md' \
@@ -54,6 +54,10 @@ require_literal 'version ${v} already exists with a different artifact SHA-512; 
   'existing-version SHA conflicts do not provide a clear version-bump error.'
 require_literal 'Modrinth release project: title=' \
   'project title/slug/status summary is not emitted.'
+require_literal 'Submit project for public review' \
+  'successful publication does not submit an unlisted project for public review.'
+require_literal -- '--data '\''{"requested_status":"approved"}'\''' \
+  'public-review submission does not request approved status explicitly.'
 require_literal 'version_type:"release"' \
   'Modrinth create metadata is not pinned to release.'
 require_literal 'environment:"client_and_server"' \
@@ -105,15 +109,15 @@ done
 verify_dependencies() {
   jq -e \
     --arg fabric P7dR8mSH \
-    --arg core_file totem-core-0.7.12.jar \
+    --arg core_file totem-core-0.7.13.jar \
     --arg excavation excavation-project \
     -f "$remote_filter"
 }
 
 accepted=(
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":"totem-core-0.7.12.jar"},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":"totem-core-0.7.13.jar"},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
   '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":null},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.12.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.13.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
 )
 for candidate in "${accepted[@]}"; do
   if ! verify_dependencies <<<"$candidate" >/dev/null; then
@@ -123,11 +127,11 @@ done
 
 rejected=(
   '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"wrong-core.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.12.jar"},{"dependency_type":"optional","project_id":"wrong-excavation"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"optional","file_name":"totem-core-0.7.12.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.12.jar","version_id":"wrong-version"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.12.jar"},{"dependency_type":"optional","project_id":"excavation-project","file_name":"wrong.jar"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.12.jar"},{"dependency_type":"optional","project_id":"excavation-project"},{"dependency_type":"optional","project_id":"extra"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.13.jar"},{"dependency_type":"optional","project_id":"wrong-excavation"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"optional","file_name":"totem-core-0.7.13.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.13.jar","version_id":"wrong-version"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.13.jar"},{"dependency_type":"optional","project_id":"excavation-project","file_name":"wrong.jar"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.13.jar"},{"dependency_type":"optional","project_id":"excavation-project"},{"dependency_type":"optional","project_id":"extra"}]}'
   '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},"error",{"dependency_type":"optional","project_id":"excavation-project"}]}'
 )
 for candidate in "${rejected[@]}"; do

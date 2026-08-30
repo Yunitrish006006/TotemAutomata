@@ -10,7 +10,7 @@ interactions, safe target selection, drops, fuel and tool durability.
 
 - Java 25, Fabric Loader 0.19.3+, Minecraft 26.2 and Fabric API 0.154.2+26.2
 - modern-yarn mappings and Fabric Loom 1.17.12
-- TotemCore `>=0.7.12 <0.8.0`; optional Totem modules are isolated integrations
+- TotemCore `>=0.7.13 <0.8.0`; optional Totem modules are isolated integrations
 
 ## Project Conventions
 
@@ -63,7 +63,7 @@ interactions, safe target selection, drops, fuel and tool durability.
 
 ## External Dependencies
 
-- Required: `totem-core >=0.7.12 <0.8.0`; release validation uses 0.7.12.
+- Required: `totem-core >=0.7.13 <0.8.0`; release validation uses 0.7.13.
 - Optional: `totem-excavation >=0.1.5` for explicit hammer support; release
   validation uses 0.1.8, while existing
   standalone Automata installations remain valid without it.

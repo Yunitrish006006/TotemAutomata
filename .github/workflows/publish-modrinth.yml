@@ -29,11 +29,11 @@ concurrency:
 
 env:
   MODULE_ID: totem-automata
-  CORE_REF: e9dc2975cca37210f9d3bab2df4830e81af77295
+  CORE_REF: d7aa9bbc441f064abaad377e2d47f9dbb7141af6
   EXCAVATION_REF: 6b54011195b81ec9a9a09146d162ba303ebd8ee4
   FABRIC_API_PROJECT_ID: P7dR8mSH
   TOTEM_EXCAVATION_REFERENCE_VERSION_ID: Klewi9E3
-  TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.12.jar
+  TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.13.jar
   TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.8.jar
 
 jobs:
@@ -135,8 +135,8 @@ jobs:
 
           chmod +x .lockstep/TotemCore/gradlew
           core="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
-          [[ "$core" == 0.7.12 ]] \
-            || fail_release_build 'pinned TotemCore checkout is not version 0.7.12.'
+          [[ "$core" == 0.7.13 ]] \
+            || fail_release_build 'pinned TotemCore checkout is not version 0.7.13.'
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore \
             clean jar --no-daemon --stacktrace
           core_jar="$GITHUB_WORKSPACE/.lockstep/TotemCore/build/libs/totem-core-${core}.jar"
@@ -207,7 +207,7 @@ jobs:
               --arg id "$MODULE_ID" \
               --arg v "$v" \
               --arg mc "~${mc}" \
-              --arg core '>=0.7.12 <0.8.0' \
+              --arg core '>=0.7.13 <0.8.0' \
               --arg excavation '>=0.1.5' \
               '.id==$id
                and .version==$v
@@ -286,7 +286,7 @@ jobs:
           excavation_dependency_file="${excavation_archive}-${excavation_version}.jar"
           [[ "$core_dependency_file" == "$TOTEM_CORE_DEPENDENCY_FILE" \
               && -f ".lockstep/TotemCore/build/libs/${core_dependency_file}" ]] \
-            || fail_release 'pinned TotemCore reference artifact is not exactly totem-core-0.7.12.jar.'
+            || fail_release 'pinned TotemCore reference artifact is not exactly totem-core-0.7.13.jar.'
           [[ "$excavation_dependency_file" == "$TOTEM_EXCAVATION_DEPENDENCY_FILE" \
               && -f ".lockstep/TotemExcavation/build/libs/${excavation_dependency_file}" ]] \
             || fail_release 'pinned TotemExcavation reference artifact is not exactly totem-excavation-0.1.8.jar.'
@@ -480,6 +480,31 @@ jobs:
           echo "version=$v" >> "$GITHUB_OUTPUT"
           echo "version_id=$id" >> "$GITHUB_OUTPUT"
           echo "sha512=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Submit project for public review
+        if: steps.release.outputs.should_publish == 'true' && steps.release.outputs.dry_run == 'false' && steps.modrinth.outcome == 'success'
+        shell: bash
+        env:
+          MODRINTH_TOKEN: '${{ secrets.MODRINTH_TOKEN }}'
+          MODRINTH_PROJECT_ID: '${{ secrets.MODRINTH_PROJECT_ID }}'
+        run: |
+          set -euo pipefail
+          api='https://api.modrinth.com/v2'
+          args=(--fail --silent --show-error --retry 3 \
+            -H "Authorization: ${MODRINTH_TOKEN}" \
+            -H 'User-Agent: Yunitrish006006/totem-automata-publisher/3.0')
+          curl "${args[@]}" "$api/project/${MODRINTH_PROJECT_ID}" \
+            >/tmp/project-before-review.json
+          status="$(jq -er '.status' /tmp/project-before-review.json)"
+          if [[ "$status" != 'approved' && "$status" != 'processing' ]]; then
+            curl "${args[@]}" -X PATCH -H 'Content-Type: application/json' \
+              --data '{"requested_status":"approved"}' \
+              "$api/project/${MODRINTH_PROJECT_ID}" >/dev/null
+          fi
+          curl "${args[@]}" "$api/project/${MODRINTH_PROJECT_ID}" \
+            >/tmp/project-after-review.json
+          jq -e '.status == "approved" or .status == "processing" or .requested_status == "approved"' \
+            /tmp/project-after-review.json >/dev/null
 
       - name: Record verified publication
         if: steps.release.outputs.should_publish == 'true' && steps.release.outputs.dry_run == 'false' && steps.modrinth.outcome == 'success'
