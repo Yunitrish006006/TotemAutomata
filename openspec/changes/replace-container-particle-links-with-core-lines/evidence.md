@@ -52,13 +52,24 @@ artifacts.
 - TotemCore Publish Modrinth run `33356760558` passed and verified version ID
   `AUvvmQsk`; release marker commit `8407f3a` was fetched and fast-forwarded.
 
-### Applicability and deliberately pending work
+### Automata release and applicability
 
 - Dedicated Server + Target Client + Observer Client E2E is not applicable:
   this change adds no Screen/Menu, Observer provider/session, semantic relay,
   remote-viewer state or cross-client packet path. This decision is not
   represented as a passing three-JVM test.
-- Automata's clean official-namespace Production Runtime, Build workflow and
-  Modrinth publication remain pending until the validated 0.1.20 commit is
-  pushed. They are not represented as passing before their GitHub Actions
-  results exist.
+- TotemAutomata 0.1.20 release commit
+  `52b99ad32bdc76f89565921c51b5bf1a413702fe` was pushed to `master`.
+- Build run `33357583619` passed the release gate, pinned dependency builds,
+  standalone runtime, all 39 required server GameTests and native Client
+  GameTests.
+- Production Runtime run `33357583605` passed all official-namespace Client
+  GameTests against the distribution JARs for Automata 0.1.20, Core 0.7.14 and
+  Excavation 0.1.8.
+- Publish Modrinth run `33357583618` passed clean JAR construction, remote
+  dependency/artifact verification and public-review handling. It published
+  version ID `lCFCHYGC` with the same SHA-512 recorded above.
+- Release marker commit `460d070886e4e2363f5ee17e8d5144647304b0dd` was
+  fetched and fast-forwarded; both local TotemCore and TotemAutomata working
+  trees were synchronized with their `origin/master` branches before this
+  final evidence update.

@@ -22,7 +22,7 @@
   native-scale screenshot proving solid segments do not render through a wall.
 - [x] 3.3 Run Core and Automata unit/build, server GameTest, Client GameTest and
   standalone runtime checks.
-- [ ] 3.4 After commit authorization, update Automata CI/release pins to the
+- [x] 3.4 After commit authorization, update Automata CI/release pins to the
   real Core implementation commit, then pass clean Production Runtime and
   release gates.
 
