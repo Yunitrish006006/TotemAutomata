@@ -42,6 +42,25 @@ Executed locally on 2026-08-31 with Minecraft 26.2, Java 25, Fabric Loader
   `named` namespace. An isolated-cache retry could not finish because
   `libraries.minecraft.net` DNS resolution was unavailable; this is not
   recorded as a passing Production Runtime run.
+- GitHub Actions `Production Runtime` run `33329515187` on release commit
+  `04dd84fbe48794a3bcfc7305faa2e7a0e81d7c3b` — passed. Its clean Linux runner
+  built the pinned Core and Excavation distribution JARs, then completed all
+  production-namespace client GameTests with Automata 0.1.19.
+
+### Publication and hosted validation
+
+- GitHub Actions `Build` run `33329515190` — passed, including the release
+  gate, compile/assemble, standalone runtime without Excavation, all 39 server
+  GameTests and client GameTests.
+- GitHub Actions `Publish Modrinth` run `33329515189` — passed, including clean
+  release-JAR construction, remote artifact/dependency verification, public
+  review submission and the verified-publication marker commit.
+- Modrinth version ID: `PmMsj0VN`; remote SHA-512:
+  `e64dce0b5e688fd6e89f5c368cdaa29ed0d0e90ad474efd09cf4c61f13ac820bd224ec2e8675370d6be35e3280d238a6f120286e85ec4ddc460e09eec398a11e`.
+- The authenticated publication log reported project slug `totem-automata`,
+  status `processing` and requested status `approved`. The anonymous version
+  endpoint still returned HTTP 404 during that review state, so public listing
+  approval is not claimed.
 
 ### OpenSpec
 
@@ -51,10 +70,10 @@ Executed locally on 2026-08-31 with Minecraft 26.2, Java 25, Fabric Loader
 
 ### Deliberately pending
 
-- The new GitHub Actions Production Runtime result is pending until the release
-  commit is pushed; task 3.6 remains unchecked until that run completes.
 - Dedicated Server + Target Client + Observer Client E2E is not applicable:
   the change has no Observer session, semantic provider, remote viewer or
   cross-client packet path. This applicability decision is not claimed as a
   passing three-JVM test.
-- No commit, push, GitHub Actions run or Modrinth publication was performed.
+- Modrinth public listing remains under external review; authenticated upload,
+  remote artifact verification and review submission succeeded, but anonymous
+  visibility is not claimed until the project leaves `processing`.

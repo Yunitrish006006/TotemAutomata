@@ -27,7 +27,7 @@
 - [x] 3.5 Confirm the Observer-only three-JVM Target/viewer relay gate is not
   applicable to this local world renderer, which changes no Screen/Menu,
   Observer provider, packet or cross-client state.
-- [ ] 3.6 Run the new Production Runtime workflow on the release commit and
+- [x] 3.6 Run the new Production Runtime workflow on the release commit and
   record its GitHub Actions result.
 
 ## 4. Documentation
