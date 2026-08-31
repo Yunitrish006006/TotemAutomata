@@ -4,23 +4,24 @@ TotemAutomata 讓原版銅魁儡成為可設定的分類與採集助手。玩家
 替每隻銅魁儡設定來源銅箱、目的地、工作區、燃料、工具、手動規則與
 選配的 OpenAI-compatible LLM 判斷。
 
-目前版本需要 TotemCore `>=0.7.13 <0.8.0`；除了 Automata 自有 production
-Screen 的唯讀 semantic provider contract，0.7.13 也提供共用世界框線 API。
+目前版本需要 TotemCore `>=0.7.14 <0.8.0`；除了 Automata 自有 production
+Screen 的唯讀 semantic provider contract，0.7.14 也提供共用世界框線與任意
+兩點實線 API。
 
 ## 安裝
 
 Client 與 Server 都放入：
 
 1. Fabric API `0.154.2+26.2`
-2. TotemCore `0.7.13`（支援 `>=0.7.13 <0.8.0`）
-3. TotemAutomata `0.1.19`
+2. TotemCore `0.7.14`（支援 `>=0.7.14 <0.8.0`）
+3. TotemAutomata `0.1.20`
 
 | 項目 | 需求 |
 | --- | --- |
 | Minecraft | 26.2 |
 | Fabric Loader | 0.19.3+ |
 | Java | 25+ |
-| 必要 Totem 模組 | `totem-core >=0.7.13 <0.8.0` |
+| 必要 Totem 模組 | `totem-core >=0.7.14 <0.8.0` |
 | 選配 | TotemRemnant（可攜式容器安全 policy）；TotemExcavation `0.1.5+`（錘子採集）；TotemLocksmith（鎖網路權限） |
 
 Automata 不要求 DeadRecall、TotemRemnant 或 Cognition。DeadRecall bundle
@@ -108,9 +109,11 @@ S _ _
 - 目標失效或最後提交遭拒時會清除破壞裂紋與進度並短暫退避，避免每 tick 重試。
 - 安裝 TotemExcavation 後，可把其錘子放入工具槽。不同 Hammer 掉落種類現在可以共用同一個 16-item 背包，不會因第二種掉落不同而被拒絕。
 - 目前正式 runtime 的 Copper Golem Hammer 仍採一次一個已授權目標；完整依 Hammer `area_selection` 自動跑區域的 area-job 仍屬後續 OpenSpec 工作。
-- 手持已綁定銅扳手時，採集工作區改由 TotemCore 共用框線顯示；青色框線
-  只顯示沒有被不透明方塊遮住的部分，不會穿牆。來源、目的地、目前目標與
-  阻塞狀態仍沿用各自的粒子提示。
+- 手持已綁定銅扳手時，採集工作區由 TotemCore 共用框線顯示；青色框線只
+  顯示沒有被不透明方塊遮住的部分，不會穿牆。
+- 銅魁儡與容器之間改用 TotemCore 共用實線：可用來源為橘色、可用目的地
+  為綠色、不可用容器為紅色。這些線同樣會被地形遮住，不會穿牆；目前採集
+  目標與阻塞狀態仍保留原本的粒子提示。
 
 切換模式前必須先停止；從採集切回分類前還要取出工具並清空採集背包。
 
@@ -138,8 +141,8 @@ API Key 放進公開截圖、issue 或 log。
 
 ## 開發與驗證
 
-CI 會用 TotemCore 0.7.13、TotemExcavation 0.1.5 驗證相容性下限，發布流程
-使用目前的 TotemCore 0.7.13、TotemExcavation 0.1.8。另會驗證不安裝
+CI 會用 TotemCore 0.7.14、TotemExcavation 0.1.8 驗證鎖定組合，發布流程
+使用目前的 TotemCore 0.7.14、TotemExcavation 0.1.8。另會驗證不安裝
 TotemExcavation 的 standalone 啟動、Server GameTests 與 headless Client
 GameTests。0.1.17 新增 deterministic scheduler、zero-scan target、event lifecycle、
 stopped zero-work、navigation cadence 與 sorting backoff regression coverage。

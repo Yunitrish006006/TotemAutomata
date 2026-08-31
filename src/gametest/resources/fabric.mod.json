@@ -25,6 +25,7 @@
     ],
     "fabric-client-gametest": [
       "dev.totem.automata.client.AutomataObserverProviderClientGameTest",
+      "dev.totem.automata.client.CopperGolemContainerLinksClientGameTest",
       "dev.totem.automata.client.CopperGolemGatheringAreaOutlineClientGameTest",
       "dev.totem.automata.client.CopperGolemMenuVisualGameTest",
       "dev.totem.automata.client.CopperGolemTextInputGameTest"

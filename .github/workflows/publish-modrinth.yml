@@ -29,11 +29,11 @@ concurrency:
 
 env:
   MODULE_ID: totem-automata
-  CORE_REF: d7aa9bbc441f064abaad377e2d47f9dbb7141af6
+  CORE_REF: 71422749875072b585dcf64a4c9f42ee96773543
   EXCAVATION_REF: 6b54011195b81ec9a9a09146d162ba303ebd8ee4
   FABRIC_API_PROJECT_ID: P7dR8mSH
   TOTEM_EXCAVATION_REFERENCE_VERSION_ID: Klewi9E3
-  TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.13.jar
+  TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.14.jar
   TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.8.jar
 
 jobs:
@@ -135,8 +135,8 @@ jobs:
 
           chmod +x .lockstep/TotemCore/gradlew
           core="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
-          [[ "$core" == 0.7.13 ]] \
-            || fail_release_build 'pinned TotemCore checkout is not version 0.7.13.'
+          [[ "$core" == 0.7.14 ]] \
+            || fail_release_build 'pinned TotemCore checkout is not version 0.7.14.'
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore \
             clean jar --no-daemon --stacktrace
           core_jar="$GITHUB_WORKSPACE/.lockstep/TotemCore/build/libs/totem-core-${core}.jar"
@@ -207,7 +207,7 @@ jobs:
               --arg id "$MODULE_ID" \
               --arg v "$v" \
               --arg mc "~${mc}" \
-              --arg core '>=0.7.13 <0.8.0' \
+              --arg core '>=0.7.14 <0.8.0' \
               --arg excavation '>=0.1.5' \
               '.id==$id
                and .version==$v
@@ -286,7 +286,7 @@ jobs:
           excavation_dependency_file="${excavation_archive}-${excavation_version}.jar"
           [[ "$core_dependency_file" == "$TOTEM_CORE_DEPENDENCY_FILE" \
               && -f ".lockstep/TotemCore/build/libs/${core_dependency_file}" ]] \
-            || fail_release 'pinned TotemCore reference artifact is not exactly totem-core-0.7.13.jar.'
+            || fail_release 'pinned TotemCore reference artifact is not exactly totem-core-0.7.14.jar.'
           [[ "$excavation_dependency_file" == "$TOTEM_EXCAVATION_DEPENDENCY_FILE" \
               && -f ".lockstep/TotemExcavation/build/libs/${excavation_dependency_file}" ]] \
             || fail_release 'pinned TotemExcavation reference artifact is not exactly totem-excavation-0.1.8.jar.'

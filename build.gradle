@@ -9,7 +9,7 @@ group = project.maven_group
 base { archivesName = project.archives_base_name }
 
 def totemCoreJar = file(providers.gradleProperty('totemCoreJar')
-        .getOrElse('../TotemCore/build/libs/totem-core-0.7.13.jar'))
+        .getOrElse('../TotemCore/build/libs/totem-core-0.7.14.jar'))
 def totemExcavationJar = file(providers.gradleProperty('totemExcavationJar')
         .getOrElse('../TotemExcavation/build/libs/totem-excavation-0.1.8.jar'))
 def includeTotemExcavationRuntime = providers.gradleProperty('includeTotemExcavationRuntime')
@@ -210,7 +210,8 @@ tasks.named('runClientGameTest').configure {
         }
         copy {
             from(file("${buildDir}/run/clientGameTest/screenshots"))
-            include("*_totem-automata-gathering-area-depth-tested.png")
+            include("*_totem-automata-gathering-area-depth-tested.png",
+                    "*_totem-automata-container-links-depth-tested.png")
             rename { name -> name.replaceFirst(/^\d+_/, "") }
             into(file("test-artifacts/screenshots/selection-occlusion"))
         }

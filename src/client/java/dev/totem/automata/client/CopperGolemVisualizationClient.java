@@ -12,20 +12,36 @@ import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.List;
 import java.util.UUID;
 
 /** Client-only visualization of the authoritative Copper Golem snapshot. */
 public final class CopperGolemVisualizationClient {
-    private static final int REQUEST_INTERVAL_TICKS = 40, DRAW_INTERVAL_TICKS = 8, MAX_LINE_PARTICLES = 48;
+    private static final int REQUEST_INTERVAL_TICKS = 40, DRAW_INTERVAL_TICKS = 8;
+    private static final float CONTAINER_LINK_WIDTH = 2.0F;
     private static final WorldOutlineStyle GATHERING_AREA_STYLE = new WorldOutlineStyle(
             0xFF4FC3F7,
             1.5F,
+            WorldOutlineOcclusion.DEPTH_TESTED
+    );
+    private static final WorldOutlineStyle SOURCE_CONTAINER_STYLE = new WorldOutlineStyle(
+            0xFFFFB74D,
+            CONTAINER_LINK_WIDTH,
+            WorldOutlineOcclusion.DEPTH_TESTED
+    );
+    private static final WorldOutlineStyle AVAILABLE_DESTINATION_STYLE = new WorldOutlineStyle(
+            0xFF66BB6A,
+            CONTAINER_LINK_WIDTH,
+            WorldOutlineOcclusion.DEPTH_TESTED
+    );
+    private static final WorldOutlineStyle UNAVAILABLE_CONTAINER_STYLE = new WorldOutlineStyle(
+            0xFFEF5350,
+            CONTAINER_LINK_WIDTH,
             WorldOutlineOcclusion.DEPTH_TESTED
     );
     private static UUID heldGolemId;
@@ -38,7 +54,7 @@ public final class CopperGolemVisualizationClient {
     /** Called by Automata's client cutover composition. */
     public static void initialize() {
         ClientTickEvents.END_CLIENT_TICK.register(CopperGolemVisualizationClient::tick);
-        LevelRenderEvents.BEFORE_GIZMOS.register(context -> renderGatheringAreaOutline());
+        LevelRenderEvents.BEFORE_GIZMOS.register(context -> renderWorldOutlines());
         ClientPlayNetworking.registerGlobalReceiver(CopperGolemVisualizationPayload.TYPE,
                 (payload, context) -> context.client().execute(() -> accept(payload)));
     }
@@ -77,15 +93,12 @@ public final class CopperGolemVisualizationClient {
         if (payload.activity() != null && payload.activity().startsWith("blocked_")) {
             level.addParticle(ParticleTypes.SMOKE, center.x, center.y + .6D, center.z, 0, .04D, 0);
         }
-        line(level, center, payload.source(), dimension, ParticleTypes.WAX_ON);
         if ("gathering".equals(payload.mode())) {
             target(level, payload.gatheringTarget(), dimension);
-        } else for (CopperGolemVisualizationPayload.PosEntry entry : payload.destinations()) {
-            line(level, center, entry, dimension, entry.available() ? ParticleTypes.HAPPY_VILLAGER : ParticleTypes.SMOKE);
         }
     }
 
-    private static void renderGatheringAreaOutline() {
+    private static void renderWorldOutlines() {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.level == null) return;
         UUID selected = selectedGolem(minecraft.player.getMainHandItem());
@@ -94,9 +107,12 @@ public final class CopperGolemVisualizationClient {
         CopperGolemVisualizationPayload payload = cachedPayload;
         if (selected == null || payload == null || !payload.valid()
                 || !selected.equals(payload.golemId())
-                || !dimension.equals(payload.dimension())
-                || !"gathering".equals(payload.mode())) return;
-        addGatheringAreaOutline(payload.gatheringArea(), dimension);
+                || !dimension.equals(payload.dimension())) return;
+        Vec3 center = new Vec3(payload.golemX(), payload.golemY() + .9D, payload.golemZ());
+        addContainerLinks(center, payload.source(), payload.destinations(), payload.mode(), dimension);
+        if ("gathering".equals(payload.mode())) {
+            addGatheringAreaOutline(payload.gatheringArea(), dimension);
+        }
     }
 
     static void addGatheringAreaOutline(
@@ -125,10 +141,44 @@ public final class CopperGolemVisualizationClient {
         }
     }
 
-    private static void line(ClientLevel level, Vec3 start, CopperGolemVisualizationPayload.PosEntry entry, String dimension, ParticleOptions particle) {
+    static void addContainerLinks(
+            Vec3 golemCenter,
+            CopperGolemVisualizationPayload.PosEntry source,
+            List<CopperGolemVisualizationPayload.PosEntry> destinations,
+            String mode,
+            String dimension) {
+        addContainerLink(
+                golemCenter,
+                source,
+                dimension,
+                source != null && source.available()
+                        ? SOURCE_CONTAINER_STYLE
+                        : UNAVAILABLE_CONTAINER_STYLE
+        );
+        if ("gathering".equals(mode) || destinations == null) return;
+        for (CopperGolemVisualizationPayload.PosEntry destination : destinations) {
+            addContainerLink(
+                    golemCenter,
+                    destination,
+                    dimension,
+                    destination != null && destination.available()
+                            ? AVAILABLE_DESTINATION_STYLE
+                            : UNAVAILABLE_CONTAINER_STYLE
+            );
+        }
+    }
+
+    private static void addContainerLink(
+            Vec3 golemCenter,
+            CopperGolemVisualizationPayload.PosEntry entry,
+            String dimension,
+            WorldOutlineStyle style) {
         if (entry == null || !dimension.equals(entry.dimension())) return;
-        drawLine(level, start, Vec3.atCenterOf(new BlockPos(entry.x(), entry.y(), entry.z())),
-                entry.available() ? particle : ParticleTypes.SMOKE, .9D);
+        TotemWorldOutlines.line(
+                golemCenter,
+                Vec3.atCenterOf(new BlockPos(entry.x(), entry.y(), entry.z())),
+                style
+        );
     }
 
     private static void target(ClientLevel level, CopperGolemVisualizationPayload.PosEntry target, String dimension) {
@@ -137,9 +187,5 @@ public final class CopperGolemVisualizationClient {
         for (int i = 0; i < 5; i++) level.addParticle(ParticleTypes.END_ROD, center.x, center.y - .35D + i * .25D, center.z, 0, .01D, 0);
     }
 
-    private static void drawLine(ClientLevel level, Vec3 from, Vec3 to, ParticleOptions particle, double spacing) {
-        int points = Math.max(2, Math.min(MAX_LINE_PARTICLES, (int) Math.ceil(from.distanceTo(to) / Math.max(.25D, spacing))));
-        for (int i = 0; i <= points; i++) { double t = i / (double) points; level.addParticle(particle, from.x + (to.x-from.x)*t, from.y + (to.y-from.y)*t, from.z + (to.z-from.z)*t, 0,0,0); }
-    }
     private static void clear() { heldGolemId = null; heldDimension = ""; requestCooldown = 0; drawCooldown = 0; cachedPayload = null; }
 }
