@@ -1,0 +1,1 @@
+- Add vanilla recipe-book discovery for the Copper Wrench when its progression material is obtained.
