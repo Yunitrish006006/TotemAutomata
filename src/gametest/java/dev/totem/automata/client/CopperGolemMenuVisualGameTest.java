@@ -42,6 +42,7 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
             context.getInput().setCursorPos(800, 400);
             context.waitTicks(1);
             context.takeScreenshot("automata-menu-en-us-manual-filter");
+            captureOverflowFilters(context, screen, "automata-menu-en-us-manual-filter-scrolled");
             context.getInput().setCursorPos(276, 420);
             context.getInput().holdMouse(0);
             context.waitTicks(1);
@@ -82,6 +83,8 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
             context.getInput().setCursorPos(800, 400);
             context.waitTicks(1);
             context.takeScreenshot("automata-menu-zh-tw-manual-filter");
+            captureOverflowFilters(context, traditionalChineseScreen,
+                    "automata-menu-zh-tw-manual-filter-scrolled");
             context.getInput().setCursorPos(276, 420);
             context.getInput().holdMouse(0);
             context.waitTicks(1);
@@ -188,6 +191,34 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
         }
     }
 
+    private static void captureOverflowFilters(
+            ClientGameTestContext context,
+            CopperGolemMenuScreen screen,
+            String screenshotName) {
+        context.runOnClient(client -> {
+            screen.acceptSnapshotForVisualTest(overflowSnapshot());
+            screen.selectBindingForVisualTest(0);
+        });
+        context.waitTicks(2);
+        context.runOnClient(client -> {
+            var bounds = CopperGolemMenuPanelLayout.bounds(
+                    client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight());
+            screen.mouseScrolled(bounds.x() + 20, bounds.y() + 80, 0, -1);
+            screen.mouseScrolled(bounds.x() + 106, bounds.y() + 80, 0, -1);
+            if (screen.filterScrollForVisualTest(true) != 4
+                    || screen.filterScrollForVisualTest(false) != 4) {
+                throw new IllegalStateException("Allow and deny filter lists did not scroll independently by one row");
+            }
+        });
+        context.waitTicks(2);
+        context.takeScreenshot(screenshotName);
+        context.runOnClient(client -> {
+            screen.acceptSnapshotForVisualTest(snapshot());
+            screen.selectBindingForVisualTest(0);
+        });
+        context.waitTicks(2);
+    }
+
     private static CopperWrenchBindingsPayload snapshot() {
         CopperWrenchBindingsPayload.BindingEntry source = new CopperWrenchBindingsPayload.BindingEntry(
                 "minecraft:overworld", 10, 64, 10, "minecraft:copper_chest", "minecraft:copper_chest",
@@ -198,6 +229,32 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
                 List.of(), List.of("minecraft:diamond"), List.of(), List.of());
         return new CopperWrenchBindingsPayload(
                 GOLEM_ID, 7, true, "sorting", "searching",
+                "minecraft:nether_star", 1, 800, true,
+                "minecraft:air", 0, 0, 0,
+                "minecraft:air", 0,
+                "", "", "", 0,
+                source, null, List.of(), false, "", 0, 0,
+                List.of(), List.of(), List.of(), List.of(), List.of(destination));
+    }
+
+    private static CopperWrenchBindingsPayload overflowSnapshot() {
+        CopperWrenchBindingsPayload.BindingEntry source = new CopperWrenchBindingsPayload.BindingEntry(
+                "minecraft:overworld", 10, 64, 10, "minecraft:copper_chest", "minecraft:copper_chest",
+                true, true, false, "", 0, 0, List.of(), List.of(), List.of(), List.of());
+        CopperWrenchBindingsPayload.BindingEntry destination = new CopperWrenchBindingsPayload.BindingEntry(
+                "minecraft:overworld", 16, 64, 10, "minecraft:barrel", "minecraft:barrel",
+                true, true, false, "", 22, 0,
+                List.of(
+                        "minecraft:coal", "minecraft:iron_ingot", "minecraft:gold_ingot", "minecraft:diamond",
+                        "minecraft:emerald", "minecraft:redstone", "minecraft:lapis_lazuli", "minecraft:quartz",
+                        "minecraft:copper_ingot", "minecraft:amethyst_shard", "minecraft:blaze_rod", "minecraft:ender_pearl"),
+                List.of(
+                        "minecraft:rotten_flesh", "minecraft:spider_eye", "minecraft:poisonous_potato", "minecraft:bone",
+                        "minecraft:string", "minecraft:gunpowder", "minecraft:gravel", "minecraft:dirt",
+                        "minecraft:sand", "minecraft:cobblestone"),
+                List.of(), List.of());
+        return new CopperWrenchBindingsPayload(
+                GOLEM_ID, 8, true, "sorting", "searching",
                 "minecraft:nether_star", 1, 800, true,
                 "minecraft:air", 0, 0, 0,
                 "minecraft:air", 0,

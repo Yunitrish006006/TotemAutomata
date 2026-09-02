@@ -73,3 +73,20 @@ artifacts.
   fetched and fast-forwarded; both local TotemCore and TotemAutomata working
   trees were synchronized with their `origin/master` branches before this
   final evidence update.
+
+### Live Golem endpoint follow-up — 2026-09-02
+
+- `compileJava compileClientJava compileGametestJava` passed with Java 25,
+  TotemCore 0.7.16 and TotemExcavation 0.1.10.
+- `runClientGameTest` passed in 2m 38s. The container-link fixture moved a real
+  client-tracked Copper Golem from X=0.5 to X=1.5 while retaining a deliberately
+  stale fallback snapshot, then verified the submitted line origin followed the
+  moved entity.
+- `build --no-daemon --stacktrace` passed in 3m 13s, including all 39 required
+  server GameTests and JUnit checks.
+- `openspec validate replace-container-particle-links-with-core-lines --strict`
+  passed.
+- Inspected the updated 854x480 native-scale screenshot. The orange, green and
+  red lines meet the visible Copper Golem while the stone-brick wall continues
+  to hide occluded portions. SHA-256:
+  `48adb4e32a67f0cc64b5d339536f8b6420e09f1b7e0082fdcc44af5a34ff4984`.

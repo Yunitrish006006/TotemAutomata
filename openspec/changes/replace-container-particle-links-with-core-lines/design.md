@@ -45,6 +45,12 @@ payload validity and current dimension, then submits the source line and, in
 sorting mode, all bounded destination lines. Gathering mode retains only its
 source link and current target marker.
 
+The authoritative snapshot continues to own relationship data, but its sampled
+Golem coordinates are only a fallback. While the selected Copper Golem is
+present in the client level, Automata resolves and caches that exact UUID and
+uses the entity's interpolated position as the line origin every render frame.
+This avoids two-second endpoint jumps without increasing packet cadence.
+
 ### Keep availability semantics in Automata
 
 Automata uses orange for an available source, green for an available

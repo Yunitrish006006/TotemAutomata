@@ -71,6 +71,8 @@ public final class AutomataObserverProviderClientGameTest implements FabricClien
                 require(screen.mouseClicked(new MouseButtonEvent(1, 1,
                                 new MouseButtonInfo(0, 0)), false),
                         "Observer mouse input was not consumed");
+                require(screen.mouseScrolled(1, 1, 0, -1),
+                        "Observer scroll input was not consumed");
                 require(screen.keyPressed(new KeyEvent(65, 0, 0)),
                         "Observer keyboard input was not consumed");
                 require(ObserverPacketProbe.sends() == 0,

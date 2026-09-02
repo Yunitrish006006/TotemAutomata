@@ -1,5 +1,5 @@
 {
-  "itemGroup.deadrecall.main": "DeadRecall",
+  "itemGroup.totem_automata.main": "Totem Automata",
   "advancements.deadrecall.automata_root.title": "Totem Automata",
   "advancements.deadrecall.automata_root.description": "Craft a Copper Chest, then record it with a Totem guide or a book.",
   "advancements.deadrecall.automata_manual.title": "Record the Work Order",
@@ -97,6 +97,8 @@
   "message.deadrecall.copper_wrench.ui_filter_mode_tag": "Tags",
   "message.deadrecall.copper_wrench.ui_filter_selected": "Selected: %s",
   "message.deadrecall.copper_wrench.ui_filter_switch_side_hint": "Click to move to the other side",
+  "message.deadrecall.copper_wrench.ui_filter_range": "%s–%s / %s",
+  "message.deadrecall.copper_wrench.ui_filter_scroll_hint": "Scroll over this list to browse all rules",
   "message.deadrecall.copper_wrench.ui_filter_add_allowed_title": "Add allow rule",
   "message.deadrecall.copper_wrench.ui_filter_add_denied_title": "Add deny rule",
   "message.deadrecall.copper_wrench.ui_filter_finish": "Done",

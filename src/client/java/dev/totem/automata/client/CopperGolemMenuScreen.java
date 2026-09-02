@@ -45,6 +45,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
     private static final int MAX_VISIBLE_SORTING_TARGETS = 5;
     private static final int FILTER_GRID_COLUMNS = 4;
     private static final int MAX_VISIBLE_FILTER_ENTRIES = FILTER_GRID_COLUMNS * 2;
+    private static final int FILTER_PANE_WIDTH = FILTER_GRID_COLUMNS * 18 + 4;
     private static final Identifier FURNACE_TEXTURE = Identifier.withDefaultNamespace("textures/gui/container/furnace.png");
     private static final Identifier LIT_PROGRESS = Identifier.withDefaultNamespace("container/furnace/lit_progress");
     private static final Identifier SLOT = Identifier.withDefaultNamespace("container/slot");
@@ -192,8 +193,13 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
 
     /** Selects a binding without sending input, solely for the deterministic visual GameTest. */
     void selectBindingForVisualTest(int index) {
-        lifecycle.session().controller().snapshot().ifPresent(snapshot -> ui.select(index, snapshot.bindings().size()));
+        lifecycle.session().controller().snapshot().ifPresent(snapshot -> {
+            ui.select(index, snapshot.bindings().size());
+            ui.resetFilterScroll();
+        });
     }
+
+    int filterScrollForVisualTest(boolean allowed) { return ui.filterScroll(allowed); }
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
@@ -208,6 +214,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
             lifecycle.session().switchMode();
             bindingDetailVisible = false;
             filterTextEntryVisible = false;
+            ui.resetFilterScroll();
             return true;
         }
         if (event.button() == 0 && isInside(event.x(), event.y(), bounds.x() + 152, bounds.y() + 3, 18, 18)) {
@@ -252,6 +259,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                 }
                 if (isInside(event.x(), event.y(), bounds.x() + 8, bounds.y() + 29, 18, 18)) {
                     bindingDetailVisible = false;
+                    ui.resetFilterScroll();
                     updateEditorVisibility();
                     return true;
                 }
@@ -281,6 +289,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                 bindingEditorIndex = -1;
                 bindingDetailVisible = true;
                 filterTextEntryVisible = false;
+                ui.resetFilterScroll();
                 updateEditorVisibility();
                 return true;
             }
@@ -323,6 +332,15 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         }
         var bounds = CopperGolemMenuPanelLayout.bounds(width, height);
         if ("sorting".equals(snapshot.mode())) {
+            if (bindingDetailVisible) {
+                if (!filterTextEntryVisible) {
+                    Boolean allowed = filterPaneAt(mouseX, mouseY, bounds);
+                    if (allowed != null) {
+                        scrollFilter(snapshot, allowed, verticalAmount < 0 ? 1 : -1);
+                    }
+                }
+                return true;
+            }
             int max = Math.max(0, snapshot.bindings().size() - MAX_VISIBLE_SORTING_TARGETS);
             ui.scroll(ui.scroll() + (verticalAmount < 0 ? 1 : -1), max);
             return true;
@@ -591,12 +609,16 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                     : "message.deadrecall.copper_wrench.ui_add_denied_tooltip"), mouseX, mouseY);
         }
         List<FilterEntry> entries = filterEntries(binding, allowed);
+        int scroll = ui.filterScroll(allowed);
+        ui.filterScroll(allowed, scroll, maxFilterScroll(entries.size()));
+        scroll = ui.filterScroll(allowed);
         for (int index = 0; index < MAX_VISIBLE_FILTER_ENTRIES; index++) {
             int slotX = paneX + (index % FILTER_GRID_COLUMNS) * 18;
             int slotY = paneY + 20 + (index / FILTER_GRID_COLUMNS) * 18;
             renderSlot(graphics, SLOT, slotX, slotY);
-            if (index >= entries.size()) continue;
-            FilterEntry entry = entries.get(index);
+            int entryIndex = scroll + index;
+            if (entryIndex >= entries.size()) continue;
+            FilterEntry entry = entries.get(entryIndex);
             renderItem(graphics, filterEntryIcon(entry), slotX, slotY);
             if (isInside(mouseX, mouseY, slotX, slotY, 18, 18)) {
                 graphics.setComponentTooltipForNextFrame(font, List.of(
@@ -605,6 +627,19 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                                 : "message.deadrecall.copper_wrench.cache_side_denied"),
                         Component.literal(entry.tag() ? "#" + entry.value() : entry.value()),
                         Component.translatable("message.deadrecall.copper_wrench.ui_filter_switch_side_hint")), mouseX, mouseY);
+            }
+        }
+        if (entries.size() > MAX_VISIBLE_FILTER_ENTRIES) {
+            int first = scroll + 1;
+            int last = Math.min(entries.size(), scroll + MAX_VISIBLE_FILTER_ENTRIES);
+            Component range = Component.translatable(
+                    "message.deadrecall.copper_wrench.ui_filter_range", first, last, entries.size());
+            graphics.text(font, range, paneX + (FILTER_PANE_WIDTH - font.width(range)) / 2,
+                    paneY + 58, 0xFF555555, false);
+            if (isInside(mouseX, mouseY, paneX, paneY + 20, FILTER_PANE_WIDTH, 49)) {
+                graphics.setTooltipForNextFrame(font,
+                        Component.translatable("message.deadrecall.copper_wrench.ui_filter_scroll_hint"),
+                        mouseX, mouseY);
             }
         }
     }
@@ -880,6 +915,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         if (tab == CopperGolemMenuUiState.Tab.LLM) {
             bindingDetailVisible = false;
             filterTextEntryVisible = false;
+            ui.resetFilterScroll();
         }
         updateEditorVisibility();
     }
@@ -941,11 +977,20 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
     private void refreshBindingEditor(dev.totem.automata.network.CopperWrenchBindingsPayload snapshot) {
         selectedBinding(snapshot).ifPresentOrElse(binding -> {
             if (ui.selected() != bindingEditorIndex || snapshot.revision() != bindingEditorRevision) {
+                if (ui.selected() != bindingEditorIndex) {
+                    ui.resetFilterScroll();
+                } else {
+                    ui.filterScroll(true, ui.filterScroll(true), maxFilterScroll(filterEntries(binding, true).size()));
+                    ui.filterScroll(false, ui.filterScroll(false), maxFilterScroll(filterEntries(binding, false).size()));
+                }
                 bindingPromptField.setValue(binding.llmPrompt());
                 bindingEditorIndex = ui.selected();
                 bindingEditorRevision = snapshot.revision();
             }
-        }, () -> bindingEditorIndex = -1);
+        }, () -> {
+            bindingEditorIndex = -1;
+            ui.resetFilterScroll();
+        });
     }
 
     private void updateEditorVisibility() {
@@ -1006,13 +1051,37 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
             int paneX = bounds.x() + (allowed ? 8 : 94);
             int paneY = bounds.y() + 54;
             List<FilterEntry> entries = filterEntries(binding, allowed);
-            for (int index = 0; index < Math.min(MAX_VISIBLE_FILTER_ENTRIES, entries.size()); index++) {
+            int scroll = ui.filterScroll(allowed);
+            int visible = Math.min(MAX_VISIBLE_FILTER_ENTRIES, Math.max(0, entries.size() - scroll));
+            for (int index = 0; index < visible; index++) {
                 int slotX = paneX + (index % FILTER_GRID_COLUMNS) * 18;
                 int slotY = paneY + 20 + (index / FILTER_GRID_COLUMNS) * 18;
-                if (isInside(mouseX, mouseY, slotX, slotY, 18, 18)) return entries.get(index);
+                if (isInside(mouseX, mouseY, slotX, slotY, 18, 18)) return entries.get(scroll + index);
             }
         }
         return null;
+    }
+
+    private Boolean filterPaneAt(double mouseX, double mouseY, CopperGolemMenuPanelLayout.Bounds bounds) {
+        int paneY = bounds.y() + 54;
+        if (isInside(mouseX, mouseY, bounds.x() + 8, paneY, FILTER_PANE_WIDTH, 69)) return true;
+        if (isInside(mouseX, mouseY, bounds.x() + 94, paneY, FILTER_PANE_WIDTH, 69)) return false;
+        return null;
+    }
+
+    private void scrollFilter(
+            dev.totem.automata.network.CopperWrenchBindingsPayload snapshot,
+            boolean allowed,
+            int rows) {
+        selectedBinding(snapshot).ifPresent(binding -> {
+            int max = maxFilterScroll(filterEntries(binding, allowed).size());
+            ui.filterScroll(allowed, ui.filterScroll(allowed) + rows * FILTER_GRID_COLUMNS, max);
+        });
+    }
+
+    private static int maxFilterScroll(int entryCount) {
+        int rows = (Math.max(0, entryCount) + FILTER_GRID_COLUMNS - 1) / FILTER_GRID_COLUMNS;
+        return Math.max(0, rows - 2) * FILTER_GRID_COLUMNS;
     }
 
     private Boolean filterDropTargetAt(double mouseX, double mouseY) {

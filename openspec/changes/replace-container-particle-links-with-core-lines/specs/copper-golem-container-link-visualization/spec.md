@@ -20,6 +20,13 @@ request cadence, validation and cleanup state.
 - **THEN** Automata submits the source link without treating sorting
   destinations as active links
 
+#### Scenario: Selected Golem moves between snapshot updates
+
+- **WHEN** a valid selected Copper Golem is present in the client level and
+  moves while the server relationship snapshot remains unchanged
+- **THEN** every rendered link starts at that entity's current interpolated
+  position instead of the sampled snapshot position
+
 #### Scenario: Stale or cross-dimension entry
 
 - **WHEN** the selected Golem or payload is stale, invalid or in another

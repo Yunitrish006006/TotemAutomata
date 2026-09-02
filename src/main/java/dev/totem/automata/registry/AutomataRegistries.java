@@ -6,7 +6,6 @@ import dev.totem.automata.item.CopperWrenchItem;
 import dev.totem.automata.menu.CopperGolemMenuRegistration;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.creativetab.v1.FabricCreativeModeTab;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -21,10 +20,10 @@ import net.minecraft.world.item.ItemStack;
  * Automata-owned canonical registrations. DeadRecall owns legacy aliases.
  */
 public final class AutomataRegistries {
-    private static final Identifier DEADRECALL_MAIN_TAB =
-            Identifier.fromNamespaceAndPath("deadrecall", "main");
-    private static final ResourceKey<CreativeModeTab> DEADRECALL_MAIN_TAB_KEY =
-            ResourceKey.create(Registries.CREATIVE_MODE_TAB, DEADRECALL_MAIN_TAB);
+    private static final ResourceKey<CreativeModeTab> TAB_KEY = ResourceKey.create(
+            Registries.CREATIVE_MODE_TAB,
+            Identifier.fromNamespaceAndPath("totem-automata", "main")
+    );
 
     public static final Item COPPER_WRENCH = registerItem(
             CopperWrenchSelection.ITEM_ID,
@@ -48,34 +47,24 @@ public final class AutomataRegistries {
         // Class initialization owns the preserved item registration.
     }
 
-    /**
-     * Adds the external Wrench instance to DeadRecall's preserved creative
-     * tab without a Java dependency on the compatibility bundle.
-     */
+    /** Adds the canonical Wrench to Automata's module-owned Creative tab. */
     public static synchronized void registerCreativeTabEntry() {
         if (creativeTabRegistered) {
             return;
         }
-        registerStandaloneCreativeTab();
-        CreativeModeTabEvents.modifyOutputEvent(DEADRECALL_MAIN_TAB_KEY)
+        registerCreativeTab();
+        CreativeModeTabEvents.modifyOutputEvent(TAB_KEY)
                 .register(output -> output.accept(COPPER_WRENCH));
         creativeTabRegistered = true;
     }
 
-    /**
-     * The compatibility bundle owns this tab when it is installed.  A
-     * standalone feature still needs the same legacy tab so its only item is
-     * discoverable in Creative mode.  The registry lookup lets independently
-     * loaded feature modules share one tab without registering it twice.
-     */
-    private static void registerStandaloneCreativeTab() {
-        if (FabricLoader.getInstance().isModLoaded("deadrecall")
-                || BuiltInRegistries.CREATIVE_MODE_TAB.getOptional(DEADRECALL_MAIN_TAB_KEY).isPresent()) {
+    private static void registerCreativeTab() {
+        if (BuiltInRegistries.CREATIVE_MODE_TAB.getOptional(TAB_KEY).isPresent()) {
             return;
         }
-        Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, DEADRECALL_MAIN_TAB_KEY,
+        Registry.register(BuiltInRegistries.CREATIVE_MODE_TAB, TAB_KEY,
                 FabricCreativeModeTab.builder()
-                        .title(Component.translatable("itemGroup.deadrecall.main"))
+                        .title(Component.translatable("itemGroup.totem_automata.main"))
                         .icon(() -> new ItemStack(COPPER_WRENCH))
                         .build());
     }

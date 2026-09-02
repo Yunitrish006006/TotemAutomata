@@ -13,6 +13,8 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.animal.golem.CopperGolem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -48,6 +50,9 @@ public final class CopperGolemVisualizationClient {
     private static String heldDimension = "";
     private static int requestCooldown, drawCooldown;
     private static CopperGolemVisualizationPayload cachedPayload;
+    private static CopperGolem cachedClientGolem;
+    private static UUID lastGolemLookupId;
+    private static long lastGolemLookupGameTime = Long.MIN_VALUE;
 
     private CopperGolemVisualizationClient() { }
 
@@ -66,7 +71,9 @@ public final class CopperGolemVisualizationClient {
         String dimension = minecraft.level.dimension().identifier().toString();
         if (selected == null) { clear(); return; }
         if (!selected.equals(heldGolemId) || !dimension.equals(heldDimension)) {
-            cachedPayload = null; requestCooldown = 0; drawCooldown = 0;
+            cachedPayload = null; cachedClientGolem = null;
+            lastGolemLookupId = null; lastGolemLookupGameTime = Long.MIN_VALUE;
+            requestCooldown = 0; drawCooldown = 0;
         }
         heldGolemId = selected; heldDimension = dimension;
         if (requestCooldown-- <= 0) { requestCooldown = REQUEST_INTERVAL_TICKS; request(selected); }
@@ -108,11 +115,49 @@ public final class CopperGolemVisualizationClient {
         if (selected == null || payload == null || !payload.valid()
                 || !selected.equals(payload.golemId())
                 || !dimension.equals(payload.dimension())) return;
-        Vec3 center = new Vec3(payload.golemX(), payload.golemY() + .9D, payload.golemZ());
+        Vec3 center = currentGolemCenter(
+                minecraft.level,
+                selected,
+                minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(!minecraft.isPaused()),
+                new Vec3(payload.golemX(), payload.golemY() + .9D, payload.golemZ())
+        );
         addContainerLinks(center, payload.source(), payload.destinations(), payload.mode(), dimension);
         if ("gathering".equals(payload.mode())) {
             addGatheringAreaOutline(payload.gatheringArea(), dimension);
         }
+    }
+
+    /** Resolves the selected client entity once, then follows its interpolated position every render frame. */
+    static Vec3 currentGolemCenter(
+            ClientLevel level,
+            UUID selected,
+            float partialTick,
+            Vec3 fallback) {
+        CopperGolem golem = findClientGolem(level, selected);
+        return golem == null ? fallback : golem.getPosition(partialTick).add(0.0D, 0.9D, 0.0D);
+    }
+
+    private static CopperGolem findClientGolem(ClientLevel level, UUID selected) {
+        if (cachedClientGolem != null
+                && !cachedClientGolem.isRemoved()
+                && cachedClientGolem.level() == level
+                && selected.equals(cachedClientGolem.getUUID())) {
+            return cachedClientGolem;
+        }
+        long gameTime = level.getGameTime();
+        if (selected.equals(lastGolemLookupId) && gameTime == lastGolemLookupGameTime) {
+            return null;
+        }
+        cachedClientGolem = null;
+        lastGolemLookupId = selected;
+        lastGolemLookupGameTime = gameTime;
+        for (Entity entity : level.entitiesForRendering()) {
+            if (entity instanceof CopperGolem golem && selected.equals(golem.getUUID())) {
+                cachedClientGolem = golem;
+                return golem;
+            }
+        }
+        return null;
     }
 
     static void addGatheringAreaOutline(
@@ -187,5 +232,14 @@ public final class CopperGolemVisualizationClient {
         for (int i = 0; i < 5; i++) level.addParticle(ParticleTypes.END_ROD, center.x, center.y - .35D + i * .25D, center.z, 0, .01D, 0);
     }
 
-    private static void clear() { heldGolemId = null; heldDimension = ""; requestCooldown = 0; drawCooldown = 0; cachedPayload = null; }
+    private static void clear() {
+        heldGolemId = null;
+        heldDimension = "";
+        requestCooldown = 0;
+        drawCooldown = 0;
+        cachedPayload = null;
+        cachedClientGolem = null;
+        lastGolemLookupId = null;
+        lastGolemLookupGameTime = Long.MIN_VALUE;
+    }
 }

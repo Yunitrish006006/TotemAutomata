@@ -24,6 +24,7 @@
       "dev.totem.automata.copper.FurnaceDestinationGameTest"
     ],
     "fabric-client-gametest": [
+      "dev.totem.automata.client.AutomataCreativeTabVisualGameTest",
       "dev.totem.automata.client.AutomataObserverProviderClientGameTest",
       "dev.totem.automata.client.CopperGolemContainerLinksClientGameTest",
       "dev.totem.automata.client.CopperGolemGatheringAreaOutlineClientGameTest",

@@ -13,6 +13,8 @@
   available destination and unavailable container relationships.
 - [x] 2.3 Remove only the superseded source/destination particle chains while
   retaining gathering-target and blocked-state particles.
+- [x] 2.4 Follow the selected client Copper Golem's interpolated position every
+  render frame while retaining the server snapshot position as a fallback.
 
 ## 3. Verification
 
@@ -25,6 +27,8 @@
 - [x] 3.4 After commit authorization, update Automata CI/release pins to the
   real Core implementation commit, then pass clean Production Runtime and
   release gates.
+- [x] 3.5 Client GameTest a moved Copper Golem and inspect the updated
+  native-scale line screenshot.
 
 ## 4. Documentation
 
