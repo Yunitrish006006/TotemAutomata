@@ -98,6 +98,17 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
             context.takeScreenshot("automata-menu-zh-tw-manual-filter-text-entry");
             context.runOnClient(client -> client.setScreenAndShow(null));
 
+            selectLanguage(context, "es_es", "Origen: Example");
+            CopperGolemMenuScreen spanishScreen = openScreen(context);
+            context.waitForScreen(CopperGolemMenuScreen.class);
+            context.waitTicks(2);
+            context.takeScreenshot("automata-menu-es-es-before");
+            context.runOnClient(client -> spanishScreen.acceptSnapshotForVisualTest(snapshot()));
+            context.runOnClient(client -> spanishScreen.selectBindingForVisualTest(0));
+            context.waitTicks(2);
+            context.takeScreenshot("automata-menu-es-es-after");
+            context.runOnClient(client -> client.setScreenAndShow(null));
+
             VanillaCopperGolemBackpackPrototypeScreen prototypeScreen = context.computeOnClient(client -> {
                 VanillaCopperGolemBackpackPrototypeScreen prototype = new VanillaCopperGolemBackpackPrototypeScreen();
                 client.setScreenAndShow(prototype);
