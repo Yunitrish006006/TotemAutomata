@@ -11,7 +11,7 @@ import java.util.UUID;
 
 /** Persisted last operator used for gathering protection and break-event context. */
 public final class GatheringOperator {
-    private static final String KEY = "deadrecall_last_operator_player";
+    private static final String KEY = "totem_automata_last_operator_player";
     private GatheringOperator() { }
     public static void remember(CopperGolem golem, ServerPlayer player) { CompoundTag tag=CopperGolemData.readEntityTag(golem);tag.store(KEY, UUIDUtil.CODEC, player.getUUID());CopperGolemData.writeEntityTag(golem,tag); }
     public static Optional<UUID> operatorId(CopperGolem golem) { return CopperGolemData.readEntityTag(golem).read(KEY, UUIDUtil.CODEC); }

@@ -10,8 +10,8 @@ import java.util.Optional;
 
 /** Legacy-compatible gathering LLM configuration, revisioning, and decision cache. */
 public final class GatheringLlmState {
-    private static final String ENABLED = "deadrecall_gathering_llm_enabled", PROMPT = "deadrecall_gathering_llm_prompt", REVISION = "deadrecall_gathering_llm_prompt_revision";
-    private static final String ALLOWED_BLOCKS = "deadrecall_gathering_llm_allowed_block_ids", DENIED_BLOCKS = "deadrecall_gathering_llm_denied_block_ids", ALLOWED_TAGS = "deadrecall_gathering_llm_allowed_tags", DENIED_TAGS = "deadrecall_gathering_llm_denied_tags";
+    private static final String ENABLED = "totem_automata_gathering_llm_enabled", PROMPT = "totem_automata_gathering_llm_prompt", REVISION = "totem_automata_gathering_llm_prompt_revision";
+    private static final String ALLOWED_BLOCKS = "totem_automata_gathering_llm_allowed_block_ids", DENIED_BLOCKS = "totem_automata_gathering_llm_denied_block_ids", ALLOWED_TAGS = "totem_automata_gathering_llm_allowed_tags", DENIED_TAGS = "totem_automata_gathering_llm_denied_tags";
     private static final int LIMIT = 128;
     private GatheringLlmState() { }
 

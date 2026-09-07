@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Yunitrish006006/TotemCore
-          ref: 71422749875072b585dcf64a4c9f42ee96773543
+          ref: f87cd10fe8aefce77925b9e75dad237f17f38966
           path: .lockstep/TotemCore
           persist-credentials: false
 
@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Yunitrish006006/TotemExcavation
-          ref: 6b54011195b81ec9a9a09146d162ba303ebd8ee4
+          ref: f40b94fd5d9de8b47534343c76a95f62926d2b1b
           path: .lockstep/TotemExcavation
           persist-credentials: false
 
@@ -54,14 +54,14 @@ jobs:
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore \
             clean jar --no-daemon --stacktrace
           core_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
-          test "$core_version" = '0.7.14'
+          test "$core_version" = '0.7.18'
           core_jar="${GITHUB_WORKSPACE}/.lockstep/TotemCore/build/libs/totem-core-${core_version}.jar"
           test -f "$core_jar"
 
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemExcavation \
             -PtotemCoreJar="$core_jar" clean jar --no-daemon --stacktrace
           excavation_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
-          test "$excavation_version" = '0.1.8'
+          test "$excavation_version" = '0.1.13'
           excavation_jar="${GITHUB_WORKSPACE}/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation_version}.jar"
           test -f "$excavation_jar"
 
@@ -69,8 +69,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          core_jar="${GITHUB_WORKSPACE}/.lockstep/TotemCore/build/libs/totem-core-0.7.14.jar"
-          excavation_jar="${GITHUB_WORKSPACE}/.lockstep/TotemExcavation/build/libs/totem-excavation-0.1.8.jar"
+          core_jar="${GITHUB_WORKSPACE}/.lockstep/TotemCore/build/libs/totem-core-0.7.18.jar"
+          excavation_jar="${GITHUB_WORKSPACE}/.lockstep/TotemExcavation/build/libs/totem-excavation-0.1.13.jar"
           ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" \
             -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
             runProductionClientGameTest --no-daemon --stacktrace

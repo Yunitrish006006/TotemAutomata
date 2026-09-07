@@ -55,7 +55,7 @@ public final class CopperGolemPayloadRegistration {
         registeredHandler = handler;
     }
 
-    /** Registers the legacy clientbound payload types with the future client cutover. */
+    /** Registers the canonical clientbound payload types. */
     public static void registerClientboundTypes() {
         PayloadTypeRegistry.clientboundPlay().register(CopperWrenchBindingsPayload.TYPE, CopperWrenchBindingsPayload.CODEC);
         PayloadTypeRegistry.clientboundPlay().register(CopperGolemVisualizationPayload.TYPE, CopperGolemVisualizationPayload.CODEC);

@@ -10,7 +10,7 @@ import java.util.UUID;
 /** Stable serverbound gathering-target removal request. */
 public record CopperGolemGatheringTargetPayload(
         UUID golemId, String value, boolean tag, TargetSet targetSet, Action action, int revision) implements CustomPacketPayload {
-    public static final Type<CopperGolemGatheringTargetPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "copper_golem_gathering_target"));
+    public static final Type<CopperGolemGatheringTargetPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath("totem", "copper_golem_gathering_target"));
     public enum Action { REMOVE }
     public enum TargetSet { MANUAL, ALLOWED, DENIED }
     public static final StreamCodec<FriendlyByteBuf, CopperGolemGatheringTargetPayload> CODEC = StreamCodec.of(

@@ -12,7 +12,7 @@ import java.util.Optional;
 
 /** External facade used by the cutover-only vanilla transport mixin. */
 public final class CopperGolemSortingAuthority {
-    private static final String SORTING_BLOCKED = "deadrecall_sorting_blocked";
+    private static final String SORTING_BLOCKED = "totem_automata_sorting_blocked";
 
     private CopperGolemSortingAuthority() {
     }

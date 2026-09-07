@@ -10,8 +10,8 @@ import java.util.List;
  *
  * <p>The screen applies the returned values optimistically, then sends the
  * corresponding serverbound payload.  Keeping this logic free of rendering
- * and Fabric networking lets the eventual Automata screen retain the legacy
- * behaviour without depending on DeadRecall's screen class.</p>
+ * and Fabric networking keeps the Automata screen behavior independently
+ * testable.</p>
  */
 public final class CopperGolemMenuEditor {
     private CopperGolemMenuEditor() { }

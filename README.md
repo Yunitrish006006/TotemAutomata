@@ -4,8 +4,8 @@ TotemAutomata 讓原版銅魁儡成為可設定的分類與採集助手。玩家
 替每隻銅魁儡設定來源銅箱、目的地、工作區、燃料、工具、手動規則與
 選配的 OpenAI-compatible LLM 判斷。
 
-目前版本需要 TotemCore `>=0.7.14 <0.8.0`；除了 Automata 自有 production
-Screen 的唯讀 semantic provider contract，0.7.14 也提供共用世界框線與任意
+目前版本需要 TotemCore `>=0.7.18 <0.8.0`；除了 Automata 自有 production
+Screen 的唯讀 semantic provider contract，0.7.18 也提供共用世界框線與任意
 兩點實線 API。
 
 ## 安裝
@@ -13,7 +13,7 @@ Screen 的唯讀 semantic provider contract，0.7.14 也提供共用世界框線
 Client 與 Server 都放入：
 
 1. Fabric API `0.154.2+26.2`
-2. TotemCore `0.7.14`（支援 `>=0.7.14 <0.8.0`）
+2. TotemCore `0.7.18`（支援 `>=0.7.18 <0.8.0`）
 3. TotemAutomata `0.1.22`
 
 | 項目 | 需求 |
@@ -21,11 +21,11 @@ Client 與 Server 都放入：
 | Minecraft | 26.2 |
 | Fabric Loader | 0.19.3+ |
 | Java | 25+ |
-| 必要 Totem 模組 | `totem-core >=0.7.14 <0.8.0` |
+| 必要 Totem 模組 | `totem-core >=0.7.18 <0.8.0` |
 | 選配 | TotemRemnant（可攜式容器安全 policy）；TotemExcavation `0.1.5+`（錘子採集）；TotemLocksmith（鎖網路權限） |
 
-Automata 不要求 DeadRecall、TotemRemnant 或 Cognition。DeadRecall bundle
-已停止維護，也不會由這次更新重新啟用；新安裝請直接使用獨立 Totem 模組。
+Automata 不要求舊整合包、TotemRemnant 或 Cognition；新安裝請直接使用獨立
+Totem 模組。
 
 ## 合成銅扳手
 
@@ -139,13 +139,14 @@ API Key 放進公開截圖、issue 或 log。
 - 停止的採集銅魁儡只做一次 `STOPPED` 轉換，之後不再執行採集或 LLM warmup。
 - 分類路由使用單次 persisted-state snapshot；阻塞且內容未變時以
   10→20→40→80→160→200 ticks 指數退避重新檢查。
-- 既有 `deadrecall_*` NBT、Locksmith 權限、loaded-only 規則、燃料／工具、
-  restart recovery 與分類 exactly-once 交易語意保持相容。
+- 遷移層會將既有 `deadrecall_*` NBT 寫回 `totem_automata_*`；Locksmith
+  權限、loaded-only 規則、燃料／工具、restart recovery 與分類 exactly-once
+  交易語意保持相容。
 
 ## 開發與驗證
 
-CI 會用 TotemCore 0.7.14、TotemExcavation 0.1.8 驗證鎖定組合，發布流程
-使用目前的 TotemCore 0.7.14、TotemExcavation 0.1.8。另會驗證不安裝
+CI 會用 TotemCore 0.7.18、TotemExcavation 0.1.13 驗證鎖定組合，發布流程
+使用目前的 TotemCore 0.7.18、TotemExcavation 0.1.13。另會驗證不安裝
 TotemExcavation 的 standalone 啟動、Server GameTests 與 headless Client
 GameTests。0.1.17 新增 deterministic scheduler、zero-scan target、event lifecycle、
 stopped zero-work、navigation cadence 與 sorting backoff regression coverage。

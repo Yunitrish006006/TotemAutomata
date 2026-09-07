@@ -17,7 +17,7 @@ import java.util.function.BiConsumer;
 
 /** Menu authority backed by the migrated Copper Golem NBT schema. */
 public final class PersistedCopperGolemMenuAuthority implements CopperGolemMenuAuthority {
-    private static final String TOOL = "deadrecall_gathering_tool_stack";
+    private static final String TOOL = "totem_automata_gathering_tool_stack";
     private final BiConsumer<ServerPlayer, CopperGolem> refresher;
     public PersistedCopperGolemMenuAuthority(BiConsumer<ServerPlayer, CopperGolem> refresher) { this.refresher = refresher; }
     @Override public boolean canUse(Player player, CopperGolem golem) {

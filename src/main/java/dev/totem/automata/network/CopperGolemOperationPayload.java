@@ -9,7 +9,7 @@ import java.util.UUID;
 
 /** Stable serverbound transport enablement request retaining the legacy payload identifier. */
 public record CopperGolemOperationPayload(UUID golemId, boolean running, int revision) implements CustomPacketPayload {
-    public static final Type<CopperGolemOperationPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "copper_golem_operation"));
+    public static final Type<CopperGolemOperationPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath("totem", "copper_golem_operation"));
     public static final StreamCodec<FriendlyByteBuf, CopperGolemOperationPayload> CODEC = StreamCodec.of(
             (buf, payload) -> { buf.writeUUID(payload.golemId()); buf.writeBoolean(payload.running()); buf.writeInt(payload.revision()); },
             buf -> new CopperGolemOperationPayload(buf.readUUID(), buf.readBoolean(), buf.readInt()));

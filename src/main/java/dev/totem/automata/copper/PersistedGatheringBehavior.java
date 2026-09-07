@@ -11,7 +11,7 @@ import java.util.List;
 
 /** Module-owned gathering behavior shell. */
 public final class PersistedGatheringBehavior implements CopperGolemBehavior {
-    private static final String TOOL = "deadrecall_gathering_tool_stack";
+    private static final String TOOL = "totem_automata_gathering_tool_stack";
     private final WorldOperations world;
     public PersistedGatheringBehavior(WorldOperations world) { this.world = world; }
     @Override public boolean shouldTrack(CopperGolem golem) {

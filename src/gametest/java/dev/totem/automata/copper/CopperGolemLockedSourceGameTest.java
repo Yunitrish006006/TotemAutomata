@@ -15,9 +15,9 @@ import java.util.OptionalInt;
 /** Proves denied Locksmith sources remain opaque to sorting and LLM inspection. */
 public final class CopperGolemLockedSourceGameTest {
     private static final String ACCESS_BLOCKED = "totem_automata_sorting_access_blocked";
-    private static final String SOURCE_HASH = "deadrecall_blocked_source_hash";
-    private static final String BINDINGS_HASH = "deadrecall_blocked_bindings_hash";
-    private static final String TARGETS_HASH = "deadrecall_blocked_targets_hash";
+    private static final String SOURCE_HASH = "totem_automata_blocked_source_hash";
+    private static final String BINDINGS_HASH = "totem_automata_blocked_bindings_hash";
+    private static final String TARGETS_HASH = "totem_automata_blocked_targets_hash";
 
     @GameTest(maxTicks = 20)
     public void deniedSourceIsRejectedBeforeInventoryInspection(GameTestHelper helper) {
@@ -57,7 +57,7 @@ public final class CopperGolemLockedSourceGameTest {
         }
 
         var blockedTag = CopperGolemData.readEntityTag(golem);
-        if (!blockedTag.getBooleanOr("deadrecall_sorting_blocked", false)
+        if (!blockedTag.getBooleanOr("totem_automata_sorting_blocked", false)
                 || !blockedTag.getBooleanOr(ACCESS_BLOCKED, false)) {
             helper.fail("Denied sorting source did not persist its transient blocked markers");
             return;

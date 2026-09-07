@@ -12,11 +12,11 @@ public final class AutomataManual {
     private static final TotemManualSection SECTION = new TotemManualSection(
             Identifier.fromNamespaceAndPath("totem", "automata/manual"),
             300,
-            "book.deadrecall.automata_manual.title",
+            "book.totem.automata_manual.title",
             List.of(
-                    "book.deadrecall.automata_manual.page.1",
-                    "book.deadrecall.automata_manual.page.2",
-                    "book.deadrecall.automata_manual.page.3"
+                    "book.totem.automata_manual.page.1",
+                    "book.totem.automata_manual.page.2",
+                    "book.totem.automata_manual.page.3"
             )
     );
 
@@ -26,7 +26,7 @@ public final class AutomataManual {
     public static void register() {
         TotemModuleManualSource.register(
                 SECTION,
-                Identifier.fromNamespaceAndPath("deadrecall", "automata_manual"),
+                Identifier.fromNamespaceAndPath("totem", "automata_manual"),
                 state -> state.is(BlockTags.COPPER_CHESTS)
         );
     }

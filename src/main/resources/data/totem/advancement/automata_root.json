@@ -1,0 +1,30 @@
+{
+  "parent": "totem:root",
+  "criteria": {
+    "crafted_copper_chest": {
+      "conditions": {
+        "recipe_id": "minecraft:copper_chest"
+      },
+      "trigger": "minecraft:recipe_crafted"
+    }
+  },
+  "display": {
+    "announce_to_chat": false,
+    "background": "minecraft:gui/advancements/backgrounds/adventure",
+    "description": {
+      "translate": "advancements.totem.automata_root.description"
+    },
+    "icon": {
+      "id": "minecraft:copper_chest"
+    },
+    "show_toast": true,
+    "title": {
+      "translate": "advancements.totem.automata_root.title"
+    }
+  },
+  "requirements": [
+    [
+      "crafted_copper_chest"
+    ]
+  ]
+}

@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 /** Event-gated gathering break that commits drops into the golem's carried storage. */
 public final class GatheringBlockBreaker {
-    private static final String TOOL = "deadrecall_gathering_tool_stack";
+    private static final String TOOL = "totem_automata_gathering_tool_stack";
     private GatheringBlockBreaker() { }
     public static Result breakTarget(CopperGolem golem, ServerLevel level, ServerPlayer operator, BlockPos pos) {
         CompoundTag current = CopperGolemData.readEntityTag(golem);

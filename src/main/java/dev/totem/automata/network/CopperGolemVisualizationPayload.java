@@ -15,7 +15,7 @@ public record CopperGolemVisualizationPayload(
         String mode, String activity, PosEntry source, AreaEntry gatheringArea, PosEntry gatheringTarget,
         List<PosEntry> destinations) implements CustomPacketPayload {
     public static final Type<CopperGolemVisualizationPayload> TYPE =
-            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "copper_golem_visualization"));
+            new Type<>(Identifier.fromNamespaceAndPath("totem", "copper_golem_visualization"));
     private static final int MAX_POS_ENTRIES = 128;
     public record PosEntry(String dimension, int x, int y, int z, boolean available) { }
     public record AreaEntry(String dimension, boolean hasCornerA, int cornerAX, int cornerAY, int cornerAZ,

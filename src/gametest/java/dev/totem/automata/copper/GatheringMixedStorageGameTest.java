@@ -11,7 +11,7 @@ import java.util.List;
 
 /** Runtime regression coverage for the shared-capacity mixed gathering backpack. */
 public final class GatheringMixedStorageGameTest {
-    private static final String LEGACY_STORAGE = "deadrecall_gathering_storage_stack";
+    private static final String LEGACY_STORAGE = "totem_automata_gathering_storage_stack";
 
     @GameTest(maxTicks = 20)
     public void mixedKindsRoundTripAndDepositTogether(GameTestHelper helper) {

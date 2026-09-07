@@ -36,7 +36,7 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
                 CopperGolemMenuScreen opened = new CopperGolemMenuScreen(
                         menu,
                         client.player.getInventory(),
-                        Component.translatable("container.deadrecall.copper_wrench.bindings")
+                        Component.translatable("container.totem.copper_wrench.bindings")
                 );
                 client.setScreenAndShow(opened);
                 return opened;

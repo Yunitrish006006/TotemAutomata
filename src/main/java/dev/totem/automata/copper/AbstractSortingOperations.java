@@ -16,18 +16,18 @@ import java.util.OptionalInt;
 
 /** Data/fuel/source implementation shared by the future live sorting authority. */
 public abstract class AbstractSortingOperations implements SortingOperations {
-    private static final String SOURCE_SLOT = "deadrecall_source_slot";
+    private static final String SOURCE_SLOT = "totem_automata_source_slot";
     private static final String REMEMBERED_SOURCE_DIM = "totem_automata_transport_source_dim";
     private static final String REMEMBERED_SOURCE_X = "totem_automata_transport_source_x";
     private static final String REMEMBERED_SOURCE_Y = "totem_automata_transport_source_y";
     private static final String REMEMBERED_SOURCE_Z = "totem_automata_transport_source_z";
-    private static final String TRIED_DESTINATIONS = "deadrecall_tried_destinations";
-    private static final String BLOCKED = "deadrecall_sorting_blocked",
+    private static final String TRIED_DESTINATIONS = "totem_automata_tried_destinations";
+    private static final String BLOCKED = "totem_automata_sorting_blocked",
             BLOCKED_ACCESS = "totem_automata_sorting_access_blocked",
-            BLOCKED_SOURCE_DIM = "deadrecall_blocked_source_container_dim",
-            BLOCKED_SOURCE_X = "deadrecall_blocked_source_container_x", BLOCKED_SOURCE_Y = "deadrecall_blocked_source_container_y",
-            BLOCKED_SOURCE_Z = "deadrecall_blocked_source_container_z", BLOCKED_SOURCE_HASH = "deadrecall_blocked_source_hash",
-            BLOCKED_BINDINGS_HASH = "deadrecall_blocked_bindings_hash", BLOCKED_TARGETS_HASH = "deadrecall_blocked_targets_hash",
+            BLOCKED_SOURCE_DIM = "totem_automata_blocked_source_container_dim",
+            BLOCKED_SOURCE_X = "totem_automata_blocked_source_container_x", BLOCKED_SOURCE_Y = "totem_automata_blocked_source_container_y",
+            BLOCKED_SOURCE_Z = "totem_automata_blocked_source_container_z", BLOCKED_SOURCE_HASH = "totem_automata_blocked_source_hash",
+            BLOCKED_BINDINGS_HASH = "totem_automata_blocked_bindings_hash", BLOCKED_TARGETS_HASH = "totem_automata_blocked_targets_hash",
             BLOCKED_RETRY_DELAY = "totem_automata_sorting_blocked_retry_delay",
             BLOCKED_NEXT_RETRY = "totem_automata_sorting_blocked_next_retry_tick";
 

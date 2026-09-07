@@ -23,9 +23,8 @@ import net.minecraft.world.level.Level;
 /**
  * Automata's server-side Wrench gesture executor.
  *
- * <p>Registration and menu opening are deliberately injected; this class is
- * safe to build and test during the additive phase without taking ownership
- * of DeadRecall's active callbacks.</p>
+ * <p>Registration and menu opening are deliberately injected so the gesture
+ * executor remains independently testable.</p>
  */
 public final class PersistedCopperWrenchInteractionAuthority implements CopperWrenchInteractionAuthority {
     private static final float REPAIR_AMOUNT = 4.0F;
@@ -140,7 +139,7 @@ public final class PersistedCopperWrenchInteractionAuthority implements CopperWr
                 && level instanceof ServerLevel serverLevel
                 && !mayBindProtectedContainer(serverPlayer, serverLevel, pos, golem, intent)) {
             player.sendSystemMessage(Component.translatable(
-                    "message.deadrecall.copper_wrench.locksmith_permission_denied"));
+                    "message.totem.copper_wrench.locksmith_permission_denied"));
             return InteractionResult.SUCCESS;
         }
         if (player instanceof ServerPlayer serverPlayer) {

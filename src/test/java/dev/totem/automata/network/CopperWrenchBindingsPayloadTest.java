@@ -23,7 +23,7 @@ class CopperWrenchBindingsPayloadTest {
                 List.of("minecraft:stone"), List.of(), List.of("minecraft:base_stone_overworld"), List.of(),
                 List.of(binding));
 
-        assertEquals("deadrecall:copper_wrench_bindings", payload.type().id().toString());
+        assertEquals("totem:copper_wrench_bindings", payload.type().id().toString());
         assertEquals(1, payload.bindings().size());
         assertEquals("minecraft:overworld", payload.gatheringArea().dimension());
         assertEquals("minecraft:diamond", payload.bindings().getFirst().itemId());

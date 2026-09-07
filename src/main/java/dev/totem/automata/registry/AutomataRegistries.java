@@ -17,7 +17,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 
 /**
- * Automata-owned canonical registrations. DeadRecall owns legacy aliases.
+ * Automata-owned canonical registrations. TotemCore owns legacy aliases.
  */
 public final class AutomataRegistries {
     private static final ResourceKey<CreativeModeTab> TAB_KEY = ResourceKey.create(

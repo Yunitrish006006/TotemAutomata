@@ -239,7 +239,7 @@ public final class CopperGolemSortingPolicyGameTest {
             helper.fail("Sorting consumed fuel while waiting for its LLM decision");
             return;
         }
-        if (result.getBooleanOr("deadrecall_sorting_blocked", false)) {
+        if (result.getBooleanOr("totem_automata_sorting_blocked", false)) {
             helper.fail("Sorting entered the blocked state while waiting for its LLM decision");
             return;
         }

@@ -11,7 +11,7 @@ import java.util.List;
 
 /** Bounded background classification of uncached gathering candidates while the golem is stopped. */
 public final class GatheringLlmWarmup {
-    private static final String WARMUP_INDEX = "deadrecall_gathering_llm_warmup_index";
+    private static final String WARMUP_INDEX = "totem_automata_gathering_llm_warmup_index";
     private static final int BUDGET_PER_TICK = 16;
     private static final GatheringDecisionSink DECISIONS = new PersistingGatheringDecisionSink();
 
@@ -27,7 +27,7 @@ public final class GatheringLlmWarmup {
         }
         var bounds = GatheringConfiguration.scanBounds(tag, level.dimension());
         var home = GatheringHomeResolver.resolve(tag, level);
-        ItemStack tool = CopperGolemData.readItemStack(tag, "deadrecall_gathering_tool_stack", level.registryAccess());
+        ItemStack tool = CopperGolemData.readItemStack(tag, "totem_automata_gathering_tool_stack", level.registryAccess());
         if (bounds.isEmpty() || home.isEmpty() || tool.isEmpty()) {
             return;
         }

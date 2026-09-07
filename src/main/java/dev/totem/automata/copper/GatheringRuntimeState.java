@@ -5,10 +5,10 @@ import net.minecraft.nbt.CompoundTag;
 
 /** Legacy-compatible persisted scan/target state for the gathering runtime. */
 public final class GatheringRuntimeState {
-    public static final String TARGET_X = "deadrecall_gathering_target_x", TARGET_Y = "deadrecall_gathering_target_y", TARGET_Z = "deadrecall_gathering_target_z";
-    public static final String SCAN_INDEX = "deadrecall_gathering_scan_index", RETRY_TICK = "deadrecall_gathering_retry_tick";
-    private static final String NEAREST_RADIUS = "deadrecall_gathering_nearest_scan_radius", NEAREST_CURSOR = "deadrecall_gathering_nearest_scan_cursor";
-    private static final String SKIPPED_TARGETS = "deadrecall_gathering_skipped_targets", WARMUP_INDEX = "deadrecall_gathering_llm_warmup_index";
+    public static final String TARGET_X = "totem_automata_gathering_target_x", TARGET_Y = "totem_automata_gathering_target_y", TARGET_Z = "totem_automata_gathering_target_z";
+    public static final String SCAN_INDEX = "totem_automata_gathering_scan_index", RETRY_TICK = "totem_automata_gathering_retry_tick";
+    private static final String NEAREST_RADIUS = "totem_automata_gathering_nearest_scan_radius", NEAREST_CURSOR = "totem_automata_gathering_nearest_scan_cursor";
+    private static final String SKIPPED_TARGETS = "totem_automata_gathering_skipped_targets", WARMUP_INDEX = "totem_automata_gathering_llm_warmup_index";
     private GatheringRuntimeState() { }
 
     public static GatheringScanCursor.Activity scanActivity(CompoundTag tag) {

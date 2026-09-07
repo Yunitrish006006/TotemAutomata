@@ -7,13 +7,13 @@
   },
   "display": {
     "description": {
-      "translate": "advancements.deadrecall.automata_manual.description"
+      "translate": "advancements.totem.automata_manual.description"
     },
     "icon": {
       "id": "minecraft:written_book"
     },
     "title": {
-      "translate": "advancements.deadrecall.automata_manual.title"
+      "translate": "advancements.totem.automata_manual.title"
     }
   },
   "requirements": [

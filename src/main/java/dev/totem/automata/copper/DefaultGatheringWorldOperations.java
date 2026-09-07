@@ -10,7 +10,7 @@ import java.util.List;
 
 /** Concrete module-owned prerequisite, scanner, and deposit operations for gathering. */
 public final class DefaultGatheringWorldOperations implements PersistedGatheringBehavior.WorldOperations {
-    private static final String TOOL="deadrecall_gathering_tool_stack";
+    private static final String TOOL="totem_automata_gathering_tool_stack";
     @Override public boolean hasHome(CopperGolem golem, ServerLevel level, CompoundTag tag) { return GatheringHomeResolver.resolve(tag, level).isPresent(); }
     @Override public boolean hasFuel(CopperGolem golem, ServerLevel level, CompoundTag tag) { return CopperGolemFuelService.hasFuelAvailable(tag, level); }
     @Override public boolean hasTargetRules(CopperGolem golem, CompoundTag tag) { return GatheringTargetPolicy.hasRules(GatheringConfiguration.manualTargets(tag), GatheringLlmState.read(tag), GolemLlmState.read(tag)); }

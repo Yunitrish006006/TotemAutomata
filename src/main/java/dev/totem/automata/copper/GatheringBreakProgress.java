@@ -12,7 +12,7 @@ import net.minecraft.world.level.block.state.BlockState;
 
 /** Persisted visible break timing/progress for gathering. */
 public final class GatheringBreakProgress {
-    private static final String TICKS="deadrecall_gathering_break_ticks", REQUIRED="deadrecall_gathering_break_required_ticks", STATE="deadrecall_gathering_break_state";
+    private static final String TICKS="totem_automata_gathering_break_ticks", REQUIRED="totem_automata_gathering_break_required_ticks", STATE="totem_automata_gathering_break_state";
     private GatheringBreakProgress() { }
     public static Step advance(CompoundTag tag, ServerLevel level, net.minecraft.core.BlockPos pos, BlockState state, ItemStack tool) {
         int required = requiredTicks(level, pos, state, tool); String key = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();

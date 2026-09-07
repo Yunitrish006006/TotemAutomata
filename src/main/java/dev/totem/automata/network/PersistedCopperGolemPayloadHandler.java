@@ -38,10 +38,8 @@ import java.util.function.BiConsumer;
  * External, server-authoritative implementation of the preserved Copper
  * Golem payload protocol.
  *
- * <p>It deliberately has no DeadRecall feature import. The final cutover
- * composition supplies the menu snapshot refresher and registers this object
- * once through {@link CopperGolemPayloadRegistration}; the additive entrypoint
- * does neither while DeadRecall remains the live authority.</p>
+ * <p>The production composition supplies the menu snapshot refresher and
+ * registers this object once through {@link CopperGolemPayloadRegistration}.</p>
  */
 public final class PersistedCopperGolemPayloadHandler implements CopperGolemPayloadHandler {
     private static final ExecutorService CONNECTION_TESTS = Executors.newSingleThreadExecutor(task -> {
@@ -119,7 +117,7 @@ public final class PersistedCopperGolemPayloadHandler implements CopperGolemPayl
     @Override
     public void saveLlmConfig(ServerPlayer player, SaveCopperGolemLlmConfigPayload payload) {
         if (!AutomataPayloadPermissions.canManageServerConfiguration(player)) {
-            player.sendSystemMessage(Component.translatable("message.deadrecall.copper_wrench.llm_permission_modify").withStyle(ChatFormatting.RED));
+            player.sendSystemMessage(Component.translatable("message.totem.copper_wrench.llm_permission_modify").withStyle(ChatFormatting.RED));
             return;
         }
         withGolem(player, payload.golemId(), payload.revision(), golem -> {
@@ -127,7 +125,7 @@ public final class PersistedCopperGolemPayloadHandler implements CopperGolemPayl
             CopperGolemStateMutation.configureGolemLlm(tag, payload.apiUrl(), payload.apiKey(), payload.model());
             CopperGolemData.writeEntityTag(golem, tag);
             resetTransportMemories(golem);
-            player.sendSystemMessage(Component.translatable("message.deadrecall.copper_wrench.llm_config_updated").withStyle(ChatFormatting.GREEN));
+            player.sendSystemMessage(Component.translatable("message.totem.copper_wrench.llm_config_updated").withStyle(ChatFormatting.GREEN));
             refresh(player, golem);
         });
     }
@@ -135,21 +133,21 @@ public final class PersistedCopperGolemPayloadHandler implements CopperGolemPayl
     @Override
     public void testLlmConnection(ServerPlayer player, TestCopperGolemLlmConnectionPayload payload) {
         if (!AutomataPayloadPermissions.canManageServerConfiguration(player)) {
-            player.sendSystemMessage(Component.translatable("message.deadrecall.copper_wrench.llm_permission_test").withStyle(ChatFormatting.RED));
+            player.sendSystemMessage(Component.translatable("message.totem.copper_wrench.llm_permission_test").withStyle(ChatFormatting.RED));
             return;
         }
         String apiUrl = normalize(payload.apiUrl());
         String apiKey = normalize(payload.apiKey());
         String model = normalize(payload.model());
         if (apiUrl.isBlank() || model.isBlank()) {
-            player.sendSystemMessage(Component.translatable("message.deadrecall.copper_wrench.llm_test_missing_config").withStyle(ChatFormatting.RED));
+            player.sendSystemMessage(Component.translatable("message.totem.copper_wrench.llm_test_missing_config").withStyle(ChatFormatting.RED));
             return;
         }
         if (!PENDING_CONNECTION_TESTS.add(player.getUUID())) {
-            player.sendSystemMessage(Component.translatable("message.deadrecall.copper_wrench.llm_test_pending").withStyle(ChatFormatting.YELLOW));
+            player.sendSystemMessage(Component.translatable("message.totem.copper_wrench.llm_test_pending").withStyle(ChatFormatting.YELLOW));
             return;
         }
-        player.sendSystemMessage(Component.translatable("message.deadrecall.copper_wrench.llm_test_started").withStyle(ChatFormatting.YELLOW));
+        player.sendSystemMessage(Component.translatable("message.totem.copper_wrench.llm_test_started").withStyle(ChatFormatting.YELLOW));
         var server = player.level().getServer();
         if (server == null) {
             PENDING_CONNECTION_TESTS.remove(player.getUUID());
@@ -204,12 +202,12 @@ public final class PersistedCopperGolemPayloadHandler implements CopperGolemPayl
             CopperGolemLlmClient.askConnectionTest(apiUrl, apiKey, model);
             long elapsed = System.currentTimeMillis() - startedAt;
             server.execute(() -> sendConnectionResult(server.getPlayerList().getPlayer(playerId),
-                    Component.translatable("message.deadrecall.copper_wrench.llm_test_success", elapsed).withStyle(ChatFormatting.GREEN)));
+                    Component.translatable("message.totem.copper_wrench.llm_test_success", elapsed).withStyle(ChatFormatting.GREEN)));
         } catch (Exception exception) {
             String message = safeErrorMessage(exception);
             TotemAutomata.LOGGER.warn("Copper Golem LLM connection test failed: {}", message);
             server.execute(() -> sendConnectionResult(server.getPlayerList().getPlayer(playerId),
-                    Component.translatable("message.deadrecall.copper_wrench.llm_test_failed", message).withStyle(ChatFormatting.RED)));
+                    Component.translatable("message.totem.copper_wrench.llm_test_failed", message).withStyle(ChatFormatting.RED)));
         } finally {
             PENDING_CONNECTION_TESTS.remove(playerId);
         }

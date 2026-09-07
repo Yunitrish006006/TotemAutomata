@@ -8,7 +8,7 @@ import java.util.List;
 
 /** Preserved NBT codec and mutation rules for per-binding sorting LLM state. */
 public final class SortingLlmState {
-    private static final String CONFIGS = "deadrecall_llm_bindings", ENABLED = "llm_enabled", PROMPT = "llm_prompt";
+    private static final String CONFIGS = "totem_automata_llm_bindings", ENABLED = "llm_enabled", PROMPT = "llm_prompt";
     private static final String ALLOWED_ITEMS = "llm_allowed_item_ids", DENIED_ITEMS = "llm_denied_item_ids",
             ALLOWED_TAGS = "llm_allowed_tags", DENIED_TAGS = "llm_denied_tags";
     private static final int LIMIT = 128;

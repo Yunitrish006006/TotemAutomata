@@ -6,10 +6,10 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.animal.golem.CopperGolem;
 import net.minecraft.world.phys.Vec3;
 
-/** Derives the legacy menu activity from persisted state without a DeadRecall runtime dependency. */
+/** Derives the current menu activity from persisted Automata state. */
 public final class CopperGolemActivityResolver {
-    private static final String SORTING_BLOCKED = "deadrecall_sorting_blocked";
-    private static final String GATHERING_TOOL = "deadrecall_gathering_tool_stack";
+    private static final String SORTING_BLOCKED = "totem_automata_sorting_blocked";
+    private static final String GATHERING_TOOL = "totem_automata_gathering_tool_stack";
 
     private CopperGolemActivityResolver() {
     }

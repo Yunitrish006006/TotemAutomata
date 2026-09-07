@@ -212,7 +212,7 @@ public final class CopperGolemAuthorityPressureGameTest {
         tag.putBoolean(CopperGolemData.TAG_TRANSPORT_ENABLED, true);
         GatheringConfiguration.setCorner(tag, helper.getLevel().dimension(), target.offset(-1, -1, -1), false);
         GatheringConfiguration.setCorner(tag, helper.getLevel().dimension(), target.offset(1, 1, 1), true);
-        CopperGolemData.writeItemStack(tag, "deadrecall_gathering_tool_stack",
+        CopperGolemData.writeItemStack(tag, "totem_automata_gathering_tool_stack",
                 new ItemStack(Items.IRON_PICKAXE), helper.getLevel().registryAccess());
         tag.putInt(GatheringRuntimeState.TARGET_X, target.getX());
         tag.putInt(GatheringRuntimeState.TARGET_Y, target.getY());

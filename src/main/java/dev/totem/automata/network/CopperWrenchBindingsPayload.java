@@ -12,10 +12,8 @@ import java.util.UUID;
 /**
  * Complete server-authoritative Copper Wrench menu snapshot.
  *
- * <p>The payload deliberately retains its legacy identifier and wire layout so
- * a future Automata cutover can exchange it with existing DeadRecall clients.
- * Registration remains opt-in until the Wrench authority and screen move as a
- * single unit.</p>
+ * <p>The payload uses the canonical Automata wire identifier and is registered
+ * by the production Wrench authority.</p>
  */
 public record CopperWrenchBindingsPayload(
         UUID golemId, int revision, boolean running, String mode, String activity,
@@ -30,7 +28,7 @@ public record CopperWrenchBindingsPayload(
         List<String> gatheringLlmDeniedTags, List<BindingEntry> bindings) implements CustomPacketPayload {
 
     public static final Type<CopperWrenchBindingsPayload> TYPE =
-            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "copper_wrench_bindings"));
+            new Type<>(Identifier.fromNamespaceAndPath("totem", "copper_wrench_bindings"));
     private static final int MAX_CACHE_VALUES = 64;
     private static final int MAX_CACHE_VALUE_LENGTH = 256;
     private static final int MAX_BINDINGS = 128;

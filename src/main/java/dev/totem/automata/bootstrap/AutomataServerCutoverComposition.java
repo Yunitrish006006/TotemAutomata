@@ -13,11 +13,7 @@ import dev.totem.automata.network.PersistedCopperGolemSnapshotSender;
 import dev.totem.automata.registry.AutomataRegistries;
 
 /**
- * The single server-side activation point for the future Automata cutover.
- *
- * <p>No current entrypoint invokes this. The bundle gate must first remove
- * every equivalent DeadRecall registration and enable the matching external
- * mixin/client compositions in the same release.</p>
+ * The single server-side activation point for the standalone Automata module.
  */
 public final class AutomataServerCutoverComposition {
     private static boolean activated;

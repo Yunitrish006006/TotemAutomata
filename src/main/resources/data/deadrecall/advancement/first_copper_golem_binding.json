@@ -2,18 +2,18 @@
   "parent": "deadrecall:automata_manual",
   "criteria": {
     "first_binding": {
-      "trigger": "deadrecall:first_copper_golem_binding"
+      "trigger": "minecraft:impossible"
     }
   },
   "display": {
     "description": {
-      "translate": "advancements.deadrecall.first_copper_golem_binding.description"
+      "translate": "advancements.totem.first_copper_golem_binding.description"
     },
     "icon": {
       "id": "totem:automata/copper_wrench"
     },
     "title": {
-      "translate": "advancements.deadrecall.first_copper_golem_binding.title"
+      "translate": "advancements.totem.first_copper_golem_binding.title"
     }
   },
   "requirements": [

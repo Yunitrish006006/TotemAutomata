@@ -8,20 +8,20 @@ import java.util.List;
 
 /** Server-authoritative mutations for the persisted Copper Golem schema. */
 public final class CopperGolemStateMutation {
-    private static final String TRIED_DESTINATIONS = "deadrecall_tried_destinations";
-    private static final String SOURCE_SLOT = "deadrecall_source_slot";
-    private static final String GATHERING_TOOL = "deadrecall_gathering_tool_stack";
-    private static final String GATHERING_STORAGE = "deadrecall_gathering_storage_stack";
-    private static final String GATHERING_STORAGE_SLOT_PREFIX = "deadrecall_gathering_storage_slot_";
+    private static final String TRIED_DESTINATIONS = "totem_automata_tried_destinations";
+    private static final String SOURCE_SLOT = "totem_automata_source_slot";
+    private static final String GATHERING_TOOL = "totem_automata_gathering_tool_stack";
+    private static final String GATHERING_STORAGE = "totem_automata_gathering_storage_stack";
+    private static final String GATHERING_STORAGE_SLOT_PREFIX = "totem_automata_gathering_storage_slot_";
     private static final List<String> SORTING_BLOCKED_KEYS = List.of(
-            "deadrecall_sorting_blocked",
-            "deadrecall_blocked_source_container_dim",
-            "deadrecall_blocked_source_container_x",
-            "deadrecall_blocked_source_container_y",
-            "deadrecall_blocked_source_container_z",
-            "deadrecall_blocked_source_hash",
-            "deadrecall_blocked_bindings_hash",
-            "deadrecall_blocked_targets_hash"
+            "totem_automata_sorting_blocked",
+            "totem_automata_blocked_source_container_dim",
+            "totem_automata_blocked_source_container_x",
+            "totem_automata_blocked_source_container_y",
+            "totem_automata_blocked_source_container_z",
+            "totem_automata_blocked_source_hash",
+            "totem_automata_blocked_bindings_hash",
+            "totem_automata_blocked_targets_hash"
     );
 
     private CopperGolemStateMutation() { }

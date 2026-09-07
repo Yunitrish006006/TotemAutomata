@@ -17,7 +17,7 @@ class CopperGolemSortingAuthorityTest {
         CompoundTag tag = new CompoundTag();
         tag.putString(CopperGolemData.TAG_MODE, CopperGolemMode.SORTING.id());
         tag.putBoolean(CopperGolemData.TAG_TRANSPORT_ENABLED, true);
-        tag.putBoolean("deadrecall_sorting_blocked", true);
+        tag.putBoolean("totem_automata_sorting_blocked", true);
         var dimension = ResourceKey.create(
                 Registries.DIMENSION,
                 Identifier.fromNamespaceAndPath("totem_automata_test", "sorting_snapshot")

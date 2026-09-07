@@ -12,9 +12,8 @@ import java.util.Optional;
  * Rendering-independent Copper Golem menu controller.
  *
  * <p>A migrated screen can render {@link #snapshot()} and send the returned
- * command records through {@link CopperGolemMenuActions}.  It applies exactly
- * the same optimistic edits as the legacy screen but owns no Fabric receiver
- * or screen registration, so it remains safe while DeadRecall is authoritative.</p>
+ * command records through {@link CopperGolemMenuActions}. It applies the
+ * same optimistic edits as the production screen.</p>
  */
 public final class CopperGolemMenuClientController {
     private CopperWrenchBindingsPayload snapshot;

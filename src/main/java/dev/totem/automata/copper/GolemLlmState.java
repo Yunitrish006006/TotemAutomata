@@ -4,7 +4,7 @@ import net.minecraft.nbt.CompoundTag;
 
 /** Preserved per-golem OpenAI-compatible connection settings. */
 public final class GolemLlmState {
-    private static final String API_URL = "deadrecall_llm_api_url", API_KEY = "deadrecall_llm_api_key", MODEL = "deadrecall_llm_model";
+    private static final String API_URL = "totem_automata_llm_api_url", API_KEY = "totem_automata_llm_api_key", MODEL = "totem_automata_llm_model";
     private GolemLlmState() { }
     public static Config read(CompoundTag tag) { return new Config(tag.getStringOr(API_URL, ""), tag.getStringOr(API_KEY, ""), tag.getStringOr(MODEL, "")); }
     public static void write(CompoundTag tag, Config value) {

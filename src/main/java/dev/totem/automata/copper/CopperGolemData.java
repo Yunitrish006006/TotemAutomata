@@ -17,34 +17,104 @@ import net.minecraft.world.entity.Entity;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /** Persisted Copper Golem schema shared by sorting, gathering and restart recovery. */
 public final class CopperGolemData {
-    public static final int DATA_VERSION = 2;
-    public static final String TAG_DATA_VERSION = "deadrecall_data_version";
-    public static final String TAG_REVISION = "deadrecall_revision";
-    public static final String TAG_MODE = "deadrecall_mode";
-    public static final String TAG_TRANSPORT_ENABLED = "deadrecall_transport_enabled";
-    public static final String TAG_ACTIVITY = "deadrecall_activity";
-    public static final String TAG_FUEL_STACK = "deadrecall_fuel_stack";
-    public static final String TAG_FUEL_TICKS = "deadrecall_fuel_ticks";
-    public static final String TAG_BOUND_CONTAINERS = "deadrecall_bound_containers";
-    public static final String TAG_BOUND_CONTAINER_DIM = "deadrecall_bound_container_dim";
-    public static final String TAG_BOUND_CONTAINER_X = "deadrecall_bound_container_x";
-    public static final String TAG_BOUND_CONTAINER_Y = "deadrecall_bound_container_y";
-    public static final String TAG_BOUND_CONTAINER_Z = "deadrecall_bound_container_z";
+    public static final int DATA_VERSION = 3;
+    public static final String TAG_DATA_VERSION = "totem_automata_data_version";
+    public static final String TAG_REVISION = "totem_automata_revision";
+    public static final String TAG_MODE = "totem_automata_mode";
+    public static final String TAG_TRANSPORT_ENABLED = "totem_automata_transport_enabled";
+    public static final String TAG_ACTIVITY = "totem_automata_activity";
+    public static final String TAG_FUEL_STACK = "totem_automata_fuel_stack";
+    public static final String TAG_FUEL_TICKS = "totem_automata_fuel_ticks";
+    public static final String TAG_BOUND_CONTAINERS = "totem_automata_bound_containers";
+    public static final String TAG_BOUND_CONTAINER_DIM = "totem_automata_bound_container_dim";
+    public static final String TAG_BOUND_CONTAINER_X = "totem_automata_bound_container_x";
+    public static final String TAG_BOUND_CONTAINER_Y = "totem_automata_bound_container_y";
+    public static final String TAG_BOUND_CONTAINER_Z = "totem_automata_bound_container_z";
     public static final String TAG_BINDING_DIM = "dimension";
     public static final String TAG_BINDING_X = "x";
     public static final String TAG_BINDING_Y = "y";
     public static final String TAG_BINDING_Z = "z";
+
+    /**
+     * Enumerated one-way migration for every persisted Copper Golem key used
+     * before the standalone Totem namespace. Canonical values always win.
+     */
+    private static final Map<String, String> LEGACY_KEY_MIGRATIONS = Map.ofEntries(
+            Map.entry("deadrecall_activity", "totem_automata_activity"),
+            Map.entry("deadrecall_blocked_bindings_hash", "totem_automata_blocked_bindings_hash"),
+            Map.entry("deadrecall_blocked_source_container_dim", "totem_automata_blocked_source_container_dim"),
+            Map.entry("deadrecall_blocked_source_container_x", "totem_automata_blocked_source_container_x"),
+            Map.entry("deadrecall_blocked_source_container_y", "totem_automata_blocked_source_container_y"),
+            Map.entry("deadrecall_blocked_source_container_z", "totem_automata_blocked_source_container_z"),
+            Map.entry("deadrecall_blocked_source_hash", "totem_automata_blocked_source_hash"),
+            Map.entry("deadrecall_blocked_targets_hash", "totem_automata_blocked_targets_hash"),
+            Map.entry("deadrecall_bound_container_dim", "totem_automata_bound_container_dim"),
+            Map.entry("deadrecall_bound_container_x", "totem_automata_bound_container_x"),
+            Map.entry("deadrecall_bound_container_y", "totem_automata_bound_container_y"),
+            Map.entry("deadrecall_bound_container_z", "totem_automata_bound_container_z"),
+            Map.entry("deadrecall_bound_containers", "totem_automata_bound_containers"),
+            Map.entry("deadrecall_data_version", "totem_automata_data_version"),
+            Map.entry("deadrecall_fuel_stack", "totem_automata_fuel_stack"),
+            Map.entry("deadrecall_fuel_ticks", "totem_automata_fuel_ticks"),
+            Map.entry("deadrecall_gathering_area_dim", "totem_automata_gathering_area_dim"),
+            Map.entry("deadrecall_gathering_break_required_ticks", "totem_automata_gathering_break_required_ticks"),
+            Map.entry("deadrecall_gathering_break_state", "totem_automata_gathering_break_state"),
+            Map.entry("deadrecall_gathering_break_ticks", "totem_automata_gathering_break_ticks"),
+            Map.entry("deadrecall_gathering_corner_a_x", "totem_automata_gathering_corner_a_x"),
+            Map.entry("deadrecall_gathering_corner_a_y", "totem_automata_gathering_corner_a_y"),
+            Map.entry("deadrecall_gathering_corner_a_z", "totem_automata_gathering_corner_a_z"),
+            Map.entry("deadrecall_gathering_corner_b_x", "totem_automata_gathering_corner_b_x"),
+            Map.entry("deadrecall_gathering_corner_b_y", "totem_automata_gathering_corner_b_y"),
+            Map.entry("deadrecall_gathering_corner_b_z", "totem_automata_gathering_corner_b_z"),
+            Map.entry("deadrecall_gathering_llm_allowed_block_ids", "totem_automata_gathering_llm_allowed_block_ids"),
+            Map.entry("deadrecall_gathering_llm_allowed_tags", "totem_automata_gathering_llm_allowed_tags"),
+            Map.entry("deadrecall_gathering_llm_denied_block_ids", "totem_automata_gathering_llm_denied_block_ids"),
+            Map.entry("deadrecall_gathering_llm_denied_tags", "totem_automata_gathering_llm_denied_tags"),
+            Map.entry("deadrecall_gathering_llm_enabled", "totem_automata_gathering_llm_enabled"),
+            Map.entry("deadrecall_gathering_llm_prompt", "totem_automata_gathering_llm_prompt"),
+            Map.entry("deadrecall_gathering_llm_prompt_revision", "totem_automata_gathering_llm_prompt_revision"),
+            Map.entry("deadrecall_gathering_llm_warmup_index", "totem_automata_gathering_llm_warmup_index"),
+            Map.entry("deadrecall_gathering_manual_targets", "totem_automata_gathering_manual_targets"),
+            Map.entry("deadrecall_gathering_nearest_scan_cursor", "totem_automata_gathering_nearest_scan_cursor"),
+            Map.entry("deadrecall_gathering_nearest_scan_radius", "totem_automata_gathering_nearest_scan_radius"),
+            Map.entry("deadrecall_gathering_retry_tick", "totem_automata_gathering_retry_tick"),
+            Map.entry("deadrecall_gathering_scan_index", "totem_automata_gathering_scan_index"),
+            Map.entry("deadrecall_gathering_skipped_targets", "totem_automata_gathering_skipped_targets"),
+            Map.entry("deadrecall_gathering_storage_stack", "totem_automata_gathering_storage_stack"),
+            Map.entry("deadrecall_gathering_target_x", "totem_automata_gathering_target_x"),
+            Map.entry("deadrecall_gathering_target_y", "totem_automata_gathering_target_y"),
+            Map.entry("deadrecall_gathering_target_z", "totem_automata_gathering_target_z"),
+            Map.entry("deadrecall_gathering_tool_stack", "totem_automata_gathering_tool_stack"),
+            Map.entry("deadrecall_last_operator_player", "totem_automata_last_operator_player"),
+            Map.entry("deadrecall_llm_api_key", "totem_automata_llm_api_key"),
+            Map.entry("deadrecall_llm_api_url", "totem_automata_llm_api_url"),
+            Map.entry("deadrecall_llm_bindings", "totem_automata_llm_bindings"),
+            Map.entry("deadrecall_llm_model", "totem_automata_llm_model"),
+            Map.entry("deadrecall_mode", "totem_automata_mode"),
+            Map.entry("deadrecall_revision", "totem_automata_revision"),
+            Map.entry("deadrecall_sorting_blocked", "totem_automata_sorting_blocked"),
+            Map.entry("deadrecall_source_copper_container_dim", "totem_automata_source_copper_container_dim"),
+            Map.entry("deadrecall_source_copper_container_x", "totem_automata_source_copper_container_x"),
+            Map.entry("deadrecall_source_copper_container_y", "totem_automata_source_copper_container_y"),
+            Map.entry("deadrecall_source_copper_container_z", "totem_automata_source_copper_container_z"),
+            Map.entry("deadrecall_source_slot", "totem_automata_source_slot"),
+            Map.entry("deadrecall_transport_enabled", "totem_automata_transport_enabled"),
+            Map.entry("deadrecall_tried_destinations", "totem_automata_tried_destinations")
+    );
+    private static final String LEGACY_STORAGE_SLOT_PREFIX = "deadrecall_gathering_storage_slot_";
+    private static final String CANONICAL_STORAGE_SLOT_PREFIX = "totem_automata_gathering_storage_slot_";
 
     private CopperGolemData() {
     }
 
     /** Applies the legacy-compatible schema defaults and one-to-many binding migration. */
     public static boolean migrate(CompoundTag tag) {
-        boolean changed = false;
+        boolean changed = migrateLegacyKeys(tag);
         if (tag.getIntOr(TAG_DATA_VERSION, 0) < DATA_VERSION) {
             tag.putInt(TAG_DATA_VERSION, DATA_VERSION);
             changed = true;
@@ -133,11 +203,41 @@ public final class CopperGolemData {
 
     public static CompoundTag readEntityTag(Entity entity) {
         CustomData customData = entity.get(DataComponents.CUSTOM_DATA);
-        return customData == null ? new CompoundTag() : customData.copyTag();
+        CompoundTag tag = customData == null ? new CompoundTag() : customData.copyTag();
+        if (migrate(tag)) {
+            entity.setComponent(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+        }
+        return tag;
     }
 
     public static void writeEntityTag(Entity entity, CompoundTag tag) {
+        migrate(tag);
         entity.setComponent(DataComponents.CUSTOM_DATA, CustomData.of(tag));
+    }
+
+    private static boolean migrateLegacyKeys(CompoundTag tag) {
+        boolean changed = false;
+        for (Map.Entry<String, String> entry : LEGACY_KEY_MIGRATIONS.entrySet()) {
+            changed |= migrateLegacyKey(tag, entry.getKey(), entry.getValue());
+        }
+        for (int slot = 0; slot < 16; slot++) {
+            changed |= migrateLegacyKey(tag, LEGACY_STORAGE_SLOT_PREFIX + slot, CANONICAL_STORAGE_SLOT_PREFIX + slot);
+        }
+        return changed;
+    }
+
+    private static boolean migrateLegacyKey(CompoundTag tag, String legacyKey, String canonicalKey) {
+        if (!tag.contains(legacyKey)) {
+            return false;
+        }
+        if (!tag.contains(canonicalKey)) {
+            var value = tag.get(legacyKey);
+            if (value != null) {
+                tag.put(canonicalKey, value.copy());
+            }
+        }
+        tag.remove(legacyKey);
+        return true;
     }
 
     private static boolean migrateLegacySortingBindings(CompoundTag tag) {

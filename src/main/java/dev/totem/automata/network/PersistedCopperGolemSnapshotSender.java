@@ -34,13 +34,12 @@ import java.util.function.BiConsumer;
  * Builds and sends the preserved Copper Wrench menu snapshot entirely from
  * Automata-owned persisted state.
  *
- * <p>The cutover composition passes this sender to both the menu opener and
- * payload handler. It is deliberately inert until that composition is
- * enabled, so the currently pinned DeadRecall authority remains singular.</p>
+ * <p>The production composition passes this sender to both the menu opener
+ * and payload handler.</p>
  */
 public final class PersistedCopperGolemSnapshotSender implements BiConsumer<net.minecraft.server.level.ServerPlayer, CopperGolem> {
-    private static final String GATHERING_TOOL = "deadrecall_gathering_tool_stack";
-    private static final String GATHERING_STORAGE = "deadrecall_gathering_storage_stack";
+    private static final String GATHERING_TOOL = "totem_automata_gathering_tool_stack";
+    private static final String GATHERING_STORAGE = "totem_automata_gathering_storage_stack";
 
     @Override
     public void accept(net.minecraft.server.level.ServerPlayer player, CopperGolem golem) {

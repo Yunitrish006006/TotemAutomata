@@ -8,7 +8,7 @@ import net.minecraft.resources.Identifier;
 /** Serverbound LLM connection-test request. */
 public record TestCopperGolemLlmConnectionPayload(String apiUrl, String apiKey, String model) implements CustomPacketPayload {
     public static final Type<TestCopperGolemLlmConnectionPayload> TYPE =
-            new Type<>(Identifier.fromNamespaceAndPath("deadrecall", "test_copper_golem_llm_connection"));
+            new Type<>(Identifier.fromNamespaceAndPath("totem", "test_copper_golem_llm_connection"));
     public static final StreamCodec<FriendlyByteBuf, TestCopperGolemLlmConnectionPayload> CODEC = StreamCodec.of(
             (buf, p) -> { buf.writeUtf(p.apiUrl(), 2048); buf.writeUtf(p.apiKey(), 512); buf.writeUtf(p.model(), 256); },
             buf -> new TestCopperGolemLlmConnectionPayload(buf.readUtf(2048), buf.readUtf(512), buf.readUtf(256)));

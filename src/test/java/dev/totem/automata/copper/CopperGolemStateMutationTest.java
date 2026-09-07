@@ -29,19 +29,19 @@ class CopperGolemStateMutationTest {
     @Test
     void operationAndModeMutationsClearLegacyRuntimeStateAndAdvanceRevision() {
         CompoundTag tag = new CompoundTag();
-        tag.putBoolean("deadrecall_sorting_blocked", true);
+        tag.putBoolean("totem_automata_sorting_blocked", true);
         tag.putLong(GatheringRuntimeState.SCAN_INDEX, 8);
-        tag.put("deadrecall_tried_destinations", new net.minecraft.nbt.ListTag());
+        tag.put("totem_automata_tried_destinations", new net.minecraft.nbt.ListTag());
 
         CopperGolemStateMutation.setTransportEnabled(tag, true);
         assertTrue(tag.getBooleanOr(CopperGolemData.TAG_TRANSPORT_ENABLED, false));
-        assertFalse(tag.contains("deadrecall_sorting_blocked"));
+        assertFalse(tag.contains("totem_automata_sorting_blocked"));
         assertEquals(1, tag.getIntOr(CopperGolemData.TAG_REVISION, 0));
 
         CopperGolemStateMutation.setMode(tag, CopperGolemMode.GATHERING);
         assertEquals(CopperGolemMode.GATHERING.id(), tag.getStringOr(CopperGolemData.TAG_MODE, ""));
         assertFalse(tag.contains(GatheringRuntimeState.SCAN_INDEX));
-        assertFalse(tag.contains("deadrecall_tried_destinations"));
+        assertFalse(tag.contains("totem_automata_tried_destinations"));
         assertEquals(2, tag.getIntOr(CopperGolemData.TAG_REVISION, 0));
     }
 

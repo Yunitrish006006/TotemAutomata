@@ -28,8 +28,8 @@ import net.minecraft.world.level.block.Blocks;
 
 /** Runtime contract tests for the optional Totem Excavation gathering adapter. */
 public final class CopperGolemHammerGameTest {
-    private static final String TOOL = "deadrecall_gathering_tool_stack";
-    private static final String STORAGE = "deadrecall_gathering_storage_stack";
+    private static final String TOOL = "totem_automata_gathering_tool_stack";
+    private static final String STORAGE = "totem_automata_gathering_storage_stack";
 
     @GameTest(maxTicks = 40)
     public void canonicalHammersAreAcceptedWithoutLosingComponents(GameTestHelper helper) {

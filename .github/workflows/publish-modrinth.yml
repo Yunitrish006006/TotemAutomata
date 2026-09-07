@@ -29,12 +29,12 @@ concurrency:
 
 env:
   MODULE_ID: totem-automata
-  CORE_REF: 71422749875072b585dcf64a4c9f42ee96773543
-  EXCAVATION_REF: 6b54011195b81ec9a9a09146d162ba303ebd8ee4
+  CORE_REF: f87cd10fe8aefce77925b9e75dad237f17f38966
+  EXCAVATION_REF: f40b94fd5d9de8b47534343c76a95f62926d2b1b
   FABRIC_API_PROJECT_ID: P7dR8mSH
-  TOTEM_EXCAVATION_REFERENCE_VERSION_ID: Klewi9E3
-  TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.14.jar
-  TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.8.jar
+  TOTEM_EXCAVATION_REFERENCE_VERSION_ID: 9PTqAaZ5
+  TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.18.jar
+  TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.13.jar
 
 jobs:
   publish:
@@ -135,8 +135,8 @@ jobs:
 
           chmod +x .lockstep/TotemCore/gradlew
           core="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
-          [[ "$core" == 0.7.14 ]] \
-            || fail_release_build 'pinned TotemCore checkout is not version 0.7.14.'
+          [[ "$core" == 0.7.18 ]] \
+            || fail_release_build 'pinned TotemCore checkout is not version 0.7.18.'
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore \
             clean jar --no-daemon --stacktrace
           core_jar="$GITHUB_WORKSPACE/.lockstep/TotemCore/build/libs/totem-core-${core}.jar"
@@ -144,8 +144,8 @@ jobs:
             || fail_release_build 'pinned TotemCore production JAR is missing.'
 
           excavation="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
-          [[ "$excavation" == 0.1.8 ]] \
-            || fail_release_build 'pinned TotemExcavation checkout is not version 0.1.8.'
+          [[ "$excavation" == 0.1.13 ]] \
+            || fail_release_build 'pinned TotemExcavation checkout is not version 0.1.13.'
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemExcavation \
             -PtotemCoreJar="$core_jar" clean jar --no-daemon --stacktrace
           excavation_jar="$GITHUB_WORKSPACE/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation}.jar"
@@ -207,7 +207,7 @@ jobs:
               --arg id "$MODULE_ID" \
               --arg v "$v" \
               --arg mc "~${mc}" \
-              --arg core '>=0.7.14 <0.8.0' \
+              --arg core '>=0.7.18 <0.8.0' \
               --arg excavation '>=0.1.5' \
               '.id==$id
                and .version==$v
@@ -286,10 +286,10 @@ jobs:
           excavation_dependency_file="${excavation_archive}-${excavation_version}.jar"
           [[ "$core_dependency_file" == "$TOTEM_CORE_DEPENDENCY_FILE" \
               && -f ".lockstep/TotemCore/build/libs/${core_dependency_file}" ]] \
-            || fail_release 'pinned TotemCore reference artifact is not exactly totem-core-0.7.14.jar.'
+            || fail_release 'pinned TotemCore reference artifact is not exactly totem-core-0.7.18.jar.'
           [[ "$excavation_dependency_file" == "$TOTEM_EXCAVATION_DEPENDENCY_FILE" \
               && -f ".lockstep/TotemExcavation/build/libs/${excavation_dependency_file}" ]] \
-            || fail_release 'pinned TotemExcavation reference artifact is not exactly totem-excavation-0.1.8.jar.'
+            || fail_release 'pinned TotemExcavation reference artifact is not exactly totem-excavation-0.1.13.jar.'
 
           fetch_modrinth_json 'TotemExcavation dependency version' \
             "version/${TOTEM_EXCAVATION_REFERENCE_VERSION_ID}" \
@@ -310,7 +310,7 @@ jobs:
                       and any(.files[]; .filename == $file and .primary == true))
                | .project_id | strings | select(length > 0)' \
               /tmp/excavation-dependency-version.json)"; then
-            fail_release 'TotemExcavation dependency reference does not resolve to the pinned 0.1.8 artifact.'
+            fail_release 'TotemExcavation dependency reference does not resolve to the pinned 0.1.13 artifact.'
           fi
           [[ "$excavation_dependency_project" != "$FABRIC_API_PROJECT_ID" \
               && "$excavation_dependency_project" != "$p" ]] \

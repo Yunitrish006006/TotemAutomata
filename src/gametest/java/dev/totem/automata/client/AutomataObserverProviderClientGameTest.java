@@ -97,7 +97,7 @@ public final class AutomataObserverProviderClientGameTest implements FabricClien
             CopperGolemMenu menu = new CopperGolemMenu(CopperGolemMenuRegistration.TYPE, revision,
                     client.player.getInventory(), new CopperGolemMenuOpenData(GOLEM));
             CopperGolemMenuScreen screen = new CopperGolemMenuScreen(menu, client.player.getInventory(),
-                    Component.translatable("container.deadrecall.copper_wrench.bindings"));
+                    Component.translatable("container.totem.copper_wrench.bindings"));
             screen.acceptSnapshotForVisualTest(snapshot(revision));
             return screen;
         });

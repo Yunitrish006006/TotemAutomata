@@ -110,18 +110,18 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         positionInventoryLabel(bounds);
         int editorX = bounds.x() + 10;
         int editorY = bounds.y() + 50;
-        apiUrlField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.llm_api_url"), editorX, editorY, 156, 2048,
+        apiUrlField = addRenderableWidget(editor(Component.translatable("message.totem.copper_wrench.llm_api_url"), editorX, editorY, 156, 2048,
                 Component.literal("https://api.openai.com/v1/chat/completions")));
-        apiKeyField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.llm_api_key"), editorX, editorY + 18, 156, 512,
+        apiKeyField = addRenderableWidget(editor(Component.translatable("message.totem.copper_wrench.llm_api_key"), editorX, editorY + 18, 156, 512,
                 Component.literal("sk-…")));
-        modelField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.llm_model"), editorX, editorY + 36, 156, 256,
+        modelField = addRenderableWidget(editor(Component.translatable("message.totem.copper_wrench.llm_model"), editorX, editorY + 36, 156, 256,
                 Component.literal("gpt-4o-mini")));
-        gatheringPromptField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.gathering_llm_prompt"), editorX, editorY + 54, 156, 2048,
-                Component.translatable("message.deadrecall.copper_wrench.prompt_hint")));
-        bindingPromptField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.binding_llm_prompt"), editorX, editorY + 54, 156, 2048,
-                Component.translatable("message.deadrecall.copper_wrench.binding_prompt_hint")));
-        cacheValueField = addRenderableWidget(editor(Component.translatable("message.deadrecall.copper_wrench.cache_value"), editorX, bounds.y() + 108, 156, 256,
-                Component.translatable("message.deadrecall.copper_wrench.ui_filter_value_hint")));
+        gatheringPromptField = addRenderableWidget(editor(Component.translatable("message.totem.copper_wrench.gathering_llm_prompt"), editorX, editorY + 54, 156, 2048,
+                Component.translatable("message.totem.copper_wrench.prompt_hint")));
+        bindingPromptField = addRenderableWidget(editor(Component.translatable("message.totem.copper_wrench.binding_llm_prompt"), editorX, editorY + 54, 156, 2048,
+                Component.translatable("message.totem.copper_wrench.binding_prompt_hint")));
+        cacheValueField = addRenderableWidget(editor(Component.translatable("message.totem.copper_wrench.cache_value"), editorX, bounds.y() + 108, 156, 256,
+                Component.translatable("message.totem.copper_wrench.ui_filter_value_hint")));
         if (observerReadOnly) {
             for (EditBox field : List.of(apiUrlField, apiKeyField, modelField,
                     gatheringPromptField, bindingPromptField, cacheValueField)) {
@@ -379,7 +379,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                 bounds.x() + 8, bounds.y() + 9, 0xFF404040, false);
         lifecycle.session().controller().snapshot().ifPresentOrElse(
                 snapshot -> drawSnapshot(graphics, bounds, snapshot, mouseX, mouseY),
-                () -> graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_waiting_state"),
+                () -> graphics.text(font, Component.translatable("message.totem.copper_wrench.ui_waiting_state"),
                         bounds.x() + 12, bounds.y() + 58, 0xFF9B3030));
         drawHeaderIcons(graphics, bounds, mouseX, mouseY);
         drawSlotBackings(graphics);
@@ -463,8 +463,8 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
             graphics.setTooltipForNextFrame(font, modeText(), mouseX, mouseY);
         } else if (isInside(mouseX, mouseY, x + 152, y + 3, 18, 18)) {
             graphics.setTooltipForNextFrame(font, Component.translatable(ui.tab() == CopperGolemMenuUiState.Tab.LLM
-                    ? "message.deadrecall.copper_wrench.ui_back_to_golem"
-                    : "message.deadrecall.copper_wrench.ui_llm_settings"), mouseX, mouseY);
+                    ? "message.totem.copper_wrench.ui_back_to_golem"
+                    : "message.totem.copper_wrench.ui_llm_settings"), mouseX, mouseY);
         }
         if (snapshot == null) return;
     }
@@ -475,7 +475,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         int color = !snapshot.running() ? 0xFF9B3030
                 : snapshot.activity().startsWith("blocked_") ? 0xFFAA7A20 : 0xFF287C35;
         graphics.text(font, Component.literal(snapshot.running() ? "● " : "○ ")
-                        .append(Component.translatable("message.deadrecall.copper_wrench.activity_" + snapshot.activity())),
+                        .append(Component.translatable("message.totem.copper_wrench.activity_" + snapshot.activity())),
                 bounds.x() + 92, bounds.y() + 29, color, false);
     }
 
@@ -491,9 +491,9 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         int flowY = sourceY + 9;
         int visible = Math.min(MAX_VISIBLE_SORTING_TARGETS, Math.max(0, snapshot.bindings().size() - ui.scroll()));
         if (ui.selected() < 0 && !snapshot.bindings().isEmpty()) ui.select(0, snapshot.bindings().size());
-        graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_sorting_step_source"), sourceX, y + 58, 0xFF555555, false);
-        graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_sorting_step_golem"), x + 64, y + 58, 0xFF555555, false);
-        Component targetStep = Component.translatable("message.deadrecall.copper_wrench.ui_sorting_step_target");
+        graphics.text(font, Component.translatable("message.totem.copper_wrench.ui_sorting_step_source"), sourceX, y + 58, 0xFF555555, false);
+        graphics.text(font, Component.translatable("message.totem.copper_wrench.ui_sorting_step_golem"), x + 64, y + 58, 0xFF555555, false);
+        Component targetStep = Component.translatable("message.totem.copper_wrench.ui_sorting_step_target");
         graphics.text(font, targetStep, x + bounds.width() - 12 - font.width(targetStep),
                 y + 58, 0xFF555555, false);
         renderSlot(graphics, SLOT, sourceX, sourceY);
@@ -524,11 +524,11 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
             }
         }
         Component sortingHint = Component.translatable(snapshot.bindings().isEmpty()
-                ? "message.deadrecall.copper_wrench.ui_sorting_bind_targets_short"
-                : "message.deadrecall.copper_wrench.ui_sorting_edit_target_short");
+                ? "message.totem.copper_wrench.ui_sorting_bind_targets_short"
+                : "message.totem.copper_wrench.ui_sorting_edit_target_short");
         graphics.text(font, sortingHint, x + 104, y + 103, 0xFF3F6F9F, false);
         graphics.text(font,
-                Component.translatable("message.deadrecall.copper_wrench.ui_binding_count_short",
+                Component.translatable("message.totem.copper_wrench.ui_binding_count_short",
                         snapshot.bindings().size()),
                 x + 104, y + 114, 0xFF555555, false);
         renderPreviewGolem(graphics, bounds, snapshot, mouseX, mouseY,
@@ -552,19 +552,19 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         renderItem(graphics, new ItemStack(Items.BARREL), x + 8, y + 29);
         graphics.text(font, Component.literal(trimToWidth(blockDisplayName(binding.blockId()).getString(), 84)),
                 x + 30, y + 32, 0xFF404040, false);
-        graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_manual_filter"),
+        graphics.text(font, Component.translatable("message.totem.copper_wrench.ui_manual_filter"),
                 x + 30, y + 43, 0xFF555555, false);
         graphics.text(font, Component.translatable(cacheValueIsTag
-                ? "message.deadrecall.copper_wrench.ui_filter_mode_tag"
-                : "message.deadrecall.copper_wrench.ui_filter_mode_item"), x + 132, y + 36, 0xFF3F6F9F, false);
+                ? "message.totem.copper_wrench.ui_filter_mode_tag"
+                : "message.totem.copper_wrench.ui_filter_mode_item"), x + 132, y + 36, 0xFF3F6F9F, false);
         drawFilterPane(graphics, x + 8, y + 54, binding, true, mouseX, mouseY);
         drawFilterPane(graphics, x + 94, y + 54, binding, false, mouseX, mouseY);
         if (isInside(mouseX, mouseY, x + 8, y + 29, 18, 18)) {
-            graphics.setTooltipForNextFrame(font, Component.translatable("message.deadrecall.copper_wrench.ui_back_to_targets"), mouseX, mouseY);
+            graphics.setTooltipForNextFrame(font, Component.translatable("message.totem.copper_wrench.ui_back_to_targets"), mouseX, mouseY);
         } else if (isInside(mouseX, mouseY, x + 132, y + 34, 36, 12)) {
             graphics.setTooltipForNextFrame(font, Component.translatable(cacheValueIsTag
-                    ? "message.deadrecall.copper_wrench.entry_type_tag"
-                    : "message.deadrecall.copper_wrench.ui_filter_item_picker_hint"), mouseX, mouseY);
+                    ? "message.totem.copper_wrench.entry_type_tag"
+                    : "message.totem.copper_wrench.ui_filter_item_picker_hint"), mouseX, mouseY);
         }
     }
 
@@ -576,22 +576,22 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         graphics.fill(x + 8, y + 29, x + 168, y + 105, 0xFFC6C6C6);
         graphics.outline(x + 8, y + 29, 160, 76, 0xFF555555);
         graphics.text(font, Component.translatable(allowed
-                        ? "message.deadrecall.copper_wrench.ui_filter_add_allowed_title"
-                        : "message.deadrecall.copper_wrench.ui_filter_add_denied_title"),
+                        ? "message.totem.copper_wrench.ui_filter_add_allowed_title"
+                        : "message.totem.copper_wrench.ui_filter_add_denied_title"),
                 x + 18, y + 38, allowed ? 0xFF287C35 : 0xFF9B3030, false);
         graphics.text(font, Component.translatable(cacheValueIsTag
-                        ? "message.deadrecall.copper_wrench.ui_filter_mode_tag"
-                        : "message.deadrecall.copper_wrench.ui_filter_mode_item"),
+                        ? "message.totem.copper_wrench.ui_filter_mode_tag"
+                        : "message.totem.copper_wrench.ui_filter_mode_item"),
                 x + 132, y + 36, 0xFF3F6F9F, false);
         renderFilterActionSlot(graphics, x + 10, y + 82, allowed);
-        graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_filter_finish"),
+        graphics.text(font, Component.translatable("message.totem.copper_wrench.ui_filter_finish"),
                 x + 34, y + 87, 0xFFFFFFFF, false);
         if (isInside(mouseX, mouseY, x + 132, y + 34, 36, 12)) {
             graphics.setTooltipForNextFrame(font, Component.translatable(cacheValueIsTag
-                    ? "message.deadrecall.copper_wrench.entry_type_tag"
-                    : "message.deadrecall.copper_wrench.entry_type_item"), mouseX, mouseY);
+                    ? "message.totem.copper_wrench.entry_type_tag"
+                    : "message.totem.copper_wrench.entry_type_item"), mouseX, mouseY);
         } else if (isInside(mouseX, mouseY, x + 10, y + 82, 72, 18)) {
-            graphics.setTooltipForNextFrame(font, Component.translatable("message.deadrecall.copper_wrench.ui_filter_finish"), mouseX, mouseY);
+            graphics.setTooltipForNextFrame(font, Component.translatable("message.totem.copper_wrench.ui_filter_finish"), mouseX, mouseY);
         }
     }
 
@@ -600,13 +600,13 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                                 boolean allowed, int mouseX, int mouseY) {
         renderFilterActionSlot(graphics, paneX, paneY, allowed);
         graphics.text(font, Component.translatable(allowed
-                        ? "message.deadrecall.copper_wrench.cache_side_accepted"
-                        : "message.deadrecall.copper_wrench.cache_side_denied"),
+                        ? "message.totem.copper_wrench.cache_side_accepted"
+                        : "message.totem.copper_wrench.cache_side_denied"),
                 paneX + 22, paneY + 5, allowed ? 0xFF287C35 : 0xFF9B3030, false);
         if (isInside(mouseX, mouseY, paneX, paneY, 18, 18)) {
             graphics.setTooltipForNextFrame(font, Component.translatable(allowed
-                    ? "message.deadrecall.copper_wrench.ui_add_allowed_tooltip"
-                    : "message.deadrecall.copper_wrench.ui_add_denied_tooltip"), mouseX, mouseY);
+                    ? "message.totem.copper_wrench.ui_add_allowed_tooltip"
+                    : "message.totem.copper_wrench.ui_add_denied_tooltip"), mouseX, mouseY);
         }
         List<FilterEntry> entries = filterEntries(binding, allowed);
         int scroll = ui.filterScroll(allowed);
@@ -623,22 +623,22 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
             if (isInside(mouseX, mouseY, slotX, slotY, 18, 18)) {
                 graphics.setComponentTooltipForNextFrame(font, List.of(
                         Component.translatable(allowed
-                                ? "message.deadrecall.copper_wrench.cache_side_accepted"
-                                : "message.deadrecall.copper_wrench.cache_side_denied"),
+                                ? "message.totem.copper_wrench.cache_side_accepted"
+                                : "message.totem.copper_wrench.cache_side_denied"),
                         Component.literal(entry.tag() ? "#" + entry.value() : entry.value()),
-                        Component.translatable("message.deadrecall.copper_wrench.ui_filter_switch_side_hint")), mouseX, mouseY);
+                        Component.translatable("message.totem.copper_wrench.ui_filter_switch_side_hint")), mouseX, mouseY);
             }
         }
         if (entries.size() > MAX_VISIBLE_FILTER_ENTRIES) {
             int first = scroll + 1;
             int last = Math.min(entries.size(), scroll + MAX_VISIBLE_FILTER_ENTRIES);
             Component range = Component.translatable(
-                    "message.deadrecall.copper_wrench.ui_filter_range", first, last, entries.size());
+                    "message.totem.copper_wrench.ui_filter_range", first, last, entries.size());
             graphics.text(font, range, paneX + (FILTER_PANE_WIDTH - font.width(range)) / 2,
                     paneY + 58, 0xFF555555, false);
             if (isInside(mouseX, mouseY, paneX, paneY + 20, FILTER_PANE_WIDTH, 49)) {
                 graphics.setTooltipForNextFrame(font,
-                        Component.translatable("message.deadrecall.copper_wrench.ui_filter_scroll_hint"),
+                        Component.translatable("message.totem.copper_wrench.ui_filter_scroll_hint"),
                         mouseX, mouseY);
             }
         }
@@ -700,7 +700,7 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         int y = bounds.y();
         int chestX = x + 61;
         int chestY = y + 99;
-        graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_home_short"), x + 57, y + 88, 0xFF555555, false);
+        graphics.text(font, Component.translatable("message.totem.copper_wrench.ui_home_short"), x + 57, y + 88, 0xFF555555, false);
         graphics.verticalLine(x + 40, y + 85, y + 108, 0xFF555555);
         graphics.horizontalLine(x + 40, x + 55, y + 108, 0xFF555555);
         renderArrowHead(graphics, x + 55, y + 108);
@@ -718,22 +718,22 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
         int x = bounds.x();
         int y = bounds.y();
         boolean enabled = visibleLlmEnabled(snapshot);
-        graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.ui_llm_settings"), x + 10, y + 33, 0xFF404040, false);
+        graphics.text(font, Component.translatable("message.totem.copper_wrench.ui_llm_settings"), x + 10, y + 33, 0xFF404040, false);
         renderIconAction(graphics, new ItemStack(Items.ENDER_EYE), x + 95, y + 31);
         renderIconAction(graphics, new ItemStack(Items.HOPPER), x + 119, y + 31);
         renderIconAction(graphics, new ItemStack(Items.LEVER), x + 143, y + 31);
-        graphics.text(font, Component.translatable("message.deadrecall.copper_wrench.llm_state",
-                        Component.translatable(enabled ? "message.deadrecall.copper_wrench.enabled"
-                                : "message.deadrecall.copper_wrench.disabled")),
+        graphics.text(font, Component.translatable("message.totem.copper_wrench.llm_state",
+                        Component.translatable(enabled ? "message.totem.copper_wrench.enabled"
+                                : "message.totem.copper_wrench.disabled")),
                 x + 10, y + 39, enabled ? 0xFF287C35 : 0xFF9B3030, false);
         if (isInside(mouseX, mouseY, x + 95, y + 31, 18, 18)) {
-            graphics.setTooltipForNextFrame(font, Component.translatable("message.deadrecall.copper_wrench.test_connection"), mouseX, mouseY);
+            graphics.setTooltipForNextFrame(font, Component.translatable("message.totem.copper_wrench.test_connection"), mouseX, mouseY);
         } else if (isInside(mouseX, mouseY, x + 119, y + 31, 18, 18)) {
-            graphics.setTooltipForNextFrame(font, Component.translatable("message.deadrecall.copper_wrench.save"), mouseX, mouseY);
+            graphics.setTooltipForNextFrame(font, Component.translatable("message.totem.copper_wrench.save"), mouseX, mouseY);
         } else if (isInside(mouseX, mouseY, x + 143, y + 31, 18, 18)) {
             graphics.setTooltipForNextFrame(font, Component.translatable(enabled
-                    ? "message.deadrecall.copper_wrench.ui_disable_llm"
-                    : "message.deadrecall.copper_wrench.ui_enable_llm"), mouseX, mouseY);
+                    ? "message.totem.copper_wrench.ui_disable_llm"
+                    : "message.totem.copper_wrench.ui_enable_llm"), mouseX, mouseY);
         }
     }
 
@@ -763,11 +763,11 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
                 flameX, flameY + 14 - flameHeight, 14, flameHeight);
         if (snapshot.infiniteFuel()) {
             graphics.text(font,
-                    Component.translatable("message.deadrecall.copper_wrench.fuel_infinite_short"),
+                    Component.translatable("message.totem.copper_wrench.fuel_infinite_short"),
                     flameX + 8, flameY + 5, 0xFFFFFFFF, true);
             if (isInside(mouseX, mouseY, flameX, flameY, 18, 14)) {
                 graphics.setTooltipForNextFrame(font,
-                        Component.translatable("message.deadrecall.copper_wrench.fuel_infinite"),
+                        Component.translatable("message.totem.copper_wrench.fuel_infinite"),
                         mouseX, mouseY);
             }
         }
@@ -814,60 +814,60 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
     private List<Component> sourceTooltip(
             dev.totem.automata.network.CopperWrenchBindingsPayload.BindingEntry source) {
         if (source == null) {
-            return List.of(Component.translatable("message.deadrecall.copper_wrench.ui_source",
-                    Component.translatable("message.deadrecall.copper_wrench.source_unbound")),
-                    Component.translatable("message.deadrecall.copper_wrench.ui_sorting_source_setup_hint"));
+            return List.of(Component.translatable("message.totem.copper_wrench.ui_source",
+                    Component.translatable("message.totem.copper_wrench.source_unbound")),
+                    Component.translatable("message.totem.copper_wrench.ui_sorting_source_setup_hint"));
         }
         return List.of(
-                Component.translatable("message.deadrecall.copper_wrench.ui_source",
+                Component.translatable("message.totem.copper_wrench.ui_source",
                         blockDisplayName(source.blockId())),
                 Component.literal(source.blockId()),
-                Component.translatable("message.deadrecall.copper_wrench.ui_container_location",
+                Component.translatable("message.totem.copper_wrench.ui_container_location",
                         source.dimension(), source.x(), source.y(), source.z()),
                 bindingStatusTooltip(source),
-                Component.translatable("message.deadrecall.copper_wrench.ui_sorting_source_setup_hint")
+                Component.translatable("message.totem.copper_wrench.ui_sorting_source_setup_hint")
         );
     }
 
     private List<Component> bindingTooltip(
             dev.totem.automata.network.CopperWrenchBindingsPayload.BindingEntry binding, int index) {
         Component llm = Component.translatable(binding.llmEnabled()
-                ? "message.deadrecall.copper_wrench.llm_on"
-                : "message.deadrecall.copper_wrench.llm_off");
+                ? "message.totem.copper_wrench.llm_on"
+                : "message.totem.copper_wrench.llm_off");
         return List.of(
-                Component.translatable("message.deadrecall.copper_wrench.target_container_number", index + 1)
+                Component.translatable("message.totem.copper_wrench.target_container_number", index + 1)
                         .append(": ").append(blockDisplayName(binding.blockId())),
                 Component.literal(binding.blockId()),
-                Component.translatable("message.deadrecall.copper_wrench.ui_container_location",
+                Component.translatable("message.totem.copper_wrench.ui_container_location",
                         binding.dimension(), binding.x(), binding.y(), binding.z()),
                 bindingStatusTooltip(binding),
-                Component.translatable("message.deadrecall.copper_wrench.llm_state", llm),
-                Component.translatable("message.deadrecall.copper_wrench.cached_items_and_tags",
+                Component.translatable("message.totem.copper_wrench.llm_state", llm),
+                Component.translatable("message.totem.copper_wrench.cached_items_and_tags",
                         binding.llmCachedItemIds(), binding.llmCachedTags()),
-                Component.translatable("message.deadrecall.copper_wrench.ui_sorting_target_edit_tooltip")
+                Component.translatable("message.totem.copper_wrench.ui_sorting_target_edit_tooltip")
         );
     }
 
     private Component bindingStatusTooltip(
             dev.totem.automata.network.CopperWrenchBindingsPayload.BindingEntry binding) {
         String statusKey = !binding.loaded()
-                ? "message.deadrecall.copper_wrench.binding_status_unloaded"
+                ? "message.totem.copper_wrench.binding_status_unloaded"
                 : binding.available()
-                ? "message.deadrecall.copper_wrench.binding_status_available"
-                : "message.deadrecall.copper_wrench.binding_status_unavailable";
-        return Component.translatable("message.deadrecall.copper_wrench.binding_status",
+                ? "message.totem.copper_wrench.binding_status_available"
+                : "message.totem.copper_wrench.binding_status_unavailable";
+        return Component.translatable("message.totem.copper_wrench.binding_status",
                 Component.translatable(statusKey));
     }
 
     private List<Component> gatheringTargetTooltip(GatheringTarget target, Component group) {
         Component type = Component.translatable(target.tag()
-                ? "message.deadrecall.copper_wrench.entry_type_tag"
-                : "message.deadrecall.copper_wrench.entry_type_block");
+                ? "message.totem.copper_wrench.entry_type_tag"
+                : "message.totem.copper_wrench.entry_type_block");
         List<Component> tooltip = new ArrayList<>();
-        tooltip.add(Component.translatable("message.deadrecall.copper_wrench.target_tooltip_type", group, type));
+        tooltip.add(Component.translatable("message.totem.copper_wrench.target_tooltip_type", group, type));
         if (!target.tag()) tooltip.add(blockDisplayName(target.value()));
         tooltip.add(Component.literal(target.value()));
-        tooltip.add(Component.translatable("message.deadrecall.copper_wrench.remove_icon_hint"));
+        tooltip.add(Component.translatable("message.totem.copper_wrench.remove_icon_hint"));
         return tooltip;
     }
 
@@ -892,15 +892,15 @@ public final class CopperGolemMenuScreen extends AbstractContainerScreen<CopperG
     private Component operationText() {
         return lifecycle.session().controller().snapshot()
                 .map(snapshot -> Component.translatable(snapshot.running()
-                        ? "message.deadrecall.copper_wrench.action_stop"
-                        : "message.deadrecall.copper_wrench.action_start"))
-                .orElse(Component.translatable("message.deadrecall.copper_wrench.ui_operation"));
+                        ? "message.totem.copper_wrench.action_stop"
+                        : "message.totem.copper_wrench.action_start"))
+                .orElse(Component.translatable("message.totem.copper_wrench.ui_operation"));
     }
 
     private Component modeText() {
         return lifecycle.session().controller().snapshot()
-                .map(snapshot -> Component.translatable("message.deadrecall.copper_wrench.mode_" + snapshot.mode()))
-                .orElse(Component.translatable("message.deadrecall.copper_wrench.ui_mode"));
+                .map(snapshot -> Component.translatable("message.totem.copper_wrench.mode_" + snapshot.mode()))
+                .orElse(Component.translatable("message.totem.copper_wrench.ui_mode"));
     }
 
     private EditBox editor(Component label, int x, int y, int width, int maxLength, Component hint) {

@@ -9,10 +9,10 @@ import java.util.Optional;
 
 /** Reads and writes Copper Golem sorting sources and destination bindings. */
 public final class SortingBindingService {
-    public static final String TAG_SOURCE_COPPER_CONTAINER_DIM = "deadrecall_source_copper_container_dim";
-    public static final String TAG_SOURCE_COPPER_CONTAINER_X = "deadrecall_source_copper_container_x";
-    public static final String TAG_SOURCE_COPPER_CONTAINER_Y = "deadrecall_source_copper_container_y";
-    public static final String TAG_SOURCE_COPPER_CONTAINER_Z = "deadrecall_source_copper_container_z";
+    public static final String TAG_SOURCE_COPPER_CONTAINER_DIM = "totem_automata_source_copper_container_dim";
+    public static final String TAG_SOURCE_COPPER_CONTAINER_X = "totem_automata_source_copper_container_x";
+    public static final String TAG_SOURCE_COPPER_CONTAINER_Y = "totem_automata_source_copper_container_y";
+    public static final String TAG_SOURCE_COPPER_CONTAINER_Z = "totem_automata_source_copper_container_z";
 
     private SortingBindingService() {
     }

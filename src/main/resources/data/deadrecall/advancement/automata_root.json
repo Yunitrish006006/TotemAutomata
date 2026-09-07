@@ -2,24 +2,21 @@
   "parent": "deadrecall:root",
   "criteria": {
     "crafted_copper_chest": {
-      "conditions": {
-        "recipe_id": "minecraft:copper_chest"
-      },
-      "trigger": "minecraft:recipe_crafted"
+      "trigger": "minecraft:impossible"
     }
   },
   "display": {
     "announce_to_chat": false,
     "background": "minecraft:gui/advancements/backgrounds/adventure",
     "description": {
-      "translate": "advancements.deadrecall.automata_root.description"
+      "translate": "advancements.totem.automata_root.description"
     },
     "icon": {
       "id": "minecraft:copper_chest"
     },
     "show_toast": true,
     "title": {
-      "translate": "advancements.deadrecall.automata_root.title"
+      "translate": "advancements.totem.automata_root.title"
     }
   },
   "requirements": [

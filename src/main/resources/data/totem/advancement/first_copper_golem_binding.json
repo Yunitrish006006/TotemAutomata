@@ -1,0 +1,24 @@
+{
+  "parent": "totem:automata_manual",
+  "criteria": {
+    "first_binding": {
+      "trigger": "totem:first_copper_golem_binding"
+    }
+  },
+  "display": {
+    "description": {
+      "translate": "advancements.totem.first_copper_golem_binding.description"
+    },
+    "icon": {
+      "id": "totem:automata/copper_wrench"
+    },
+    "title": {
+      "translate": "advancements.totem.first_copper_golem_binding.title"
+    }
+  },
+  "requirements": [
+    [
+      "first_binding"
+    ]
+  ]
+}

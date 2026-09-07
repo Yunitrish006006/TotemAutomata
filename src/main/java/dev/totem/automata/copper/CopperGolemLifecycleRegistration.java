@@ -21,7 +21,6 @@ public final class CopperGolemLifecycleRegistration {
 
     /**
      * Registers death cleanup and the supplied persisted runtime exactly once.
-     * The caller must have gated DeadRecall's corresponding callbacks first.
      */
     public static synchronized void register(CopperGolemController controller, CopperGolemBehavior behavior) {
         Objects.requireNonNull(controller, "controller");

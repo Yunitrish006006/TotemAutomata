@@ -10,13 +10,12 @@ import net.minecraft.world.item.ItemStack;
 /**
  * External lifecycle cleanup for the persisted Copper Golem inventory.
  *
- * <p>It is intentionally event-framework agnostic. The final Automata
- * bootstrap registers it for the death/destruction lifecycle only after the
- * matching DeadRecall callbacks have been gated off.</p>
+ * <p>It is intentionally event-framework agnostic; the Automata bootstrap
+ * registers it for the death/destruction lifecycle.</p>
  */
 public final class CopperGolemLifecycle {
-    private static final String GATHERING_TOOL = "deadrecall_gathering_tool_stack";
-    private static final String GATHERING_STORAGE = "deadrecall_gathering_storage_stack";
+    private static final String GATHERING_TOOL = "totem_automata_gathering_tool_stack";
+    private static final String GATHERING_STORAGE = "totem_automata_gathering_storage_stack";
 
     private CopperGolemLifecycle() {
     }

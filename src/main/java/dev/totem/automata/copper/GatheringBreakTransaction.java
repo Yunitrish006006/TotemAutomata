@@ -9,7 +9,7 @@ import java.util.Optional;
 
 /** Atomic persisted state prepared immediately before a successful gathering break. */
 public final class GatheringBreakTransaction {
-    private static final String TOOL = "deadrecall_gathering_tool_stack";
+    private static final String TOOL = "totem_automata_gathering_tool_stack";
     private GatheringBreakTransaction() { }
     public static Optional<Result> prepare(CompoundTag current, ServerLevel level, List<ItemStack> storage, ItemStack tool, List<ItemStack> drops) {
         CompoundTag tag = current.copy();

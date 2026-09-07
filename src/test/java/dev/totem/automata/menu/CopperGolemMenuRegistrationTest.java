@@ -5,6 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CopperGolemMenuRegistrationTest {
     @Test void preservesTheLegacyMenuIdentifierWithoutTouchingTheFrozenRegistry() {
-        assertEquals("deadrecall:copper_golem", CopperGolemMenuIds.COPPER_GOLEM.toString());
+        assertEquals("totem:copper_golem", CopperGolemMenuIds.COPPER_GOLEM.toString());
     }
 }

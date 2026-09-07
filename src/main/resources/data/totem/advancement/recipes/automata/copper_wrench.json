@@ -7,9 +7,9 @@
     },
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
-      "conditions": { "recipe": "deadrecall:copper_wrench" }
+      "conditions": { "recipe": "totem:automata/copper_wrench" }
     }
   },
   "requirements": [["has_copper_chest", "has_the_recipe"]],
-  "rewards": { "recipes": ["deadrecall:copper_wrench"] }
+  "rewards": { "recipes": ["totem:automata/copper_wrench"] }
 }

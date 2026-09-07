@@ -27,7 +27,7 @@ public final class PersistedCopperGolemMenuOpener implements PersistedCopperWren
         CopperGolemMenuAuthority authority = new PersistedCopperGolemMenuAuthority(refresher);
         ExtendedMenuProvider<CopperGolemMenuOpenData> provider = new ExtendedMenuProvider<>() {
             @Override public CopperGolemMenuOpenData getScreenOpeningData(ServerPlayer ignored) { return new CopperGolemMenuOpenData(golem.getUUID()); }
-            @Override public Component getDisplayName() { return Component.translatable("container.deadrecall.copper_wrench.bindings"); }
+            @Override public Component getDisplayName() { return Component.translatable("container.totem.copper_wrench.bindings"); }
             @Override public AbstractContainerMenu createMenu(int id, Inventory inventory, Player menuPlayer) {
                 return new CopperGolemMenu(CopperGolemMenuRegistration.TYPE, id, inventory, menuPlayer, golem, authority);
             }

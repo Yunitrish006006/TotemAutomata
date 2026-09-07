@@ -14,10 +14,10 @@ import java.util.Optional;
 
 /** Legacy-compatible persisted gathering-area and manual-target configuration. */
 public final class GatheringConfiguration {
-    public static final String AREA_DIMENSION = "deadrecall_gathering_area_dim";
-    public static final String CORNER_A_X = "deadrecall_gathering_corner_a_x", CORNER_A_Y = "deadrecall_gathering_corner_a_y", CORNER_A_Z = "deadrecall_gathering_corner_a_z";
-    public static final String CORNER_B_X = "deadrecall_gathering_corner_b_x", CORNER_B_Y = "deadrecall_gathering_corner_b_y", CORNER_B_Z = "deadrecall_gathering_corner_b_z";
-    public static final String MANUAL_TARGETS = "deadrecall_gathering_manual_targets";
+    public static final String AREA_DIMENSION = "totem_automata_gathering_area_dim";
+    public static final String CORNER_A_X = "totem_automata_gathering_corner_a_x", CORNER_A_Y = "totem_automata_gathering_corner_a_y", CORNER_A_Z = "totem_automata_gathering_corner_a_z";
+    public static final String CORNER_B_X = "totem_automata_gathering_corner_b_x", CORNER_B_Y = "totem_automata_gathering_corner_b_y", CORNER_B_Z = "totem_automata_gathering_corner_b_z";
+    public static final String MANUAL_TARGETS = "totem_automata_gathering_manual_targets";
     public static final int MAX_AXIS_LENGTH = 64;
     public static final long MAX_VOLUME = 262_144L;
     public static final int MAX_MANUAL_TARGETS = 64;

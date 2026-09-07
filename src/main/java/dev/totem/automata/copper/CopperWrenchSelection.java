@@ -14,7 +14,8 @@ import java.util.UUID;
 /** Stable Wrench item and ItemStack selection contract across both ID generations. */
 public final class CopperWrenchSelection {
     public static final Identifier ITEM_ID = Identifier.fromNamespaceAndPath("totem", "automata/copper_wrench");
-    public static final String SELECTED_GOLEM_KEY = "deadrecall_selected_golem";
+    public static final String SELECTED_GOLEM_KEY = "totem_automata_selected_golem";
+    private static final String LEGACY_SELECTED_GOLEM_KEY = "deadrecall_selected_golem";
 
     private CopperWrenchSelection() { }
 
@@ -26,13 +27,16 @@ public final class CopperWrenchSelection {
     public static UUID selectedGolem(ItemStack stack) {
         if (!isCopperWrench(stack)) return null;
         CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
-        return tag.read(SELECTED_GOLEM_KEY, UUIDUtil.CODEC).orElse(null);
+        return tag.read(SELECTED_GOLEM_KEY, UUIDUtil.CODEC)
+                .or(() -> tag.read(LEGACY_SELECTED_GOLEM_KEY, UUIDUtil.CODEC))
+                .orElse(null);
     }
 
     public static boolean select(ItemStack stack, UUID golemId) {
         if (!isCopperWrench(stack) || golemId == null) return false;
         CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         tag.store(SELECTED_GOLEM_KEY, UUIDUtil.CODEC, golemId);
+        tag.remove(LEGACY_SELECTED_GOLEM_KEY);
         stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         return true;
     }
@@ -41,6 +45,7 @@ public final class CopperWrenchSelection {
         if (!isCopperWrench(stack) || selectedGolem(stack) == null) return false;
         CompoundTag tag = stack.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
         tag.remove(SELECTED_GOLEM_KEY);
+        tag.remove(LEGACY_SELECTED_GOLEM_KEY);
         stack.set(DataComponents.CUSTOM_DATA, CustomData.of(tag));
         return true;
     }

@@ -14,7 +14,7 @@ import net.minecraft.world.entity.animal.golem.CopperGolem;
  * composition.</p>
  */
 public final class PersistedCopperGolemRuntime implements CopperGolemBehavior {
-    private static final String SORTING_BLOCKED = "deadrecall_sorting_blocked";
+    private static final String SORTING_BLOCKED = "totem_automata_sorting_blocked";
 
     private final SortingOperations sorting = new PersistedSortingOperations(new DefaultItemMetadata());
     private final PersistedGatheringBehavior gathering = new PersistedGatheringBehavior(new DefaultGatheringWorldOperations());
@@ -59,7 +59,7 @@ public final class PersistedCopperGolemRuntime implements CopperGolemBehavior {
                 && GatheringConfiguration.scanBounds(tag, level.dimension()).isPresent()
                 && GatheringHomeResolver.resolve(tag, level).isPresent()
                 && CopperGolemFuelService.hasFuelAvailable(tag, level)
-                && !CopperGolemData.readItemStack(tag, "deadrecall_gathering_tool_stack", level.registryAccess()).isEmpty()
+                && !CopperGolemData.readItemStack(tag, "totem_automata_gathering_tool_stack", level.registryAccess()).isEmpty()
                 && GatheringTargetPolicy.hasRules(
                         GatheringConfiguration.manualTargets(tag),
                         GatheringLlmState.read(tag),

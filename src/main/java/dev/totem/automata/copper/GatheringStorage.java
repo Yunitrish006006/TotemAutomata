@@ -11,8 +11,8 @@ import java.util.Optional;
 /** Shared-capacity carried storage for gathering drops. */
 public final class GatheringStorage {
     public static final int MAX_STACK_SIZE = 16;
-    private static final String LEGACY_KEY = "deadrecall_gathering_storage_stack";
-    private static final String SLOT_PREFIX = "deadrecall_gathering_storage_slot_";
+    private static final String LEGACY_KEY = "totem_automata_gathering_storage_stack";
+    private static final String SLOT_PREFIX = "totem_automata_gathering_storage_slot_";
 
     private GatheringStorage() { }
 

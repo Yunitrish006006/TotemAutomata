@@ -11,8 +11,7 @@ import java.util.function.Consumer;
  * Lifecycle and command seam for the future Automata Copper Golem screen.
  *
  * <p>The rendering class will create one session when it opens, render the
- * controller snapshot, and call these methods from its widgets.  No screen is
- * registered here, preserving DeadRecall's current UI authority.</p>
+ * controller snapshot, and call these methods from its widgets.</p>
  */
 public final class CopperGolemMenuScreenSession {
     private final UUID golemId;

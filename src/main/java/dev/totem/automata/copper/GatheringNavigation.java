@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** Candidate mining positions and stuck-target tracking for gathering navigation. */
 public final class GatheringNavigation {
-    private static final String SKIPPED="deadrecall_gathering_skipped_targets";
+    private static final String SKIPPED="totem_automata_gathering_skipped_targets";
     private static final int RECOMPUTE_STUCK_TICKS = 10;
     private static final int SKIP_STUCK_TICKS = 80;
     private static final Map<UUID, Checkpoint> TRANSIENT_STATE = new ConcurrentHashMap<>();

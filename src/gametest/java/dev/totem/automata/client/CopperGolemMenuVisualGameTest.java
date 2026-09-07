@@ -168,7 +168,7 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
             assertClientToolSlotPolicy(menu);
             CopperGolemMenuScreen screen = new CopperGolemMenuScreen(
                     menu, client.player.getInventory(),
-                    Component.translatable("container.deadrecall.copper_wrench.bindings"));
+                    Component.translatable("container.totem.copper_wrench.bindings"));
             client.setScreenAndShow(screen);
             return screen;
         });
@@ -195,7 +195,7 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
             client.getLanguageManager().onResourceManagerReload(client.getResourceManager());
         });
         String sourceLabel = context.computeOnClient(client -> Component.translatable(
-                "message.deadrecall.copper_wrench.ui_source", Component.literal("Example")).getString());
+                "message.totem.copper_wrench.ui_source", Component.literal("Example")).getString());
         if (!expectedSourceLabel.equals(sourceLabel)) {
             throw new IllegalStateException("Expected " + languageCode + " source label '" + expectedSourceLabel
                     + "' but found '" + sourceLabel + "'");

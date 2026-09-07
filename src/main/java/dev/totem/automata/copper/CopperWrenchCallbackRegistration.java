@@ -9,10 +9,7 @@ import java.util.Objects;
 /**
  * Explicit Fabric callback registration for the migrated Wrench authority.
  *
- * <p>It is intentionally not invoked by the additive entrypoint: registering
- * it before the full authority move would make both mods handle the same
- * interaction.  The cutover invokes it exactly once after DeadRecall's
- * legacy handler is removed.</p>
+ * <p>The callback is registered exactly once by the production bootstrap.</p>
  */
 public final class CopperWrenchCallbackRegistration {
     private static CopperWrenchInteractionAuthority registeredAuthority;

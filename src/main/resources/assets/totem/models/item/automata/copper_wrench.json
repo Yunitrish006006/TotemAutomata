@@ -1,6 +1,6 @@
 {
   "parent": "minecraft:item/handheld",
   "textures": {
-    "layer0": "deadrecall:item/copper_wrench"
+    "layer0": "totem:item/automata/copper_wrench"
   }
 }

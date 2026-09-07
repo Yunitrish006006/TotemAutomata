@@ -9,11 +9,7 @@ import net.minecraft.world.entity.player.Inventory;
 import java.lang.reflect.Proxy;
 
 /**
- * Single client activation point for the future Automata cutover.
- *
- * <p>It must only run after the external client mixin config is enabled and
- * DeadRecall's screen/receiver setup is gated off. The current client
- * entrypoint intentionally does not call it.</p>
+ * Single client activation point for the standalone Automata module.
  */
 public final class AutomataClientCutoverComposition {
     private static boolean activated;
