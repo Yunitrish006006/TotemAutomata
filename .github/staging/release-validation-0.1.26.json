@@ -7,5 +7,7 @@
   "unit_tests": 85,
   "core_dependency": ">=0.7.21 <0.8.0",
   "validation": "Versioned test, assemble and compileGametestJava passed locally. Previous source validation includes Nexus 108 server GameTests and VanillaTweaks/Alchemy en_us and zh_tw client tests, plus Alchemy/Core localized manual screenshots. Exact release commit CI is required by the publisher.",
-  "independent_review": "Independent source, localization and release workflow reviews completed; reported filename and whitespace fixes applied."
+  "independent_review": "Independent source, localization and release workflow reviews completed; reported filename and whitespace fixes applied.",
+  "verified_ci_sha512": "52a26ec396b057f3994e2eae0dbb9bb8e8bf0cbb47e4f7a7db21d6c8ee9dcbf45ca044a254b641ad52ab9dadc230fb087f3c497873f82514babe76fcc95488f5",
+  "ci_artifact_comparison": "CI release JAR from run 34597517923 matches the published SHA512. Every non-directory entry is byte-identical to the locally tested clean JAR; the only difference is an untracked empty data/deadrecall/recipe/ directory present locally."
 }
