@@ -166,6 +166,15 @@ jobs:
           [[ -f "$artifact" ]] \
             || fail_release_build 'clean Gradle jar build did not produce the expected release artifact.'
 
+      - name: Preserve release JAR for verification
+        if: steps.release.outputs.should_publish == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-jar-verification
+          path: build/libs/*.jar
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Require successful Build for this commit
         if: steps.release.outputs.should_publish == 'true' && steps.release.outputs.dry_run == 'false'
         shell: bash
