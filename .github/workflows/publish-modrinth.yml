@@ -22,6 +22,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: 'modrinth-${{ github.workflow }}-${{ github.ref }}'
@@ -29,11 +30,11 @@ concurrency:
 
 env:
   MODULE_ID: totem-automata
-  CORE_REF: f87cd10fe8aefce77925b9e75dad237f17f38966
+  CORE_REF: 077924318bf85fa5de7cda73ed0e96abe5df803b
   EXCAVATION_REF: f40b94fd5d9de8b47534343c76a95f62926d2b1b
   FABRIC_API_PROJECT_ID: P7dR8mSH
   TOTEM_EXCAVATION_REFERENCE_VERSION_ID: 9PTqAaZ5
-  TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.18.jar
+  TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.21.jar
   TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.13.jar
 
 jobs:
@@ -135,8 +136,8 @@ jobs:
 
           chmod +x .lockstep/TotemCore/gradlew
           core="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
-          [[ "$core" == 0.7.18 ]] \
-            || fail_release_build 'pinned TotemCore checkout is not version 0.7.18.'
+          [[ "$core" == 0.7.21 ]] \
+            || fail_release_build 'pinned TotemCore checkout is not version 0.7.21.'
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore \
             clean jar --no-daemon --stacktrace
           core_jar="$GITHUB_WORKSPACE/.lockstep/TotemCore/build/libs/totem-core-${core}.jar"
@@ -164,6 +165,26 @@ jobs:
           artifact="build/libs/${archive}-${actual_version}.jar"
           [[ -f "$artifact" ]] \
             || fail_release_build 'clean Gradle jar build did not produce the expected release artifact.'
+
+      - name: Require successful Build for this commit
+        if: steps.release.outputs.should_publish == 'true' && steps.release.outputs.dry_run == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          for attempt in {1..120}; do
+            runs="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?head_sha=${GITHUB_SHA}&event=push&per_page=10")"
+            latest="$(jq -c '.workflow_runs | sort_by(.run_number) | last // null' <<<"$runs")"
+            if [[ "$(jq -r '.status // empty' <<<"$latest")" == completed ]]; then
+              [[ "$(jq -r '.conclusion' <<<"$latest")" == success ]] || { echo 'Build failed; refusing publication.' >&2; exit 1; }
+              echo "Verified Build for ${GITHUB_SHA}."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo 'Timed out waiting for Build; refusing publication.' >&2
+          exit 1
 
       - name: Publish and verify
         id: modrinth
@@ -207,7 +228,7 @@ jobs:
               --arg id "$MODULE_ID" \
               --arg v "$v" \
               --arg mc "~${mc}" \
-              --arg core '>=0.7.18 <0.8.0' \
+              --arg core '>=0.7.21 <0.8.0' \
               --arg excavation '>=0.1.5' \
               '.id==$id
                and .version==$v
@@ -286,7 +307,7 @@ jobs:
           excavation_dependency_file="${excavation_archive}-${excavation_version}.jar"
           [[ "$core_dependency_file" == "$TOTEM_CORE_DEPENDENCY_FILE" \
               && -f ".lockstep/TotemCore/build/libs/${core_dependency_file}" ]] \
-            || fail_release 'pinned TotemCore reference artifact is not exactly totem-core-0.7.18.jar.'
+            || fail_release 'pinned TotemCore reference artifact is not exactly totem-core-0.7.21.jar.'
           [[ "$excavation_dependency_file" == "$TOTEM_EXCAVATION_DEPENDENCY_FILE" \
               && -f ".lockstep/TotemExcavation/build/libs/${excavation_dependency_file}" ]] \
             || fail_release 'pinned TotemExcavation reference artifact is not exactly totem-excavation-0.1.13.jar.'

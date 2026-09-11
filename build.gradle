@@ -9,7 +9,7 @@ group = project.maven_group
 base { archivesName = project.archives_base_name }
 
 def totemCoreJar = file(providers.gradleProperty('totemCoreJar')
-        .getOrElse('../TotemCore/build/libs/totem-core-0.7.18.jar'))
+        .getOrElse('../TotemCore/build/libs/totem-core-0.7.21.jar'))
 def totemExcavationJar = file(providers.gradleProperty('totemExcavationJar')
         .getOrElse('../TotemExcavation/build/libs/totem-excavation-0.1.13.jar'))
 def includeTotemExcavationRuntime = providers.gradleProperty('includeTotemExcavationRuntime')
