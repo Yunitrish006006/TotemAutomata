@@ -120,6 +120,9 @@ jobs:
           excavation_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
           core_jar="${GITHUB_WORKSPACE}/.lockstep/TotemCore/build/libs/totem-core-${core_version}.jar"
           excavation_jar="${GITHUB_WORKSPACE}/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation_version}.jar"
+          export SDL_VIDEO_DRIVER=x11
+          export VK_DRIVER_FILES=/usr/share/vulkan/icd.d/lvp_icd.json
+          export VK_ICD_FILENAMES="$VK_DRIVER_FILES"
           xvfb-run -a ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" \
             -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
             runClientGameTest --no-daemon --stacktrace
