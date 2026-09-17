@@ -26,17 +26,19 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 2
 fi
 
-require_literal 'CORE_REF: 077924318bf85fa5de7cda73ed0e96abe5df803b' \
+require_literal 'CORE_REF: 58deabdd4a81bc751679876f202a3fa062729c58' \
   'release TotemCore commit pin is stale.'
-require_literal 'EXCAVATION_REF: f40b94fd5d9de8b47534343c76a95f62926d2b1b' \
+require_literal 'EXCAVATION_REF: 3e6312153c437adb8094f879720453820ac1c4fd' \
   'release TotemExcavation commit pin is stale.'
-require_literal 'TOTEM_EXCAVATION_REFERENCE_VERSION_ID: 9PTqAaZ5' \
-  'TotemExcavation 0.1.13 Modrinth reference version is stale.'
-require_literal 'TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.21.jar' \
+require_literal 'TOTEM_EXCAVATION_REFERENCE_VERSION_ID:' \
+  'TotemExcavation Modrinth reference version is missing.'
+require_literal '[[ "$TOTEM_EXCAVATION_REFERENCE_VERSION_ID" != PENDING_* ]]' \
+  'pending TotemExcavation publication references do not fail closed.'
+require_literal 'TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.22.jar' \
   'required TotemCore reference artifact is not exact.'
-require_literal "--arg core '>=0.7.21 <0.8.0'" \
+require_literal "--arg core '>=0.7.22 <0.8.0'" \
   'release JAR metadata validation still accepts a pre-line TotemCore range.'
-require_literal 'TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.13.jar' \
+require_literal 'TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.16.jar' \
   'optional TotemExcavation reference artifact is not exact.'
 require_literal '.github/staging/modrinth-changelog-*.md' \
   'release changelog changes do not trigger the publication workflow.'
@@ -48,8 +50,24 @@ require_literal '.github/scripts/verify-modrinth-remote-dependencies.jq' \
   'dependency verifier changes do not trigger the publication workflow.'
 require_literal '.github/scripts/normalize-modrinth-dry-run.sh' \
   'dry-run parser changes do not trigger the publication workflow.'
-require_literal 'clean jar --no-daemon --stacktrace' \
-  'release JAR is not built from a clean output directory.'
+require_literal 'artifact-ids: ${{ steps.artifact.outputs.id }}' \
+  'release JAR is not downloaded by its verified immutable Build artifact ID.'
+require_literal 'merge-multiple: true' \
+  'artifact-ID download does not preserve the expected flat artifact layout.'
+require_literal 'for workflow in build.yml production-runtime.yml;' \
+  'exact-source Build and Production Runtime gates are not both required.'
+require_literal '.workflow_run.id==($run|tonumber) and .workflow_run.head_sha==$source' \
+  'artifact identity is not bound to the verified Build run and source.'
+require_literal '.excavation_source_commit==$dependency_source and .excavation_version=="0.1.16" and .excavation_artifact_sha512==$dependency_sha' \
+  'Excavation dependency provenance is not verified.'
+require_literal '.hashes.sha512 == $sha' \
+  'published Excavation artifact does not match the validated dependency SHA512.'
+if grep -Fq 'gradlew' "$workflow"; then
+  fail 'publisher rebuilds instead of consuming the exact validated Build artifact.'
+fi
+if ! grep -Fq 'name: Upload immutable validated release artifact' "$build_workflow"; then
+  fail 'Build does not upload the validated immutable release artifact.'
+fi
 require_literal 'version ${v} already exists with a different artifact SHA-512; refusing to overwrite it. Bump mod_version.' \
   'existing-version SHA conflicts do not provide a clear version-bump error.'
 require_literal 'Modrinth release project: title=' \
@@ -62,12 +80,12 @@ require_literal 'version_type:"release"' \
   'Modrinth create metadata is not pinned to release.'
 require_literal 'environment:"client_and_server"' \
   'Modrinth create metadata is not pinned to client_and_server.'
-require_literal 'release Minecraft version must be exactly 26.2.' \
-  'release Minecraft version is not pinned to 26.2.'
+require_literal 'release Minecraft version must be exactly 26.3.' \
+  'release Minecraft version is not pinned to 26.3.'
 require_literal -- '--argjson deps "$deps"' \
   'Modrinth create metadata does not receive the verified dependency array.'
 require_literal '"version/${TOTEM_EXCAVATION_REFERENCE_VERSION_ID}"' \
-  'TotemExcavation project dependency is not resolved from the exact 0.1.13 version.'
+  'TotemExcavation project dependency is not resolved from the exact release version.'
 require_literal '{file_name:$core_file,dependency_type:"required"}' \
   'TotemCore is not emitted as an exact required Modrinth file dependency.'
 require_literal '{project_id:$excavation,dependency_type:"optional"}' \
@@ -109,15 +127,15 @@ done
 verify_dependencies() {
   jq -e \
     --arg fabric P7dR8mSH \
-    --arg core_file totem-core-0.7.21.jar \
+    --arg core_file totem-core-0.7.22.jar \
     --arg excavation excavation-project \
     -f "$remote_filter"
 }
 
 accepted=(
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":"totem-core-0.7.21.jar"},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
   '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":null},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.21.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
 )
 for candidate in "${accepted[@]}"; do
   if ! verify_dependencies <<<"$candidate" >/dev/null; then
@@ -127,11 +145,11 @@ done
 
 rejected=(
   '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"wrong-core.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.21.jar"},{"dependency_type":"optional","project_id":"wrong-excavation"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"optional","file_name":"totem-core-0.7.21.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.21.jar","version_id":"wrong-version"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.21.jar"},{"dependency_type":"optional","project_id":"excavation-project","file_name":"wrong.jar"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.21.jar"},{"dependency_type":"optional","project_id":"excavation-project"},{"dependency_type":"optional","project_id":"extra"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"wrong-excavation"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"optional","file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.22.jar","version_id":"wrong-version"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"excavation-project","file_name":"wrong.jar"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"excavation-project"},{"dependency_type":"optional","project_id":"extra"}]}'
   '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},"error",{"dependency_type":"optional","project_id":"excavation-project"}]}'
 )
 for candidate in "${rejected[@]}"; do

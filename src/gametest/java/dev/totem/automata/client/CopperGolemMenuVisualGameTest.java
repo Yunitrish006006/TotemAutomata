@@ -22,7 +22,7 @@ public final class CopperGolemMenuVisualGameTest implements FabricClientGameTest
     @Override
     public void runTest(ClientGameTestContext context) {
         try (TestSingleplayerContext singleplayer = context.worldBuilder().create()) {
-            singleplayer.getClientLevel().waitForChunksRender();
+            singleplayer.getConnection().waitForChunksRender();
             selectLanguage(context, "en_us", "Source: Example");
 
             CopperGolemMenuScreen screen = openScreen(context);

@@ -31,7 +31,7 @@ public final class AutomataObserverProviderClientGameTest implements FabricClien
 
     @Override public void runTest(ClientGameTestContext context) {
         try (TestSingleplayerContext world = context.worldBuilder().create()) {
-            world.getClientLevel().waitForChunksRender();
+            world.getConnection().waitForChunksRender();
             context.getInput().resizeWindow(1280, 720);
             AutomataObserverScreenProvider provider = context.computeOnClient(client -> {
                 boolean registered = FabricLoader.getInstance()

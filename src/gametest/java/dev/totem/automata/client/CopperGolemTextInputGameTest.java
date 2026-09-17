@@ -9,7 +9,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.UUID;
 
@@ -21,7 +21,7 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
     @Override
     public void runTest(ClientGameTestContext context) {
         try (TestSingleplayerContext singleplayer = context.worldBuilder().create()) {
-            singleplayer.getClientLevel().waitForChunksRender();
+            singleplayer.getConnection().waitForChunksRender();
 
             CopperGolemMenuScreen screen = context.computeOnClient(client -> {
                 if (client.player == null) {
@@ -62,7 +62,7 @@ public final class CopperGolemTextInputGameTest implements FabricClientGameTest 
 
             // E is the default inventory key. Before the fix, this closes the
             // AbstractContainerScreen instead of remaining inside the editor.
-            context.getInput().pressKey(GLFW.GLFW_KEY_E);
+            context.getInput().pressKey(InputConstants.KEY_E);
             context.waitForScreen(CopperGolemMenuScreen.class);
             context.runOnClient(client -> focusedEditor(screen,
                     "Copper Golem editor lost focus after inventory-key E"));

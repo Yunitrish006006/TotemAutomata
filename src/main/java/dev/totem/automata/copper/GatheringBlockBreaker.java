@@ -2,6 +2,7 @@ package dev.totem.automata.copper;
 
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -33,7 +34,7 @@ public final class GatheringBlockBreaker {
         PlayerBlockBreakEvents.AFTER.invoker().afterBlockBreak(level, operator, pos, state, blockEntity);
         level.levelEvent(2001, pos, Block.getId(state));
         level.sendParticles(ParticleTypes.WAX_ON, pos.getX()+.5D, pos.getY()+.5D, pos.getZ()+.5D, 6, .2D, .2D, .2D, .02D);
-        golem.swing(InteractionHand.MAIN_HAND, true);
+        golem.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
         if (transaction.get().toolBroken()) {
             CompoundTag tag = CopperGolemData.readEntityTag(golem);
             GatheringRuntimeState.setActivity(tag, CopperGolemActivity.BLOCKED_TOOL_BROKEN);

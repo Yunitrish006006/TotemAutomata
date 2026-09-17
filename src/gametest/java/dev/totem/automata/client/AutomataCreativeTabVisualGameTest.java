@@ -20,7 +20,7 @@ public final class AutomataCreativeTabVisualGameTest implements FabricClientGame
     @Override
     public void runTest(ClientGameTestContext context) {
         try (TestSingleplayerContext singleplayer = context.worldBuilder().create()) {
-            singleplayer.getClientLevel().waitForChunksRender();
+            singleplayer.getConnection().waitForChunksRender();
             singleplayer.getServer().runCommand("gamemode creative @a");
             context.waitFor(AutomataCreativeTabVisualGameTest::hasCreativeAbilities);
             context.runOnClient(AutomataCreativeTabVisualGameTest::openCreativeScreen);

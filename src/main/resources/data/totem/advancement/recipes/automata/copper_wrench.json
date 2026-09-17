@@ -7,7 +7,7 @@
     },
     "has_the_recipe": {
       "trigger": "minecraft:recipe_unlocked",
-      "conditions": { "recipe": "totem:automata/copper_wrench" }
+      "conditions": { "recipes": "totem:automata/copper_wrench" }
     }
   },
   "requirements": [["has_copper_chest", "has_the_recipe"]],

@@ -15,7 +15,7 @@ public final class CopperGolemGatheringAreaOutlineClientGameTest implements Fabr
     @Override
     public void runTest(ClientGameTestContext context) {
         try (TestSingleplayerContext singleplayer = context.worldBuilder().create()) {
-            singleplayer.getClientLevel().waitForChunksRender();
+            singleplayer.getConnection().waitForChunksRender();
             singleplayer.getServer().runCommand("fill -2 79 -4 2 79 2 minecraft:stone");
             singleplayer.getServer().runCommand("tp @a 0 80 0");
             singleplayer.getServer().runCommand("fill -1 80 -2 1 83 -2 minecraft:stone_bricks");

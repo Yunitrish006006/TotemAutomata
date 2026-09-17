@@ -29,7 +29,7 @@ class GatheringStorageTest {
         Set<?> builtInRegistryKeys = builtInLookup.listRegistryKeys().collect(Collectors.toSet());
         HolderLookup.Provider lookup = HolderLookup.Provider.create(Stream.concat(
                 builtInLookup.listRegistries(),
-                VanillaRegistries.createLookup().listRegistries()
+                VanillaRegistries.createWorldLookup().listRegistries()
                         .filter(registry -> !builtInRegistryKeys.contains(registry.key()))));
         BuiltInRegistries.DATA_COMPONENT_INITIALIZERS
                 .build(lookup)

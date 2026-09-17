@@ -22,7 +22,7 @@ public final class CopperGolemContainerLinksClientGameTest implements FabricClie
     @Override
     public void runTest(ClientGameTestContext context) {
         try (TestSingleplayerContext singleplayer = context.worldBuilder().create()) {
-            singleplayer.getClientLevel().waitForChunksRender();
+            singleplayer.getConnection().waitForChunksRender();
             singleplayer.getServer().runCommand("fill -4 79 -5 4 79 5 minecraft:stone");
             singleplayer.getServer().runCommand("tp @a 0 80 4");
             singleplayer.getServer().runCommand("clear @a");

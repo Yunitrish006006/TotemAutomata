@@ -1,6 +1,7 @@
 package dev.totem.automata.copper;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.component.SwingAnimation;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.animal.golem.CopperGolem;
@@ -56,7 +57,7 @@ public final class DefaultGatheringWorldOperations implements PersistedGathering
         level.destroyBlockProgress(golem.getId(), target, progress.crackStage());
         if (progress.progressTicks() % 5 == 0) {
             level.levelEvent(2001, target, net.minecraft.world.level.block.Block.getId(state));
-            golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND, true);
+            golem.swing(net.minecraft.world.InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
         }
         if (!progress.complete()) return;
 
