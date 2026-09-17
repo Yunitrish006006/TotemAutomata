@@ -52,14 +52,14 @@ jobs:
           set -euo pipefail
           chmod +x .lockstep/TotemCore/gradlew
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemCore \
-            clean jar --no-daemon --stacktrace
+            clean jar --init-script ${GITHUB_WORKSPACE}/.github/scripts/lavapipe.gradle --no-daemon --stacktrace
           core_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
           test "$core_version" = '0.7.23'
           core_jar="${GITHUB_WORKSPACE}/.lockstep/TotemCore/build/libs/totem-core-${core_version}.jar"
           test -f "$core_jar"
 
           ./.lockstep/TotemCore/gradlew -p .lockstep/TotemExcavation \
-            -PtotemCoreJar="$core_jar" clean jar --no-daemon --stacktrace
+            -PtotemCoreJar="$core_jar" clean jar --init-script ${GITHUB_WORKSPACE}/.github/scripts/lavapipe.gradle --no-daemon --stacktrace
           excavation_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
           test "$excavation_version" = '0.1.16'
           excavation_jar="${GITHUB_WORKSPACE}/.lockstep/TotemExcavation/build/libs/totem-excavation-${excavation_version}.jar"
@@ -76,4 +76,4 @@ jobs:
           export VK_ICD_FILENAMES="$VK_DRIVER_FILES"
           ./.lockstep/TotemCore/gradlew -p "$GITHUB_WORKSPACE" \
             -PtotemCoreJar="$core_jar" -PtotemExcavationJar="$excavation_jar" \
-            runProductionClientGameTest --no-daemon --stacktrace
+            runProductionClientGameTest --init-script ${GITHUB_WORKSPACE}/.github/scripts/lavapipe.gradle --no-daemon --stacktrace
