@@ -26,7 +26,7 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 2
 fi
 
-require_literal 'CORE_REF: 58deabdd4a81bc751679876f202a3fa062729c58' \
+require_literal 'CORE_REF: 424b90dc3929caa8c1afcfca7e63c50a64bde669' \
   'release TotemCore commit pin is stale.'
 require_literal 'EXCAVATION_REF: 3e6312153c437adb8094f879720453820ac1c4fd' \
   'release TotemExcavation commit pin is stale.'
@@ -34,9 +34,9 @@ require_literal 'TOTEM_EXCAVATION_REFERENCE_VERSION_ID:' \
   'TotemExcavation Modrinth reference version is missing.'
 require_literal '[[ "$TOTEM_EXCAVATION_REFERENCE_VERSION_ID" != PENDING_* ]]' \
   'pending TotemExcavation publication references do not fail closed.'
-require_literal 'TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.22.jar' \
+require_literal 'TOTEM_CORE_DEPENDENCY_FILE: totem-core-0.7.23.jar' \
   'required TotemCore reference artifact is not exact.'
-require_literal "--arg core '>=0.7.22 <0.8.0'" \
+require_literal "--arg core '>=0.7.23 <0.8.0'" \
   'release JAR metadata validation still accepts a pre-line TotemCore range.'
 require_literal 'TOTEM_EXCAVATION_DEPENDENCY_FILE: totem-excavation-0.1.16.jar' \
   'optional TotemExcavation reference artifact is not exact.'
@@ -127,15 +127,15 @@ done
 verify_dependencies() {
   jq -e \
     --arg fabric P7dR8mSH \
-    --arg core_file totem-core-0.7.22.jar \
+    --arg core_file totem-core-0.7.23.jar \
     --arg excavation excavation-project \
     -f "$remote_filter"
 }
 
 accepted=(
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":"totem-core-0.7.23.jar"},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
   '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH","version_id":null,"file_name":null},{"dependency_type":"required","project_id":null,"version_id":null,"file_name":null},{"dependency_type":"optional","project_id":"excavation-project","version_id":null,"file_name":null}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.23.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
 )
 for candidate in "${accepted[@]}"; do
   if ! verify_dependencies <<<"$candidate" >/dev/null; then
@@ -145,11 +145,11 @@ done
 
 rejected=(
   '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"wrong-core.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"wrong-excavation"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"optional","file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.22.jar","version_id":"wrong-version"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"excavation-project","file_name":"wrong.jar"}]}'
-  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.22.jar"},{"dependency_type":"optional","project_id":"excavation-project"},{"dependency_type":"optional","project_id":"extra"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.23.jar"},{"dependency_type":"optional","project_id":"wrong-excavation"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"optional","file_name":"totem-core-0.7.23.jar"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.23.jar","version_id":"wrong-version"},{"dependency_type":"optional","project_id":"excavation-project"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.23.jar"},{"dependency_type":"optional","project_id":"excavation-project","file_name":"wrong.jar"}]}'
+  '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},{"dependency_type":"required","file_name":"totem-core-0.7.23.jar"},{"dependency_type":"optional","project_id":"excavation-project"},{"dependency_type":"optional","project_id":"extra"}]}'
   '{"dependencies":[{"dependency_type":"required","project_id":"P7dR8mSH"},"error",{"dependency_type":"optional","project_id":"excavation-project"}]}'
 )
 for candidate in "${rejected[@]}"; do
