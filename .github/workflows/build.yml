@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Yunitrish006006/TotemExcavation
-          ref: 87bc240
+          ref: 87bc24076b9fb6fe3a64504f7b638d4ec0767c7c
           path: .lockstep/TotemExcavation
           persist-credentials: false
 
@@ -138,7 +138,7 @@ jobs:
           sha="$(sha512sum "build/libs/${artifact}" | awk '{print $1}')"
           test "$sha" = "$(jq -er .sha512 ".github/staging/release-validation-${version}.json")"
           dependency_source="$(git -C .lockstep/TotemExcavation rev-parse HEAD)"
-          test "$dependency_source" = 87bc240
+          test "$dependency_source" = 87bc24076b9fb6fe3a64504f7b638d4ec0767c7c
           dependency_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
           test "$dependency_version" = 0.1.16
           dependency_sha="$(sha512sum .lockstep/TotemExcavation/build/libs/totem-excavation-0.1.16.jar | awk '{print $1}')"

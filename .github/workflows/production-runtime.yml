@@ -42,7 +42,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Yunitrish006006/TotemExcavation
-          ref: 87bc240
+          ref: 87bc24076b9fb6fe3a64504f7b638d4ec0767c7c
           path: .lockstep/TotemExcavation
           persist-credentials: false
 
