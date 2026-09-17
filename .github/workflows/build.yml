@@ -64,7 +64,7 @@ jobs:
           core_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemCore/gradle.properties)"
           core_jar="${GITHUB_WORKSPACE}/.lockstep/TotemCore/build/libs/totem-core-${core_version}.jar"
           ./.lockstep/TotemExcavation/gradlew -p .lockstep/TotemExcavation \
-            -PtotemCoreJar="$core_jar" jar --no-daemon --stacktrace
+            -PtotemCoreJar="$core_jar" remapJar --no-daemon --stacktrace
           excavation_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
           test "$excavation_version" = '0.1.16'
           test -f ".lockstep/TotemExcavation/build/libs/totem-excavation-${excavation_version}.jar"
