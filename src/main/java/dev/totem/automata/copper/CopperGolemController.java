@@ -55,7 +55,14 @@ public final class CopperGolemController {
                 GatheringNavigation.forget(entry.getKey());
                 continue;
             }
-            if (!(level.getEntity(entry.getKey()) instanceof CopperGolem golem) || golem.isRemoved() || !golem.isAlive()) {
+            var entity = level.getEntity(entry.getKey());
+            // Entity insertion can lag one server tick behind the lifecycle event
+            // that registered the golem. Keep the UUID until the level can resolve
+            // it; removing it here loses a live golem during pressure bursts.
+            if (entity == null) {
+                continue;
+            }
+            if (!(entity instanceof CopperGolem golem) || golem.isRemoved() || !golem.isAlive()) {
                 tracked.remove(entry.getKey());
                 GatheringNavigation.forget(entry.getKey());
                 continue;
