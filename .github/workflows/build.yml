@@ -133,15 +133,21 @@ jobs:
           core_source="$(git -C .lockstep/TotemCore rev-parse HEAD)"
           test "$core_source" = 424b90dc3929caa8c1afcfca7e63c50a64bde669
           core_sha="$(sha512sum .lockstep/TotemCore/build/libs/totem-core-0.7.23.jar | awk '{print $1}')"
-          test "$core_sha" = "$(jq -er .core_artifact_sha512 ".github/staging/release-validation-${version}.json")"
+          expected_core_sha="$(jq -er .core_artifact_sha512 ".github/staging/release-validation-${version}.json")"
+          echo "core_sha=$core_sha expected_core_sha=$expected_core_sha"
+          test "$core_sha" = "$expected_core_sha"
           sha="$(sha512sum "build/libs/${artifact}" | awk '{print $1}')"
-          test "$sha" = "$(jq -er .sha512 ".github/staging/release-validation-${version}.json")"
+          expected_sha="$(jq -er .sha512 ".github/staging/release-validation-${version}.json")"
+          echo "artifact_sha=$sha expected_artifact_sha=$expected_sha"
+          test "$sha" = "$expected_sha"
           dependency_source="$(git -C .lockstep/TotemExcavation rev-parse HEAD)"
           test "$dependency_source" = 9070535bb43f2902c94a80e8f62c1e66c1ff948b
           dependency_version="$(sed -n 's/^mod_version=//p' .lockstep/TotemExcavation/gradle.properties)"
           test "$dependency_version" = 0.1.16
           dependency_sha="$(sha512sum .lockstep/TotemExcavation/build/libs/totem-excavation-0.1.16.jar | awk '{print $1}')"
-          test "$dependency_sha" = "$(jq -er .excavation_artifact_sha512 ".github/staging/release-validation-${version}.json")"
+          expected_dependency_sha="$(jq -er .excavation_artifact_sha512 ".github/staging/release-validation-${version}.json")"
+          echo "dependency_sha=$dependency_sha expected_dependency_sha=$expected_dependency_sha"
+          test "$dependency_sha" = "$expected_dependency_sha"
           mkdir -p build/release-artifact
           cp "build/libs/${artifact}" build/release-artifact/
           jq -n --arg repository "$GITHUB_REPOSITORY" --arg source "$GITHUB_SHA" --arg run "$GITHUB_RUN_ID" --arg attempt "$GITHUB_RUN_ATTEMPT" --arg version "$version" --arg artifact "$artifact" --arg sha "$sha" --arg core_source "$core_source" --arg core_sha "$core_sha" --arg dependency_source "$dependency_source" --arg dependency_sha "$dependency_sha" '{repository:$repository,source_commit:$source,run_id:$run,run_attempt:$attempt,version:$version,artifact:$artifact,sha512:$sha,core_version:"0.7.23",core_source_commit:$core_source,core_artifact_sha512:$core_sha,excavation_source_commit:$dependency_source,excavation_version:"0.1.16",excavation_artifact_sha512:$dependency_sha}' > build/release-artifact/build-provenance.json
