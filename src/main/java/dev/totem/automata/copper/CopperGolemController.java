@@ -18,6 +18,7 @@ public final class CopperGolemController {
     private static final int PRUNE_BINDINGS_INTERVAL_TICKS = 20;
 
     private final Map<UUID, ResourceKey<Level>> tracked = new ConcurrentHashMap<>();
+    private final Map<UUID, CopperGolem> trackedEntities = new ConcurrentHashMap<>();
     private int pruneBindingsTicker;
     private int scanRotationIndex;
     private Diagnostics diagnostics = Diagnostics.EMPTY;
@@ -31,16 +32,19 @@ public final class CopperGolemController {
     public void track(CopperGolem golem) {
         if (!golem.level().isClientSide() && !golem.isRemoved()) {
             tracked.put(golem.getUUID(), golem.level().dimension());
+            trackedEntities.put(golem.getUUID(), golem);
         }
     }
 
     public void untrack(CopperGolem golem) {
         tracked.remove(golem.getUUID());
+        trackedEntities.remove(golem.getUUID());
         GatheringNavigation.forget(golem.getUUID());
     }
 
     public void clear() {
         tracked.clear();
+        trackedEntities.clear();
         scanRotationIndex = 0;
         diagnostics = Diagnostics.EMPTY;
         GatheringNavigation.clearTransientState();
@@ -52,6 +56,7 @@ public final class CopperGolemController {
             ServerLevel level = server.getLevel(entry.getValue());
             if (level == null) {
                 tracked.remove(entry.getKey());
+                trackedEntities.remove(entry.getKey());
                 GatheringNavigation.forget(entry.getKey());
                 continue;
             }
@@ -60,10 +65,17 @@ public final class CopperGolemController {
             // that registered the golem. Keep the UUID until the level can resolve
             // it; removing it here loses a live golem during pressure bursts.
             if (entity == null) {
+                CopperGolem known = trackedEntities.get(entry.getKey());
+                if (known != null && (known.isRemoved() || !known.isAlive())) {
+                    tracked.remove(entry.getKey());
+                    trackedEntities.remove(entry.getKey());
+                    GatheringNavigation.forget(entry.getKey());
+                }
                 continue;
             }
             if (!(entity instanceof CopperGolem golem) || golem.isRemoved() || !golem.isAlive()) {
                 tracked.remove(entry.getKey());
+                trackedEntities.remove(entry.getKey());
                 GatheringNavigation.forget(entry.getKey());
                 continue;
             }
