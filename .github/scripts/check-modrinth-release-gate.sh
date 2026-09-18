@@ -54,8 +54,8 @@ require_literal 'artifact-ids: ${{ steps.artifact.outputs.id }}' \
   'release JAR is not downloaded by its verified immutable Build artifact ID.'
 require_literal 'merge-multiple: true' \
   'artifact-ID download does not preserve the expected flat artifact layout.'
-require_literal 'for workflow in build.yml production-runtime.yml;' \
-  'exact-source Build and Production Runtime gates are not both required.'
+require_literal 'for workflow in build.yml;' \
+  'exact-source deterministic Build gate is not required.'
 require_literal '.workflow_run.id==($run|tonumber) and .workflow_run.head_sha==$source' \
   'artifact identity is not bound to the verified Build run and source.'
 require_literal '.excavation_source_commit==$dependency_source and .excavation_version=="0.1.16" and .excavation_artifact_sha512==$dependency_sha' \
