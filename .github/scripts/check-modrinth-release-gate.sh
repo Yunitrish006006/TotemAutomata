@@ -28,7 +28,7 @@ fi
 
 require_literal 'CORE_REF: 424b90dc3929caa8c1afcfca7e63c50a64bde669' \
   'release TotemCore commit pin is stale.'
-require_literal 'EXCAVATION_REF: 87bc24076b9fb6fe3a64504f7b638d4ec0767c7c' \
+require_literal 'EXCAVATION_REF: 9070535bb43f2902c94a80e8f62c1e66c1ff948b' \
   'release TotemExcavation commit pin is stale.'
 require_literal 'TOTEM_EXCAVATION_REFERENCE_VERSION_ID:' \
   'TotemExcavation Modrinth reference version is missing.'
